@@ -79,19 +79,19 @@ function parseProduct(url, html, listText = "", context = "") {
 
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
   const structuredPrice = offers?.price ?? offers?.lowPrice ?? structured?.priceSpecification?.price ?? null;
-  let price = structuredPrice != null ? Number(String(structuredPrice).replace(",", ".")) : null;
 
-  if (!Number.isFinite(price) || price <= 0 || price >= 10000000) {
-    let priceText = text + " " + listText;
-    if (sku) {
-      const escapedSku = String(sku).replace(/[.*+?^\u0024{}()|[\]\\]/g, "\\$&");
-      priceText = priceText.replace(new RegExp("Šifra\\s*:\\s*" + escapedSku, "i"), "Šifra:");
-    }
-    const priceMatch = priceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i);
-    const parsed = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
-    price = Number.isFinite(parsed) && parsed > 0 && parsed < 10000000 ? parsed : null;
+  let priceText = text + " " + listText + " " + context;
+  if (sku) {
+    const escapedSku = String(sku).replace(/[.*+?^\u0024{}()|[\]\\]/g, "\\$&");
+    priceText = priceText.replace(new RegExp("Šifra\\s*:\\s*" + escapedSku, "ig"), "Šifra:");
   }
-
+  const priceMatch = priceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i);
+  const parsedTextPrice = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
+  const parsedStructuredPrice = structuredPrice != null ? Number(String(structuredPrice).replace(",", ".")) : null;
+  const price = Number.isFinite(parsedTextPrice) && parsedTextPrice > 0 && parsedTextPrice < 1000000
+    ? parsedTextPrice
+    : (Number.isFinite(parsedStructuredPrice) && parsedStructuredPrice > 0 && parsedStructuredPrice < 100000
+      ? parsedStructuredPrice : null);
   const combined = listText + " " + text;
   const availability = String(offers?.availability || structured?.availability || "");
   const unavailable = /OutOfStock|Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(availability + " " + combined);

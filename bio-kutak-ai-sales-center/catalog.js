@@ -46,38 +46,69 @@ async function fetchText(url) {
   return response.text();
 }
 
+function findStructuredProduct($) {
+  let found = null;
+  const visit = (value) => {
+    if (!value || found) return;
+    if (Array.isArray(value)) { for (const item of value) visit(item); return; }
+    if (typeof value !== "object") return;
+    const type = value["@type"];
+    if ((type === "Product" || (Array.isArray(type) && type.includes("Product"))) && value.name) {
+      found = value;
+      return;
+    }
+    if (value["@graph"]) visit(value["@graph"]);
+    for (const [key, child] of Object.entries(value)) if (key !== "@graph") visit(child);
+  };
+  $("script[type='application/ld+json']").each((_, el) => {
+    try { visit(JSON.parse($(el).contents().text())); } catch {}
+  });
+  return found;
+}
+
 function parseProduct(url, html, listText = "", context = "") {
   const $ = cheerio.load(html);
   const text = $("body").text().replace(/\u00a0/g, " ").replace(/\s+/g, " ");
-  const name = $("h1").first().text().trim() || $("meta[property='og:title']").attr("content") || "";
+  const structured = findStructuredProduct($);
+  const name = $("h1").first().text().trim() || structured?.name || $("meta[property='og:title']").attr("content") || "";
   if (!name) return null;
 
-  const skuMatch = (listText + " " + context).match(/Šifra\s*:\s*([\w./-]+)/i)
-    || text.match(/Šifra\s*:\s*([\w./-]+)/i);
-  const priceMatch = (listText + " " + context).match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)
-    || text.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i);
-  const parsedPrice = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
-  const price = Number.isFinite(parsedPrice) && parsedPrice > 0 && parsedPrice < 10000000 ? parsedPrice : null;
-  const rawSku = skuMatch?.[1] || null;
-  const priceDigits = priceMatch ? priceMatch[1].replace(/\D/g, "") : "";
-  const sku = rawSku && rawSku.length > 10 && priceDigits && rawSku.endsWith(priceDigits)
-    ? rawSku.slice(0, -priceDigits.length) : rawSku;
+  const slugCode = new URL(url).pathname.split("/").filter(Boolean).at(-1)?.match(/-([0-9]+(?:\.[0-9]+)?)$/)?.[1] || null;
+  const skuText = (listText + " " + context + " " + text).match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
+  const sku = structured?.sku || structured?.mpn || structured?.gtin13 || slugCode || skuText;
+
+  const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
+  const structuredPrice = offers?.price ?? offers?.lowPrice ?? structured?.priceSpecification?.price ?? null;
+  let price = structuredPrice != null ? Number(String(structuredPrice).replace(",", ".")) : null;
+
+  if (!Number.isFinite(price) || price <= 0 || price >= 10000000) {
+    let priceText = text + " " + listText;
+    if (sku) {
+      const escapedSku = String(sku).replace(/[.*+?^\u0024{}()|[\]\\]/g, "\\$&");
+      priceText = priceText.replace(new RegExp("Šifra\\s*:\\s*" + escapedSku, "i"), "Šifra:");
+    }
+    const priceMatch = priceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i);
+    const parsed = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
+    price = Number.isFinite(parsed) && parsed > 0 && parsed < 10000000 ? parsed : null;
+  }
+
   const combined = listText + " " + text;
-  const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(combined);
-  const buyAvailable = /Kupi|Dodaj u korpu/i.test(combined);
-  const image = $("meta[property='og:image']").attr("content")
+  const availability = String(offers?.availability || structured?.availability || "");
+  const unavailable = /OutOfStock|Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(availability + " " + combined);
+  const buyAvailable = /InStock|Kupi|Dodaj u korpu/i.test(availability + " " + combined);
+  const structuredImage = Array.isArray(structured?.image) ? structured.image[0] : structured?.image;
+  const image = structuredImage || $("meta[property='og:image']").attr("content")
     || $("main img").first().attr("src")
     || $("img").filter((_, el) => /product|proizvod/i.test($(el).attr("alt") || "")).first().attr("src");
   const category = new URL(url).pathname.split("/").filter(Boolean)[0] || null;
 
   return {
-    url, name: name.slice(0, 240), sku,
-    category, priceRsd: Number.isFinite(price) ? price : null,
+    url, name: name.slice(0, 240), sku: sku || null,
+    category, priceRsd: price,
     available: unavailable ? false : (buyAvailable ? true : null),
     imageUrl: image ? absoluteUrl(image) || image : null
   };
 }
-
 async function mapLimit(items, limit, fn) {
   const results = [];
   let index = 0;

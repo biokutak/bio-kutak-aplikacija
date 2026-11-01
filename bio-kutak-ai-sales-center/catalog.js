@@ -20,8 +20,8 @@ function productCandidates(html) {
     if (!href) return;
     const u = new URL(href);
     const parts = u.pathname.split("/").filter(Boolean);
-    const cardText = $(el).closest("article, li, .product, .product-item, .item, div").first().text(" ").replace(/\s+/g, " ");
-    const anchorText = $(el).text(" ").replace(/\s+/g, " ");
+    const cardText = $(el).closest("article, li, .product, .product-item, .item, div").first().text().replace(/\s+/g, " ");
+    const anchorText = $(el).text().replace(/\s+/g, " ");
     const looksLikeProduct = /RSD|Šifra:|Kupi|Trenutno nedostupan/i.test(cardText + " " + anchorText);
     const excluded = /^(prodavnica|pretraga|kontakt|o-nama|blog|naslovna|kako-kupovati|uslovi-koriscenja)$/i;
     if (parts.length >= 2 && parts.length <= 3 && !parts.some((p) => excluded.test(p)) && looksLikeProduct) {

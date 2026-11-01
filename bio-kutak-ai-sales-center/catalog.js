@@ -54,10 +54,14 @@ function parseProduct(url, html, listText = "", context = "") {
 
   const skuMatch = (listText + " " + context).match(/Šifra\s*:\s*([\w./-]+)/i)
     || text.match(/Šifra\s*:\s*([\w./-]+)/i);
-  const priceMatch = (listText + " " + context).match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i)
-    || text.match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i);
+  const priceMatch = (listText + " " + context).match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)
+    || text.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i);
   const parsedPrice = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
   const price = Number.isFinite(parsedPrice) && parsedPrice > 0 && parsedPrice < 10000000 ? parsedPrice : null;
+  const rawSku = skuMatch?.[1] || null;
+  const priceDigits = priceMatch ? priceMatch[1].replace(/\D/g, "") : "";
+  const sku = rawSku && rawSku.length > 10 && priceDigits && rawSku.endsWith(priceDigits)
+    ? rawSku.slice(0, -priceDigits.length) : rawSku;
   const combined = listText + " " + text;
   const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(combined);
   const buyAvailable = /Kupi|Dodaj u korpu/i.test(combined);
@@ -67,7 +71,7 @@ function parseProduct(url, html, listText = "", context = "") {
   const category = new URL(url).pathname.split("/").filter(Boolean)[0] || null;
 
   return {
-    url, name: name.slice(0, 240), sku: skuMatch?.[1] || null,
+    url, name: name.slice(0, 240), sku,
     category, priceRsd: Number.isFinite(price) ? price : null,
     available: unavailable ? false : (buyAvailable ? true : null),
     imageUrl: image ? absoluteUrl(image) || image : null

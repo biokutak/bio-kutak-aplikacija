@@ -29,7 +29,7 @@ app.post('/api/sync',auth,async(q,s)=>{
     u.hash='';
     const path=u.pathname.replace(/\/$/,'')||'/';
     const last=path.split('/').pop();
-    if(/-[0-9]+$/.test(last)){urls.add(u.href);return}
+    if(/-[0-9]+(?:[.,][0-9]+)?$/.test(last)){urls.add(u.href);return}
     const label=$(e).text().trim();
     const hasPaging=[...u.searchParams.keys()].some(k=>/page|strana|offset|start|limit|p$/i.test(k));
     if(hasPaging||(/^\d+$/.test(label)&&path!=='/')){if(!visited.has(u.href)&&queue.length<800)queue.push(u.href);return}

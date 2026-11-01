@@ -147,6 +147,9 @@ function formatProducts(products) {
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "handoff", text: "Hvala na poruci! Proslediću vaše pitanje kolegama iz BIO KUTAK-a." };
   const lower = message.toLocaleLowerCase("sr");
+  if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {
+    return { type: "handoff", text: "Hvala na pitanju. 🌿 Pošto se radi o zdravstvenoj temi, neću davati medicinski savet niti preporučivati terapiju. Proslediću pitanje našem timu; za zdravstvene odluke obratite se lekaru ili farmaceutu." };
+  }
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }

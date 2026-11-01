@@ -109,26 +109,27 @@ async function deliverToCustomer(conversation, text) {
   throw new Error(`Sending to channel ${conversation.channel} is not configured`);
 }
 
-async function notifyAdmins(conversation, incoming, suggestion) {
+async function notifyAdmins(conversation, incoming, suggestion, { autoSent = false } = {}) {
   if (!process.env.TELEGRAM_BOT_TOKEN || !adminIds().length) return;
-  const keyboard = {
-    inline_keyboard: [[
-      { text: "✅ Odobri predlog", callback_data: `approve:${conversation.public_id}` },
-      { text: "🙋 Preuzmi razgovor", callback_data: `take:${conversation.public_id}` }
-    ],[
-      { text: "Zatvori", callback_data: `close:${conversation.public_id}` }
-    ]]
-  };
+  const buttons = autoSent
+    ? [[{ text: "🙋 Preuzmi razgovor", callback_data: `take:${conversation.public_id}` }, { text: "Zatvori", callback_data: `close:${conversation.public_id}` }]]
+    : [[
+        { text: "✅ Odobri predlog", callback_data: `approve:${conversation.public_id}` },
+        { text: "🙋 Preuzmi razgovor", callback_data: `take:${conversation.public_id}` }
+      ],[
+        { text: "Zatvori", callback_data: `close:${conversation.public_id}` }
+      ]];
+  const keyboard = { inline_keyboard: buttons };
   const message = [
-    `📩 NOVI ZAHTEV – ${conversation.public_id}`,
+    autoSent ? `🤖 AUTOMATSKI ODGOVOR POSLAT – ${conversation.public_id}` : `📩 ZAHTEV ZA ODGOVOR – ${conversation.public_id}`,
     `Kanal: ${conversation.channel}`,
     `Kupac: ${conversation.customer_name || conversation.external_user_id || "Posetilac sajta"}`,
     "",
-    `Poruka: ${incoming}`,
+    `Poruka kupca: ${incoming}`,
     "",
-    `AI predlog: ${suggestion}`,
+    `${autoSent ? "Poslati odgovor" : "Predlog odgovora"}: ${suggestion}`,
     "",
-    "Odgovori direktno na ovu Telegram poruku da pošalješ odgovor kupcu."
+    "Odgovori direktno na ovu Telegram poruku da preuzmeš razgovor i odgovoriš kupcu."
   ].join("\n");
   for (const chatId of adminIds()) {
     const sent = await telegram("sendMessage", { chat_id: chatId, text: message, reply_markup: keyboard });
@@ -169,6 +170,8 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
   await saveMessage(conversation.id, "in", "customer", message, { channel });
   if (conversation.status === "human") {
     const acknowledgement = "Hvala na dodatnoj poruci. Kolega iz BIO KUTAK-a je preuzeo razgovor i odgovoriće vam čim bude moguće.";
+    await deliverToCustomer(conversation, acknowledgement);
+    await saveMessage(conversation.id, "out", "bot", acknowledgement);
     await notifyAdmins(conversation, message, acknowledgement).catch((e) => console.error("Telegram notify failed:", e.message));
     return { conversation, reply: acknowledgement, handoff: true };
   }
@@ -176,6 +179,7 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
   if (result.type === "auto") {
     await deliverToCustomer(conversation, result.text);
     await saveMessage(conversation.id, "out", "bot", result.text);
+    await notifyAdmins(conversation, message, result.text, { autoSent: true }).catch((e) => console.error("Telegram notify failed:", e.message));
     return { conversation, reply: result.text, handoff: false };
   }
   await pool.query("UPDATE conversations SET status='awaiting_approval',suggested_reply=$1 WHERE id=$2", [result.text, conversation.id]);
@@ -278,6 +282,13 @@ app.post("/webhooks/telegram", async (req,res) => {
       await telegram("sendMessage",{chat_id:chatId,text:`Sistem radi.\nKatalog: ${products.rows[0]?.n || 0} proizvoda\nRazgovori: ${JSON.stringify(counts.rows)}\nAI pauziran: ${botPaused ? "DA" : "NE"}`});
       return res.sendStatus(200);
     }
+    const resumeConversation = text.match(/^\/resume\s+(BK-[A-Z]+-[A-F0-9]+)$/i);
+    if (resumeConversation) {
+      const c = await getConversation(resumeConversation[1].toUpperCase());
+      if (c) await pool.query("UPDATE conversations SET status='bot',suggested_reply=NULL WHERE id=$1",[c.id]);
+      await telegram("sendMessage",{chat_id:chatId,text:c ? `AI ponovo preuzima razgovor ${c.public_id}.` : "Razgovor nije pronađen."});
+      return res.sendStatus(200);
+    }
     if (text === "/pause" || text === "/resume") {
       botPaused = text === "/pause";
       await telegram("sendMessage",{chat_id:chatId,text:botPaused ? "Automatski odgovori su pauzirani." : "Automatski odgovori su ponovo aktivni."});
@@ -312,8 +323,8 @@ app.post("/webhooks/telegram", async (req,res) => {
     } else if (conversation && action === "reply" && replyText) {
       await deliverToCustomer(conversation, replyText);
       await saveMessage(conversation.id,"out","human",replyText);
-      await pool.query("UPDATE conversations SET status='bot',suggested_reply=NULL WHERE id=$1",[conversation.id]);
-      await telegram("sendMessage",{chat_id:chatId,text:`Odgovor poslat kupcu u razgovoru ${conversation.public_id}.`});
+      await pool.query("UPDATE conversations SET status='human',suggested_reply=NULL WHERE id=$1",[conversation.id]);
+      await telegram("sendMessage",{chat_id:chatId,text:`Odgovor poslat kupcu. Razgovor ${conversation.public_id} ostaje preuzet. Za vraćanje AI-ju pošalji /resume ${conversation.public_id}.`});
     } else {
       await telegram("sendMessage",{chat_id:chatId,text:"Komanda nije prepoznata. Koristi /help ili odgovori na Telegram obaveštenje o razgovoru."});
     }

@@ -19,20 +19,24 @@ function productCandidates(html) {
     const href = absoluteUrl($(el).attr("href"));
     if (!href) return;
     const parts = new URL(href).pathname.split("/").filter(Boolean);
-    const anchorText = $(el).text().replace(/\s+/g, " ").trim();
-    const card = $(el).closest("article, li, [class*='product'], [id*='product']").first();
-    const parentText = card.length ? card.text().replace(/\s+/g, " ").trim() : $(el).parent().parent().text().replace(/\s+/g, " ").trim();
-    const listText = anchorText || parentText;
-    const context = listText + " " + parentText;
-    const looksLikeProduct = /RSD|Šifra:|Kupi|Trenutno nedostupan/i.test(context);
+    let node = $(el);
+    let cardText = $(el).text().replace(/\s+/g, " ").trim();
+    for (let depth = 0; depth < 7 && node.length; depth++) {
+      const candidateText = node.text().replace(/\s+/g, " ").trim();
+      if (/Šifra\s*:/i.test(candidateText) && /RSD/i.test(candidateText) && candidateText.length < 1600) {
+        cardText = candidateText;
+        break;
+      }
+      node = node.parent();
+    }
+    const looksLikeProduct = /Šifra\s*:/i.test(cardText) || /RSD/i.test(cardText) || /Kupi|Trenutno nedostupan/i.test(cardText);
     const excluded = /^(prodavnica|pretraga|kontakt|o-nama|blog|naslovna|kako-kupovati|uslovi-koriscenja)$/i;
     if (parts.length >= 2 && parts.length <= 3 && !parts.some((p) => excluded.test(p)) && looksLikeProduct) {
-      found.set(href, { url: href, listText: listText.slice(0,1200), context: context.slice(0,2000) });
+      found.set(href, { url: href, listText: cardText.slice(0,1500), context: cardText.slice(0,1500) });
     }
   });
   return [...found.values()];
 }
-
 async function fetchText(url) {
   const response = await fetch(url, {
     headers: { "user-agent": "BIO-KUTAK-AI-SalesCenter/0.1 (+https://biokutak.co.rs)" },

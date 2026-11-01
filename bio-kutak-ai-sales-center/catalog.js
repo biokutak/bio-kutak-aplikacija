@@ -124,10 +124,13 @@ async function mapLimit(items, limit, fn) {
 }
 
 export async function syncCatalog(db) {
-  const startUrl = `${SITE}/pretraga`;
-  const firstHtml = await fetchText(startUrl);
-  const pages = new Set([startUrl]);
-  const categoryUrls = new Set();
+  const startUrls = [`${SITE}/prodavnica`, `${SITE}/pretraga`];
+  const startHtml = await Promise.all(startUrls.map(url => fetchText(url)));
+  const pages = new Set(startUrls);
+  const categoryUrls = new Set([
+    "osnovne-namirnice","posebna-ishrana","organski-proizvodi","dodaci-ishrani",
+    "prirodna-kozmetika","program-za-kolace","poklon-setovi","vauceri"
+  ].map(slug => `${SITE}/${slug}`));
   const excluded = new Set(["prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti"]);
 
   const inspectListingPage = (html, pageUrl) => {
@@ -144,25 +147,24 @@ export async function syncCatalog(db) {
     });
   };
 
-  inspectListingPage(firstHtml,startUrl);
-  const categoryList = [...categoryUrls].slice(0,30);
+  startHtml.forEach((html,i) => inspectListingPage(html,startUrls[i]));
+  const categoryList = [...categoryUrls].slice(0,35);
   const categoryHtml = await mapLimit(categoryList,5,async (url) => ({url,html:await fetchText(url).catch(()=> "")}));
   for (const item of categoryHtml) {
-    if (!item.html) continue;
-    inspectListingPage(item.html,item.url);
+    if (item.html) inspectListingPage(item.html,item.url);
   }
 
-  const pageUrls = [...new Set([...pages,...categoryList])].slice(0,35);
+  const pageUrls = [...new Set([...startUrls,...pages,...categoryList])].slice(0,45);
   const listingHtml = await mapLimit(pageUrls,5,async (url) => ({
     url,
-    html: url === startUrl ? firstHtml : (categoryHtml.find(x=>x.url===url)?.html || await fetchText(url).catch(()=> ""))
+    html: startUrls.includes(url) ? startHtml[startUrls.indexOf(url)] : (categoryHtml.find(x=>x.url===url)?.html || await fetchText(url).catch(()=> ""))
   }));
   const allCandidates = new Map();
   for (const page of listingHtml) {
     for (const item of productCandidates(page.html)) allCandidates.set(item.url,item);
   }
 
-  const candidates = [...allCandidates.values()].slice(0,300);
+  const candidates = [...allCandidates.values()].slice(0,500);
   const products = await mapLimit(candidates,5,async (item) => {
     const html = await fetchText(item.url);
     return parseProduct(item.url,html,item.listText,item.context);

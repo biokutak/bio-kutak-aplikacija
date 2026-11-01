@@ -132,7 +132,7 @@ export async function syncCatalog(db) {
     const href = absoluteUrl($(el).attr("href"));
     if (!href) return;
     const u = new URL(href);
-    if (u.pathname === "/pretraga" && /\b[2-9]\b/.test($(el).text().trim())) pages.add(href);
+    if (u.pathname.replace(/\/$/, "") === "/pretraga" && href !== startUrl) pages.add(href);
   });
 
   const pageUrls = [...pages].slice(0, 10);

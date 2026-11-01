@@ -183,6 +183,8 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
   return { conversation, reply: result.text, handoff: true };
 }
 
+app.get("/", (_req,res) => res.sendFile(new URL("./public/test.html", import.meta.url).pathname));
+
 app.get("/health", async (_req,res) => {
   try {
     await ensureSchema();

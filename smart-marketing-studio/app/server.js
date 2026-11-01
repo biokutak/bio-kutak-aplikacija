@@ -14,9 +14,52 @@ app.get('/api/products',auth,async(q,s)=>{const term=String(q.query.q||''),cat=S
 app.get('/api/categories',auth,async(q,s)=>s.json((await db.query("select distinct category from products where active and category is not null order by category")).rows.map(x=>x.category)));
 app.get('/api/stats',auth,async(q,s)=>s.json((await db.query("select (select count(*) from products where active and product_url<>$1)::int products,(select count(*) from creative_requests where status='selected')::int selected,(select count(*) from generated_assets)::int assets,(select max(finished_at) from catalog_sync_runs where status='completed') last_sync",[BASE])).rows[0]));
 app.post('/api/selections',auth,async(q,s)=>{const {product_id,codes=[],instructions=''}=q.body||{};const c=await db.connect();try{await c.query('begin');await c.query("update creative_requests set status='cancelled' where product_id=$1 and status='selected'",[product_id]);for(const code of codes)await c.query("insert into creative_requests(product_id,template_id,instructions,status) select $1,id,$3,'selected' from creative_templates where code=$2 and enabled",[product_id,code,instructions]);await c.query('commit');s.json({ok:true})}catch(e){await c.query('rollback');s.status(500).json({error:e.message})}finally{c.release()}});
-app.post('/api/sync',auth,async(q,s)=>{const run=(await db.query("insert into catalog_sync_runs(status) values('running') returning id")).rows[0].id;try{const get=async u=>{const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0'}});if(!r.ok)throw Error('HTTP '+r.status);return r.text()};const first=await get(BASE+'/prodavnica'),pages=new Set([BASE+'/prodavnica']),urls=new Set();
-const addPageLinks=markup=>{const $=cheerio.load(markup);$('a[href]').each((i,e)=>{const href=$(e).attr('href');if(!href)return;let u;try{u=new URL(href,BASE).href}catch{return}const label=$(e).text().trim();if(u.startsWith(BASE)&&/prodavnica/i.test(u)&&(/[?&](page|p|start|offset)=/i.test(u)||label.length<4&&/[0-9]/.test(label)))pages.add(u);if(u.startsWith(BASE)&&u!==BASE+'/'&&u!==BASE+'/prodavnica'&&!u.includes('/category/')&&!u.includes('/kategorija/')&&!u.includes('/tag/')){const path=new URL(u).pathname.replace(/\/$/,'');const last=path.split('/').pop();if(/-[0-9]+$/.test(last))urls.add(u.split('#')[0])}})};
-addPageLinks(first);
-for(const page of [...pages]){if(page===BASE+'/prodavnica')continue;try{addPageLinks(await get(page))}catch(e){console.log('Pagination page skipped',page,e.message)}}
-let seen=0,inserted=0,updated=0;for(const url of urls){try{const h=cheerio.load(await get(url));const name=h('h1').first().text().trim()||h('meta[property="og:title"]').attr('content');if(!name)continue;const image=h('meta[property="og:image"]').attr('content');let priceRaw=h('meta[property="product:price:amount"]').attr('content')||h('[itemprop="price"]').attr('content')||h('[itemprop="price"]').text();if(!priceRaw){const ld=h('script[type="application/ld+json"]').toArray().map(el=>{try{return JSON.parse(h(el).text())}catch{return null}}).filter(Boolean);const walk=o=>{if(!o||typeof o!=='object')return null;if(o.offers){const v=Array.isArray(o.offers)?o.offers[0]?.price:o.offers.price;if(v!=null)return v}for(const v of Object.values(o)){const got=Array.isArray(v)?v.map(walk).find(x=>x!=null):walk(v);if(got!=null)return got}return null};priceRaw=ld.map(walk).find(v=>v!=null)}const price=priceRaw!=null?Number(String(priceRaw).replace(/[^0-9]/g,''))||null:null;const skuMatch=h('body').text().match(/Šifra[^0-9]*([0-9]+)/i);const sku=skuMatch?.[1]||url.match(/-([0-9]+)$/)?.[1]||null;const r=await db.query("insert into products(product_url,name,sku,price,image_url,active,synced_at,updated_at) values($1,$2,$3,$4,$5,true,now(),now()) on conflict(product_url) do update set name=excluded.name,sku=excluded.sku,price=excluded.price,image_url=excluded.image_url,active=true,synced_at=now(),updated_at=now() returning (xmax=0) fresh",[url,name,sku,price,image]);seen++;if(r.rows[0].fresh)inserted++;else updated++}catch(e){console.log('Skipped',url,e.message)}}await db.query("update catalog_sync_runs set status='completed',products_seen=$1,products_inserted=$2,products_updated=$3,finished_at=now() where id=$4",[seen,inserted,updated,run]);s.json({ok:true,products_seen:seen,inserted,updated,discovered:urls.size})}catch(e){await db.query("update catalog_sync_runs set status='failed',error_text=$1,finished_at=now() where id=$2",[e.message,run]);s.status(500).json({ok:false,error:e.message})}});
+app.post('/api/sync',auth,async(q,s)=>{
+ const run=(await db.query("insert into catalog_sync_runs(status) values('running') returning id")).rows[0].id;
+ try{
+  const get=async u=>{const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0'}});if(!r.ok)throw Error('HTTP '+r.status);return r.text()};
+  const queue=[BASE+'/prodavnica'],visited=new Set(),urls=new Set();
+  const ignored=new Set(['/','/prodavnica','/pretraga','/o-nama','/blog','/kontakt','/korpa','/prijava','/registracija','/uslovi-kupovine','/kako-kupovati','/podaci','/isporuka']);
+  const addLinks=(markup,sourceUrl)=>{
+   const $=cheerio.load(markup);
+   $('a[href]').each((i,e)=>{
+    const href=$(e).attr('href');if(!href)return;
+    let u;try{u=new URL(href,sourceUrl)}catch{return}
+    if(u.origin!==BASE)return;
+    u.hash='';
+    const path=u.pathname.replace(/\/$/,'')||'/';
+    const last=path.split('/').pop();
+    if(/-[0-9]+$/.test(last)){urls.add(u.href);return}
+    const label=$(e).text().trim();
+    const hasPaging=[...u.searchParams.keys()].some(k=>/page|strana|offset|start|limit|p$/i.test(k));
+    if(hasPaging||(/^\d+$/.test(label)&&path!=='/')){if(!visited.has(u.href)&&queue.length<800)queue.push(u.href);return}
+    if(!ignored.has(path)&&!path.includes('.')){if(!visited.has(u.href)&&queue.length<800)queue.push(u.href)}
+   });
+  };
+  while(queue.length&&visited.size<800){
+   const page=queue.shift();if(visited.has(page))continue;visited.add(page);
+   try{addLinks(await get(page),page)}catch(e){console.log('Catalog page skipped',page,e.message)}
+  }
+  let seen=0,inserted=0,updated=0,failed=0;
+  for(const url of urls){
+   try{
+    const h=cheerio.load(await get(url));
+    const name=h('h1').first().text().trim()||h('meta[property="og:title"]').attr('content');
+    if(!name)continue;
+    const body=h('body').text().replace(/\s+/g,' ').trim();
+    const skuMatch=body.match(/Šifra\s*:\s*([0-9]+(?:[.,][0-9]+)?)/i);
+    const sku=skuMatch?.[1]?.replace(',','.')||null;
+    const priceMatch=body.match(/(?:^|\s)([0-9][0-9.,]*)\s*RSD\b/i);
+    const price=priceMatch?Number(priceMatch[1].replace(/[.,]/g,''))||null:null;
+    const image=h('meta[property="og:image"]').attr('content')||h('img[alt]').filter((i,e)=>((h(e).attr('alt')||'').toLowerCase().includes(name.toLowerCase().slice(0,18)))).first().attr('src')||null;
+    const categoryPath=new URL(url).pathname.split('/').filter(Boolean)[0]||null;
+    const category=categoryPath?categoryPath.replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):null;
+    const r=await db.query("insert into products(product_url,name,sku,category,price,image_url,active,synced_at,updated_at) values($1,$2,$3,$4,$5,$6,true,now(),now()) on conflict(product_url) do update set name=excluded.name,sku=excluded.sku,category=excluded.category,price=excluded.price,image_url=excluded.image_url,active=true,synced_at=now(),updated_at=now() returning (xmax=0) fresh",[url,name,sku,category,price,image]);
+    seen++;if(r.rows[0].fresh)inserted++;else updated++;
+   }catch(e){failed++;console.log('Product skipped',url,e.message)}
+  }
+  await db.query("update catalog_sync_runs set status='completed',products_seen=$1,products_inserted=$2,products_updated=$3,finished_at=now() where id=$4",[seen,inserted,updated,run]);
+  s.json({ok:true,products_seen:seen,inserted,updated,discovered:urls.size,pages_scanned:visited.size,failed});
+ }catch(e){await db.query("update catalog_sync_runs set status='failed',error_text=$1,finished_at=now() where id=$2",[e.message,run]);s.status(500).json({ok:false,error:e.message})}
+});
 app.listen(process.env.PORT||3000,()=>console.log('Smart Marketing Studio running'));

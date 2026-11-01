@@ -254,6 +254,10 @@ app.post("/webhooks/telegram", async (req,res) => {
     const message = update.message;
     if (!message?.text) return res.sendStatus(200);
     const chatId = String(message.chat.id);
+    if (message.text.trim() === "/id") {
+      await telegram("sendMessage",{chat_id:chatId,text:`Telegram chat ID: ${chatId}\nDodajte ovaj broj u Render promenljivu TELEGRAM_ADMIN_CHAT_ID, pa ponovo pokrenite servis.`});
+      return res.sendStatus(200);
+    }
     if (!adminIds().includes(chatId)) {
       await telegram("sendMessage",{chat_id:chatId,text:"BIO KUTAK kontrolni bot. Ovaj nalog nije ovlašćen za upravljanje sistemom."});
       return res.sendStatus(200);

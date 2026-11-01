@@ -56,7 +56,8 @@ function parseProduct(url, html, listText = "", context = "") {
     || text.match(/Šifra\s*:\s*([\w./-]+)/i);
   const priceMatch = (listText + " " + context).match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i)
     || text.match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i);
-  const price = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
+  const parsedPrice = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
+  const price = Number.isFinite(parsedPrice) && parsedPrice > 0 && parsedPrice < 10000000 ? parsedPrice : null;
   const combined = listText + " " + text;
   const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(combined);
   const buyAvailable = /Kupi|Dodaj u korpu/i.test(combined);

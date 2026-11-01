@@ -168,8 +168,11 @@ async function classifyAndReply(conversation, message) {
 async function handleIncoming({ channel, externalUserId, customerName, message, sessionToken }) {
   const conversation = await getOrCreateConversation({ channel, externalUserId, customerName, sessionToken });
   await saveMessage(conversation.id, "in", "customer", message, { channel });
+  const operatorConnected = Boolean(process.env.TELEGRAM_BOT_TOKEN && adminIds().length);
   if (conversation.status === "human") {
-    const acknowledgement = "Hvala na dodatnoj poruci. Kolega iz BIO KUTAK-a je preuzeo razgovor i odgovoriće vam čim bude moguće.";
+    const acknowledgement = operatorConnected
+      ? "Hvala na dodatnoj poruci. Kolega iz BIO KUTAK-a je preuzeo razgovor i odgovoriće vam čim bude moguće."
+      : "Hvala na poruci. Za direktnu pomoć trenutno pozovite BIO KUTAK na 024/552-953 ili pišite na prodavnica.biokutak.subotica@gmail.com.";
     await deliverToCustomer(conversation, acknowledgement);
     await saveMessage(conversation.id, "out", "bot", acknowledgement);
     await notifyAdmins(conversation, message, acknowledgement).catch((e) => console.error("Telegram notify failed:", e.message));
@@ -181,6 +184,12 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
     await saveMessage(conversation.id, "out", "bot", result.text);
     await notifyAdmins(conversation, message, result.text, { autoSent: true }).catch((e) => console.error("Telegram notify failed:", e.message));
     return { conversation, reply: result.text, handoff: false };
+  }
+  if (!operatorConnected) {
+    const fallback = "Hvala na pitanju. 🌿 Za direktnu pomoć trenutno pozovite BIO KUTAK na 024/552-953 ili pišite na prodavnica.biokutak.subotica@gmail.com.";
+    await deliverToCustomer(conversation, fallback);
+    await saveMessage(conversation.id, "out", "bot", fallback);
+    return { conversation, reply: fallback, handoff: true };
   }
   await pool.query("UPDATE conversations SET status='awaiting_approval',suggested_reply=$1 WHERE id=$2", [result.text, conversation.id]);
   await notifyAdmins(conversation, message, result.text).catch((e) => console.error("Telegram notify failed:", e.message));

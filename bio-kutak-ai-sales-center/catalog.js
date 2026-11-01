@@ -75,7 +75,7 @@ function parseProduct(url, html, listText = "", context = "") {
 
   const slugCode = new URL(url).pathname.split("/").filter(Boolean).at(-1)?.match(/-([0-9]+(?:\.[0-9]+)?)$/)?.[1] || null;
   const skuText = (listText + " " + context + " " + text).match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
-  const sku = structured?.sku || structured?.mpn || structured?.gtin13 || slugCode || skuText;
+  const sku = slugCode || structured?.sku || structured?.mpn || structured?.gtin13 || skuText;
 
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
   const structuredPrice = offers?.price ?? offers?.lowPrice ?? structured?.priceSpecification?.price ?? null;

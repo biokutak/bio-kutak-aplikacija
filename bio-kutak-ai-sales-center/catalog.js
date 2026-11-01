@@ -14,21 +14,23 @@ function absoluteUrl(href) {
 
 function productCandidates(html) {
   const $ = cheerio.load(html);
-  const found = new Set();
+  const found = new Map();
   $("a[href]").each((_, el) => {
     const href = absoluteUrl($(el).attr("href"));
     if (!href) return;
-    const u = new URL(href);
-    const parts = u.pathname.split("/").filter(Boolean);
-    const cardText = $(el).closest("article, li, .product, .product-item, .item, div").first().text().replace(/\s+/g, " ");
-    const anchorText = $(el).text().replace(/\s+/g, " ");
-    const looksLikeProduct = /RSD|Šifra:|Kupi|Trenutno nedostupan/i.test(cardText + " " + anchorText);
+    const parts = new URL(href).pathname.split("/").filter(Boolean);
+    const anchorText = $(el).text().replace(/\s+/g, " ").trim();
+    const card = $(el).closest("article, li, [class*='product'], [id*='product']").first();
+    const parentText = card.length ? card.text().replace(/\s+/g, " ").trim() : $(el).parent().parent().text().replace(/\s+/g, " ").trim();
+    const listText = anchorText || parentText;
+    const context = listText + " " + parentText;
+    const looksLikeProduct = /RSD|Šifra:|Kupi|Trenutno nedostupan/i.test(context);
     const excluded = /^(prodavnica|pretraga|kontakt|o-nama|blog|naslovna|kako-kupovati|uslovi-koriscenja)$/i;
     if (parts.length >= 2 && parts.length <= 3 && !parts.some((p) => excluded.test(p)) && looksLikeProduct) {
-      found.add(href);
+      found.set(href, { url: href, listText: listText.slice(0,1200), context: context.slice(0,2000) });
     }
   });
-  return [...found];
+  return [...found.values()];
 }
 
 async function fetchText(url) {
@@ -40,17 +42,20 @@ async function fetchText(url) {
   return response.text();
 }
 
-function parseProduct(url, html) {
+function parseProduct(url, html, listText = "", context = "") {
   const $ = cheerio.load(html);
   const text = $("body").text().replace(/\u00a0/g, " ").replace(/\s+/g, " ");
   const name = $("h1").first().text().trim() || $("meta[property='og:title']").attr("content") || "";
   if (!name) return null;
 
-  const priceMatch = text.match(/(?:^|\s)(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i);
+  const skuMatch = (listText + " " + context).match(/Šifra\s*:\s*([\w./-]+)/i)
+    || text.match(/Šifra\s*:\s*([\w./-]+)/i);
+  const priceMatch = (listText + " " + context).match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i)
+    || text.match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i);
   const price = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
-  const skuMatch = text.match(/Šifra\s*:\s*([\w./-]+)/i);
-  const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(text);
-  const buyAvailable = /Kupi|Dodaj u korpu/i.test(text);
+  const combined = listText + " " + context + " " + text;
+  const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(combined);
+  const buyAvailable = /Kupi|Dodaj u korpu/i.test(combined);
   const image = $("meta[property='og:image']").attr("content")
     || $("main img").first().attr("src")
     || $("img").filter((_, el) => /product|proizvod/i.test($(el).attr("alt") || "")).first().attr("src");
@@ -91,14 +96,17 @@ export async function syncCatalog(db) {
   });
 
   const pageUrls = [...pages].slice(0, 10);
-  const allCandidates = new Set();
+  const allCandidates = new Map();
   for (const pageUrl of pageUrls) {
     const html = pageUrl === startUrl ? firstHtml : await fetchText(pageUrl).catch(() => "");
-    for (const url of productCandidates(html)) allCandidates.add(url);
+    for (const item of productCandidates(html)) allCandidates.set(item.url, item);
   }
 
-  const productUrls = [...allCandidates].slice(0, 180);
-  const products = await mapLimit(productUrls, 5, async (url) => parseProduct(url, await fetchText(url)));
+  const candidates = [...allCandidates.values()].slice(0, 180);
+  const products = await mapLimit(candidates, 5, async (item) => {
+    const html = await fetchText(item.url);
+    return parseProduct(item.url, html, item.listText, item.context);
+  });
   for (const p of products) {
     await db.query(
       `INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at)
@@ -109,13 +117,13 @@ export async function syncCatalog(db) {
       [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
     );
   }
-  return { pages: pageUrls.length, found: productUrls.length, saved: products.length };
+  return { pages: pageUrls.length, found: candidates.length, saved: products.length };
 }
 
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);
   if (!clean) return [];
-  const stopWords = new Set(["imate","ima","li","mi","moze","može","molim","vas","za","sa","u","na","od","do","je","su","da","koji","koja","koje","koliko","cena","cijena","proizvod","proizvoda","treba","zelim","želim","mi","neki","neku"]);
+  const stopWords = new Set(["imate","ima","li","mi","moze","može","molim","vas","za","sa","u","na","od","do","je","su","da","koji","koja","koje","koliko","cena","cijena","proizvod","proizvoda","treba","zelim","želim","neki","neku"]);
   const terms = clean.toLocaleLowerCase("sr").split(/\s+/).map(x => x.replace(/[^\p{L}\p{N}.-]/gu,"")).filter((x) => x.length > 2 && !stopWords.has(x)).slice(0, 5);
   const pattern = `%${clean}%`;
   const result = await db.query(

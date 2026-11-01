@@ -130,8 +130,20 @@ export async function syncCatalog(db) {
     "osnovne-namirnice","posebna-ishrana","organski-proizvodi","dodaci-ishrani",
     "prirodna-kozmetika","program-za-kolace","poklon-setovi","vauceri"
   ];
-  const categoryUrls = categorySlugs.map(slug => `${SITE}/${slug}`);
-  const categoryHtml = await mapLimit(categoryUrls,8,async (url) => ({
+  const categoryUrls = new Set(categorySlugs.map(slug => `${SITE}/${slug}`));
+  const excludedPages = new Set(["prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti","nacin-isporuke-i-placanja"]);
+  for (const html of startHtml) {
+    const $ = cheerio.load(html);
+    $("a[href]").each((_, el) => {
+      const href = absoluteUrl($(el).attr("href"));
+      if (!href) return;
+      const u = new URL(href);
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts.length === 1 && !u.search && !excludedPages.has(parts[0].toLowerCase())) categoryUrls.add(href);
+    });
+  }
+  const categoryList = [...categoryUrls].slice(0,35);
+  const categoryHtml = await mapLimit(categoryList,8,async (url) => ({
     url, html: await fetchText(url).catch(() => "")
   }));
   const listingHtml = [
@@ -143,7 +155,7 @@ export async function syncCatalog(db) {
     for (const item of productCandidates(page.html)) allCandidates.set(item.url,item);
   }
 
-  const candidates = [...allCandidates.values()].slice(0,250);
+  const candidates = [...allCandidates.values()].slice(0,300);
   const products = await mapLimit(candidates,8,async (item) => {
     const html = await fetchText(item.url);
     return parseProduct(item.url,html,item.listText,item.context);
@@ -158,7 +170,7 @@ export async function syncCatalog(db) {
       [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
     );
   }
-  return { listingPages: listingHtml.length, categories: categoryUrls.length, found: candidates.length, saved: products.length };
+  return { listingPages: listingHtml.length, categories: categoryList.length, found: candidates.length, saved: products.length };
 }
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);

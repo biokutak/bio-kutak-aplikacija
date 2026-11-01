@@ -53,7 +53,7 @@ function parseProduct(url, html, listText = "", context = "") {
   const priceMatch = (listText + " " + context).match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i)
     || text.match(/(\d[\d.]*(?:,\d{1,2})?)\s*RSD\b/i);
   const price = priceMatch ? Number(priceMatch[1].replace(/\./g, "").replace(",", ".")) : null;
-  const combined = listText + " " + context + " " + text;
+  const combined = listText + " " + text;
   const unavailable = /Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(combined);
   const buyAvailable = /Kupi|Dodaj u korpu/i.test(combined);
   const image = $("meta[property='og:image']").attr("content")

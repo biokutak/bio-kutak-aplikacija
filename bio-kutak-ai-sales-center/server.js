@@ -358,11 +358,8 @@ app.listen(PORT, async () => {
   try {
     await ensureSchema();
     console.log("Database schema ready");
-    const count = await pool.query("SELECT COUNT(*)::int AS n FROM products");
-    if (count.rows[0].n === 0) {
-      const result = await syncCatalog(pool);
-      console.log("Initial catalog sync:",result);
-    }
+    const result = await syncCatalog(pool);
+    console.log("Startup catalog sync:",result);
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.RENDER_EXTERNAL_URL) {
       await telegram("setWebhook", {
         url: process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "") + "/webhooks/telegram",

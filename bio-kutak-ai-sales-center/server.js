@@ -7,10 +7,21 @@ import { searchProducts, syncCatalog } from "./catalog.js";
 const { Pool } = pg;
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json({ limit: "1mb" }));
-
 const PORT = Number(process.env.PORT || 10000);
 const SITE_URL = (process.env.SITE_URL || "https://biokutak.co.rs").replace(/\/$/, "");
+const allowedOrigins = new Set([SITE_URL, "https://www.biokutak.co.rs"]);
+app.use((req,res,next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Key");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+app.use(express.json({ limit: "1mb", verify: (req,res,buf) => { req.rawBody = Buffer.from(buf); } }));
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
@@ -153,6 +164,11 @@ async function classifyAndReply(conversation, message) {
 async function handleIncoming({ channel, externalUserId, customerName, message, sessionToken }) {
   const conversation = await getOrCreateConversation({ channel, externalUserId, customerName, sessionToken });
   await saveMessage(conversation.id, "in", "customer", message, { channel });
+  if (conversation.status === "human") {
+    const acknowledgement = "Hvala na dodatnoj poruci. Kolega iz BIO KUTAK-a je preuzeo razgovor i odgovoriće vam čim bude moguće.";
+    await notifyAdmins(conversation, message, acknowledgement).catch((e) => console.error("Telegram notify failed:", e.message));
+    return { conversation, reply: acknowledgement, handoff: true };
+  }
   const result = await classifyAndReply(conversation, message);
   if (result.type === "auto") {
     await deliverToCustomer(conversation, result.text);
@@ -340,5 +356,14 @@ app.listen(PORT, async () => {
       const result = await syncCatalog(pool);
       console.log("Initial catalog sync:",result);
     }
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.RENDER_EXTERNAL_URL) {
+      await telegram("setWebhook", {
+        url: process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "") + "/webhooks/telegram",
+        secret_token: process.env.TELEGRAM_WEBHOOK_SECRET || undefined,
+        allowed_updates: ["message","callback_query"]
+      });
+      console.log("Telegram webhook registered");
+    }
   } catch (e) { console.error("Startup initialization:",e.message); }
+  setInterval(() => syncCatalog(pool).then(r => console.log("Scheduled catalog sync:",r)).catch(e => console.error("Scheduled catalog sync failed:",e.message)), 6 * 60 * 60 * 1000);
 });

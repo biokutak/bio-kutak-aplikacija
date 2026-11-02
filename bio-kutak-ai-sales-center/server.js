@@ -160,7 +160,7 @@ async function classifyAndReply(conversation, message) {
   const advice = await adviseCustomer(pool, message);
   if (advice) {
     if (advice.urgent) return { type: "handoff", text: advice.reply };
-    if (advice.products.length) return { type: "auto", text: advice.reply + "\\n\\n" + formatProducts(advice.products) + "\\n\\nCene i dostupnost proverite na stranici proizvoda." };
+    if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
     return { type: "handoff", text: advice.reply };
   }
   // Topics outside the adviser's supported scope remain with a human; no medical diagnosis or treatment advice.
@@ -169,7 +169,7 @@ async function classifyAndReply(conversation, message) {
   }
   const products = await searchProducts(pool, message, 5);
   if (products.length) {
-    return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\\n\\n${formatProducts(products)}\\n\\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };
+    return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };
   }
   const suggestion = "Hvala na pitanju! 🌿 Proslediću ga našem timu kako bismo proverili tačne informacije i javili vam se.";
   return { type: "handoff", text: suggestion };

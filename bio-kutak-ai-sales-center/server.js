@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import { searchProducts } from "./catalog.js";
 import { syncCatalogV2 } from "./catalog-v2.js";
 import { adviseCustomer } from "./advisor.js";
-import { rebuildKnowledgeBase, ensureKnowledgeSchema, answerProductFollowUp, searchKnowledge } from "./knowledge.js";
+import { rebuildKnowledgeBase, ensureKnowledgeSchema, answerProductFollowUp, searchKnowledge, answerFromKnowledge } from "./knowledge.js";
 
 const { Pool } = pg;
 const app = express();
@@ -297,6 +297,8 @@ async function classifyAndReply(conversation, message) {
   if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {
     return { type: "handoff", text: "Hvala na pitanju. 🌿 Pošto se radi o zdravstvenoj temi koju naš savetnik ne može pouzdano da obradi, proslediću pitanje našem timu. Za zdravstvene odluke obratite se lekaru ili farmaceutu." };
   }
+  const knowledgeAnswer = await answerFromKnowledge(pool, message);
+  if (knowledgeAnswer) return knowledgeAnswer;
   const products = await searchProducts(pool, message, 5);
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };

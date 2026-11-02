@@ -271,8 +271,6 @@ const INTENTS = [
     intro: "Vrtoglavica može biti posledica različitih stanja, od dehidratacije do problema sa pritiskom ili unutrašnjim uhom. Sedite ili lezite dok ne prođe i nemojte voziti. Ako se javi iznenadna slabost jedne strane tela, smetnja govora ili vida, bol u grudima ili gubitak svesti, odmah pozovite hitnu pomoć."
   },
 
-];
-
   {
     id: "gastritis",
     adviceOnly: true,
@@ -291,6 +289,7 @@ const INTENTS = [
     patterns: ["estrogen", "estrogena", "estrogenu", "estrogenski", "hormonski status", "hormoni kod zena"],
     intro: "Estrogen je hormon čiji se nivo menja tokom života i menstrualnog ciklusa. Jedna vrednost se ne tumači bez uzrasta, faze ciklusa, simptoma i razloga zbog kog je analiza rađena. Nemojte pokušavati da menjate nivo hormona suplementima bez saveta ginekologa ili endokrinologa. Ako imate nalaz, mogu da objasnim šta naziv analize znači, ali tumačenje pripada lekaru."
   },
+];
 const URGENT = /bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
 
 function detectIntent(message) {

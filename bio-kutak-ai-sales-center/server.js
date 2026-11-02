@@ -67,6 +67,28 @@ async function saveMessage(conversationId, direction, sender, body, metadata = {
   await pool.query("UPDATE conversations SET last_message_at=NOW(),updated_at=NOW() WHERE id=$1", [conversationId]);
 }
 
+async function recordUnansweredQuestion(conversation, question, draftReply) {
+  const clean = String(question || "").trim().slice(0,2000);
+  if (!clean) return;
+  const normalized = clean.toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/đ/g,"dj").replace(/[^a-z0-9\\s]/g," ").replace(/\\s+/g," ").trim();
+  const questionHash = hash(normalized);
+  const context = await pool.query(
+    "SELECT direction,sender,body,created_at FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
+    [conversation.id]
+  );
+  await pool.query(
+    `INSERT INTO unanswered_questions(conversation_id,channel,customer_name,question,question_hash,draft_reply,context)
+     VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)
+     ON CONFLICT(question_hash) DO UPDATE SET
+       occurrences=unanswered_questions.occurrences+1,
+       last_seen_at=NOW(),
+       context=EXCLUDED.context,
+       draft_reply=EXCLUDED.draft_reply
+     WHERE unanswered_questions.status='open'`,
+    [conversation.id,conversation.channel,conversation.customer_name,clean,questionHash,String(draftReply||"").slice(0,4000),JSON.stringify(context.rows.reverse())]
+  );
+}
+
 async function getConversation(publicId) {
   const r = await pool.query("SELECT * FROM conversations WHERE public_id=$1", [publicId]);
   return r.rows[0] || null;
@@ -508,7 +530,7 @@ async function classifyAndReply(conversation, message) {
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };
   }
-  return { type: "auto", text: "Nisam pronašla dovoljno pouzdan podatak ili tačan artikal za ovo pitanje u katalogu, pa neću da nagađam. 🌿 Mogu da objasnim opšte informacije ili da pronađem proizvod ako mi napišete naziv, sastojak ili šta tražite. Šta biste želeli da saznate?" };
+  return { type: "auto", learningNeeded: true, text: "Nisam pronašla dovoljno pouzdan podatak ili tačan artikal za ovo pitanje u katalogu, pa neću da nagađam. 🌿 Zabeležila sam pitanje kako bi BIO KUTAK mogao da dopuni moje znanje. Možete mi reći još neki detalj, a ja ću pokušati da pronađem odgovarajući artikal." };
 }
 
 async function handleIncoming({ channel, externalUserId, customerName, message, sessionToken }) {
@@ -525,6 +547,9 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
     return { conversation, reply: acknowledgement, handoff: true };
   }
   const result = await classifyAndReply(conversation, message);
+  if (result.learningNeeded) {
+    await recordUnansweredQuestion(conversation, message, result.text).catch(e => console.error("Could not save unanswered question:", e.message));
+  }
   if (result.type === "auto") {
     await deliverToCustomer(conversation, result.text);
     await saveMessage(conversation.id, "out", "bot", result.text);
@@ -567,6 +592,45 @@ app.get("/api/knowledge/status", async (_req,res) => {
     const products = await pool.query("SELECT COUNT(*)::int AS total FROM products");
     res.json({ ok:true, entries:counts.rows, catalogProducts:products.rows[0]?.total || 0 });
   } catch (e) { res.status(503).json({ ok:false, error:"Baza znanja trenutno nije dostupna." }); }
+});
+
+app.get("/api/admin/unanswered", async (req,res) => {
+  if (!process.env.ADMIN_API_KEY || !safeEqual(req.headers["x-admin-key"], process.env.ADMIN_API_KEY)) return res.sendStatus(401);
+  try {
+    await ensureSchema();
+    const status = String(req.query.status || "open");
+    const limit = Math.max(1,Math.min(100,Number(req.query.limit)||50));
+    const result = await pool.query(
+      "SELECT id,channel,customer_name,question,occurrences,first_seen_at,last_seen_at,draft_reply,context FROM unanswered_questions WHERE status=$1 ORDER BY last_seen_at DESC LIMIT $2",
+      [status,limit]
+    );
+    const counts = await pool.query("SELECT status,COUNT(*)::int AS total FROM unanswered_questions GROUP BY status");
+    res.json({ ok:true, questions:result.rows, counts:counts.rows });
+  } catch(e) { res.status(500).json({ ok:false,error:e.message }); }
+});
+
+app.post("/api/admin/unanswered/:id/resolve", async (req,res) => {
+  if (!process.env.ADMIN_API_KEY || !safeEqual(req.headers["x-admin-key"], process.env.ADMIN_API_KEY)) return res.sendStatus(401);
+  try {
+    await ensureSchema();
+    await ensureKnowledgeSchema(pool);
+    const answer = String(req.body?.answer || "").trim().slice(0,8000);
+    const title = String(req.body?.title || "").trim().slice(0,200);
+    const keywords = String(req.body?.keywords || "").trim().slice(0,1000);
+    if (!answer || !title) return res.status(400).json({ ok:false,error:"Potrebni su title i answer." });
+    const item = await pool.query("SELECT * FROM unanswered_questions WHERE id=$1 AND status='open'",[req.params.id]);
+    if (!item.rows[0]) return res.status(404).json({ ok:false,error:"Otvoreno pitanje nije pronađeno." });
+    const q = item.rows[0];
+    const slug = "learned:" + hash(String(q.question_hash)).slice(0,48);
+    await pool.query(
+      `INSERT INTO knowledge_entries(slug,entry_type,title,keywords,content,source,verified_at,updated_at)
+       VALUES($1,'guide',$2,$3,$4,'BIO KUTAK – odgovor potvrđen od administratora',NOW(),NOW())
+       ON CONFLICT(slug) DO UPDATE SET title=EXCLUDED.title,keywords=EXCLUDED.keywords,content=EXCLUDED.content,source=EXCLUDED.source,verified_at=NOW(),updated_at=NOW()`,
+      [slug,title,[q.question,keywords].filter(Boolean).join(" "),answer]
+    );
+    await pool.query("UPDATE unanswered_questions SET status='resolved',resolved_at=NOW(),resolution_title=$2,resolution=$3 WHERE id=$1",[q.id,title,answer]);
+    res.json({ ok:true, learned:true, id:q.id, title, message:"Odgovor je dodat u bazu znanja Pametnice." });
+  } catch(e) { res.status(500).json({ ok:false,error:e.message }); }
 });
 
 app.get("/api/knowledge/search", async (req,res) => {

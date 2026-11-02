@@ -57,14 +57,13 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
   const sourceText = body+" "+listingText;
   const slugTail = new URL(url).pathname.split("/").filter(Boolean).at(-1) || "";
-  const slugSku = slugTail.match(/-(\d{3,16})$/)?.[1] || null;
+  const slugSku = slugTail.match(/-(\d{1,6}(?:\.\d{1,6})?|\d{7,16})$/)?.[1] || null;
   const rawSku = structured?.sku || structured?.mpn || structured?.gtin13 ||
     sourceText.match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
   let sku = rawSku || slugSku;
   let priceRaw = offers?.price ?? offers?.lowPrice ??
-    sourceText.match(/(?:Cena|Price)?\s*:?\s*(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ??
-    sourceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ??
-    sourceText.match(/(\d[\d\s.]*?(?:,\d{1,2})?)\s*RSD\b/i)?.[1] ?? null;
+    sourceText.match(/(\d[\d\s.]*?(?:,\d{1,2})?)\s*RSD\b/i)?.[1] ??
+    sourceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ?? null;
   // Some BIO KUTAK cards concatenate SKU + price (e.g. EAN13 + 500).
   // The product URL carries the real SKU, so split that suffix back into price.
   if (slugSku && rawSku && rawSku.startsWith(slugSku) && rawSku.length > slugSku.length) {

@@ -35,8 +35,16 @@ CREATE TABLE IF NOT EXISTS products (
   price_rsd NUMERIC(12,2),
   available BOOLEAN,
   image_url TEXT,
+  description TEXT,
+  ingredients TEXT,
+  usage TEXT,
+  warnings TEXT,
   synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS usage TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS warnings TEXT;
 CREATE INDEX IF NOT EXISTS products_name_search_idx ON products USING GIN (to_tsvector('simple', name));
 CREATE INDEX IF NOT EXISTS products_sku_idx ON products(sku);
 

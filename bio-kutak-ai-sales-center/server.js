@@ -160,6 +160,7 @@ async function classifyAndReply(conversation, message) {
   const advice = await adviseCustomer(pool, message);
   if (advice) {
     if (advice.urgent) return { type: "handoff", text: advice.reply };
+    if (advice.autoReply) return { type: "auto", text: advice.reply };
     if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
     return { type: "handoff", text: advice.reply };
   }

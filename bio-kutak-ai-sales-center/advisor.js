@@ -343,6 +343,26 @@ export async function adviseCustomer(db, message) {
     };
   }
   const intro = intent.intro;
+  if (intent.id === "potency") {
+    const result = await db.query(
+      "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND concat_ws(' ',name,category,description,ingredients) ILIKE ANY(ARRAY['%libido%','%potenc%','%erekc%','%seksual%']) ORDER BY CASE WHEN available IS TRUE THEN 0 ELSE 1 END, name LIMIT 5"
+    );
+    if (!result.rows.length) {
+      return {
+        urgent: false,
+        autoReply: true,
+        intent: "potency",
+        products: [],
+        reply: "Razumem. 🌿 Proverio sam BIO KUTAK katalog, ali trenutno nisam pronašao proizvod čiji opis ili sastav izričito navodi libido, potenciju ili seksualnu funkciju. Neću vam preporučiti nasumičan preparat niti tvrditi da suplement leči ove tegobe. Ako se problem ponavlja, razgovarajte sa lekarom ili urologom; posebno je važno proveriti moguće uzroke i interakcije sa lekovima."
+      };
+    }
+    return {
+      urgent: false,
+      intent: "potency",
+      products: result.rows,
+      reply: "Proverio sam BIO KUTAK katalog i pronašao sledeće artikle čiji opis ili sastav pominje libido, potenciju ili seksualnu funkciju. 🌿 To ne znači da je dokazano da leče erektilne smetnje ili smanjen libido. Proverite deklaraciju i posavetujte se sa lekarom ili farmaceutom, naročito ako koristite terapiju."
+    };
+  }
   if (intent.adviceOnly) {
     return { urgent: false, autoReply: true, intent: intent.id, products: [], reply: intro };
   }

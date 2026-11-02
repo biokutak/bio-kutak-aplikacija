@@ -29,10 +29,16 @@ const INTENTS = [
   },
   {
     id: "dry-cough",
-    patterns: ["suvi kasalj", "suv kasalj", "suvog kaslja", "suvim kasljem", "nadrazajni kasalj", "golicanje u grlu", "grebanje u grlu", "kasalj bez sekreta", "kasljem suvo", "kasalj"],
+    patterns: ["suvi kasalj", "suv kasalj", "suvog kaslja", "suvim kasljem", "nadrazajni kasalj", "golicanje u grlu", "grebanje u grlu", "kasalj bez sekreta", "kasljem suvo", "suvog kaslja imam", "caj za suvi kasalj"],
     terms: ["beli slez caj", "bokvica caj", "majčina dušica čaj", "timijan-timjan čaj", "lipov med"],
-    exclude: ["crni slez", "gavez", "koren", "list"],
-    intro: "Za suvi kašalj mogu da pokažem čajeve i med iz naše ponude koji se tradicionalno koriste kao topli napici za umirenje nadraženog grla. Ovo nisu lekovi i ne leče uzrok kašlja. Ako kašalj traje duže od 3 nedelje, pogoršava se ili imate temperaturu, javite se lekaru. Kod otežanog disanja, bola u grudima ili iskašljavanja krvi potražite hitnu medicinsku pomoć."
+    exclude: ["crni slez", "gavez"],
+    intro: "Kod suvog, nadražajnog kašlja topao napitak može privremeno prijati grlu, ali čaj ne leči uzrok kašlja. U BIO KUTAK ponudi mogu da prikažem beli slez, bokvicu, majčinu dušicu/timijan ili lipov med ako su dostupni; tradicionalna upotreba nije dokaz da leče kašalj. Pratite deklaraciju i ne koristite med kod deteta mlađeg od 12 meseci. Koliko dugo kašljete i da li je u pitanju odrasla osoba ili dete? Ako kašalj traje duže od 3 nedelje, pogoršava se ili imate temperaturu, javite se lekaru. Kod otežanog disanja, bola u grudima ili iskašljavanja krvi potražite hitnu medicinsku pomoć."
+  },
+  {
+    id: "general-cough",
+    adviceOnly: true,
+    patterns: ["caj protiv kaslja", "caj za kasalj", "kasalj", "kaslja", "kaslju", "kasljem", "ucestali kasalj", "ucestalog kaslja", "uporan kasalj", "kasalj sa sekretom", "produktivan kasalj", "iskašljavanje", "iskasljavanje"],
+    intro: "Mogu da pomognem da pronađemo odgovarajuće informacije, ali prvo treba razlikovati suv kašalj od kašlja sa sekretom. Čaj nije lek i ne leči uzrok kašlja; topao napitak može samo privremeno prijati grlu. Da li je kašalj suv ili iskašljavate sekret, koliko dugo traje i da li je u pitanju odrasla osoba ili dete? Ako kašalj traje duže od 3 nedelje, pogoršava se ili je praćen temperaturom, javite se lekaru. Kod otežanog disanja, bola u grudima ili krvi u ispljuvku potražite hitnu medicinsku pomoć."
   },
   {
     id: "sleep",
@@ -121,7 +127,7 @@ const INTENTS = [
   },
   {
     id: "constipation",
-    patterns: ["zatvor", "opstipacija", "tesko praznim creva", "tvrda stolica", "neredovna stolica"],
+    patterns: ["zatvor", "opstipacija", "tesko praznim creva", "tvrda stolica", "neredovna stolica", "protiv zatvora", "caj protiv zatvora", "imam zatvor", "sta za zatvor", "ne mogu da obavim veliku nuzdu"],
     terms: ["psilijum", "inulin", "laneno seme", "suve sljive"],
     intro: "Mogu da prikažem proizvode sa vlaknima iz kataloga. Vlakna uvodite postepeno i uz dovoljno tečnosti; nisu prikladna za svaku osobu. Kod jakog bola, povraćanja, krvi u stolici ili nagle promene pražnjenja obratite se lekaru."
   },
@@ -207,7 +213,7 @@ const INTENTS = [
   {
     id: "urinary",
     adviceOnly: true,
-    patterns: ["peckanje pri mokrenju", "pece me kad mokrim", "ucestalo mokrenje", "stalno mi se mokri", "bol pri mokrenju", "krv u mokraci", "infekcija urinarnog trakta", "upala besike", "cistitis"],
+    patterns: ["peckanje pri mokrenju", "pece me kad mokrim", "ucestalo mokrenje", "stalno mi se mokri", "bol pri mokrenju", "krv u mokraci", "infekcija urinarnog trakta", "urinarna infekcija", "urinarne infekcije", "urinarnih infekcija", "caj protiv urinarnih infekcija", "caj za mokracne puteve", "upala besike", "cistitis"],
     intro: "Peckanje, učestalo mokrenje i bol mogu imati više uzroka, uključujući infekciju. Potreban je savet lekara i po potrebi analiza urina; nemojte pokušavati da infekciju lečite samo čajevima ili suplementima. Krv u mokraći, temperatura, bol u slabinama, mučnina ili povraćanje zahtevaju brzu medicinsku procenu."
   },
   {
@@ -302,7 +308,7 @@ const INTENTS = [
     intro: "Estrogen je hormon čiji se nivo menja tokom života i menstrualnog ciklusa. Jedna vrednost se ne tumači bez uzrasta, faze ciklusa, simptoma i razloga zbog kog je analiza rađena. Nemojte pokušavati da menjate nivo hormona suplementima bez saveta ginekologa ili endokrinologa. Ako imate nalaz, mogu da objasnim šta naziv analize znači, ali tumačenje pripada lekaru."
   },
 ];
-const URGENT = /bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
+const URGENT = /nemogucnost ispus(?:tanja|tanja) gasova|ne mogu da ispustim gasove|ne mogu da pustim gasove|bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
 
 function detectIntent(message) {
   const text = normalize(message);
@@ -346,7 +352,7 @@ async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
   return result.rows
     .map(product => ({ product, score: productMatchScore(product, terms, exclude) }))
     .filter(item => item.score > 0)
-    .sort((a,b) => b.score - a.score || String(a.product.name).localeCompare(String(b.product.name), "sr"))
+    .sort((a,b) => (Number(b.product.available === true) - Number(a.product.available === true)) || (a.product.available === false ? 1 : 0) - (b.product.available === false ? 1 : 0) || b.score - a.score || String(a.product.name).localeCompare(String(b.product.name), "sr"))
     .slice(0, Math.max(1, Math.min(20, limit)))
     .map(item => item.product);
 }

@@ -135,7 +135,7 @@ async function mapLimit(items, limit, fn) {
   const results=new Array(items.length); let cursor=0;
   const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
     while(true){const i=cursor++;if(i>=items.length)break;
-      try{results[i]=await fn(items[i],i)}catch(e){results[i]=null;console.warn("Catalog V2 item failed",e.message)}
+      try{results[i]=await fn(items[i],i)}catch(e){results[i]=null;console.warn("Catalog V2 item failed",e.stack || e.message)}
       await sleep(150);
     }
   });
@@ -174,7 +174,7 @@ export async function syncCatalogV2(db) {
       } catch(e) {
         failedDetails++;
         processedUrls.delete(item.url);
-        console.warn("CATALOG V2 product detail failed",{url:item.url,error:e.message});
+        console.warn("CATALOG V2 product detail failed",{url:item.url,error:e.stack || e.message});
         return null;
       }
     });

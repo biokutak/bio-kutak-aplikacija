@@ -143,7 +143,8 @@ function formatProducts(products) {
   return products.slice(0,5).map((p) => {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
-    return "• " + p.name + " – " + price + " (" + availability + ")\n" + p.url;
+    const details = [p.description, p.ingredients ? "Sastav: " + p.ingredients : "", p.usage ? "Način upotrebe: " + p.usage : "", p.warnings ? "Upozorenje: " + p.warnings : ""].filter(Boolean).join("\n");
+    return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\n" + details.slice(0,900) : "") + "\n" + p.url;
   }).join("\n\n");
 }
 

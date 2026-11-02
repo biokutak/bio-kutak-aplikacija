@@ -266,7 +266,7 @@ export async function searchProducts(db, query, limit = 5) {
   const terms = clean.toLocaleLowerCase("sr").split(/\s+/).map(x => x.replace(/[^\p{L}\p{N}.-]/gu,"")).filter((x) => x.length > 2 && !stopWords.has(x)).slice(0, 5);
   const pattern = `%${clean}%`;
   const result = await db.query(
-    `SELECT name,sku,category,price_rsd,available,image_url,url
+    `SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings
      FROM products
      WHERE (length(url)-length(replace(url,'/',''))) >= 4
        AND (name ILIKE $1 OR COALESCE(category,'') ILIKE $1 OR COALESCE(sku,'') ILIKE $1

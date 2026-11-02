@@ -157,6 +157,19 @@ async function classifyAndReply(conversation, message) {
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
+  // Answer short follow-up questions using the recent conversation context.
+  // This prevents a product question such as “čemu služi?” from being escalated
+  // when the customer has just asked about magnesium products.
+  if (/\\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi)\\b/i.test(lower)) {
+    const recent = await pool.query(
+      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
+      [conversation.id]
+    );
+    const recentContext = recent.rows.map(row => String(row.body || "")).join(" ").toLocaleLowerCase("sr");
+    if (/magnezij|magnesium/.test(recentContext)) {
+      return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita i normalnom metabolizmu stvaranja energije. Potreban je i za održavanje normalnih kostiju. Suplement može biti koristan kada unos hranom nije dovoljan ili postoji manjak, ali nije lek za grčeve, nesanicu ili umor i ne deluje isto kod svih. 🌿\\n\\nU našoj ponudi su različiti oblici: citrate i glycinate su oralni suplementi (tačnu količinu magnezijuma proverite na deklaraciji), dok su magnezijum-hlorid gelovi proizvodi za spoljašnju upotrebu i nisu zamena za suplement koji se pije. Ako imate bolest bubrega, trudni ste, dojite ili koristite redovnu terapiju, pre uzimanja suplementa posavetujte se sa lekarom ili farmaceutom.\\n\\nDa li vas zanima koji oblik magnezijuma da izaberete ili želite da proverim sastav konkretnog proizvoda?" };
+    }
+  }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.
   const advice = await adviseCustomer(pool, message);
   if (advice) {

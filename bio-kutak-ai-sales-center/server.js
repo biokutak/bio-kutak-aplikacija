@@ -528,7 +528,8 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
   if (result.type === "auto") {
     await deliverToCustomer(conversation, result.text);
     await saveMessage(conversation.id, "out", "bot", result.text);
-    await notifyAdmins(conversation, message, result.text, { autoSent: true }).catch((e) => console.error("Telegram notify failed:", e.message));
+    // Routine questions answered by Pametnica stay in the bot conversation.
+    // Do not forward every customer message to the team via Telegram.
     return { conversation, reply: result.text, handoff: false };
   }
   if (!operatorConnected) {

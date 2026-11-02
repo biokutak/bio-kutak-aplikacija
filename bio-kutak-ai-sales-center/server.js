@@ -187,6 +187,26 @@ async function classifyAndReply(conversation, message) {
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     const lastBotReply = recent.rows.find(row => row.direction === "out")?.body || "";
     const lastBotContext = normalizeText(lastBotReply);
+    // Resolve short price/availability questions directly against the product family in the latest bot reply.
+    // This is intentionally independent of exact full-name matching in the rendered catalogue text.
+    const latestReplyMentionsShilajit = lastBotContext.includes("shilajit") || lastBotContext.includes("mumio");
+    const asksShilajitPrice = /\\b(cena|koliko kosta|koja je cena)\\b/i.test(lower);
+    const asksShilajitStock = /\\b(na stanju|dostupan|dostupnost)\\b/i.test(lower);
+    if (latestReplyMentionsShilajit && (asksShilajitPrice || asksShilajitStock)) {
+      const shilajitProducts = await pool.query(
+        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (name ILIKE '%shilajit%' OR name ILIKE '%mumio%') ORDER BY CASE WHEN available IS TRUE THEN 0 ELSE 1 END, price_rsd ASC NULLS LAST, name ASC"
+      );
+      if (shilajitProducts.rows.length) {
+        const lines = shilajitProducts.rows.map(p =>
+          "• " + p.name + " — " + (p.price_rsd == null ? "cena nije navedena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") +
+          " — " + (p.available === true ? "dostupan prema sajtu" : p.available === false ? "trenutno nedostupan prema sajtu" : "dostupnost nije potvrđena") +
+          (p.url ? "\\n" + p.url : "")
+        );
+        return { type: "auto", text: (asksShilajitPrice ? "Cene Shilajit/Mumio proizvoda u BIO KUTAK katalogu: 🌿" : "Dostupnost Shilajit/Mumio proizvoda prema katalogu: 🌿") +
+          "\\n\\n" + lines.join("\\n\\n") +
+          "\\n\\nCene i stanje mogu da se promene; konačnu potvrdu proverite na stranici proizvoda ili u prodavnici." };
+      }
+    }
     if (/\\b(oboje|oba|i jedno i drugo)\\b/i.test(lower) && /potencija|libido|erekcija/.test(recentContext)) {
       const potencyAdvice = await adviseCustomer(pool, "potencija libido");
       if (potencyAdvice?.products?.length) {

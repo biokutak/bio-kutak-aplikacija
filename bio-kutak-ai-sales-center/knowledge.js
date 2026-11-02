@@ -1,3 +1,4 @@
+import { TEA_GUIDES } from "./tea-guides.js";
 const normalize = value => String(value || "")
   .toLocaleLowerCase("sr")
   .normalize("NFD")
@@ -136,6 +137,8 @@ GUIDES.push(
 {slug:"gut-fiber",title:"Vlakna – psilijum, lan, ovas i inulin",keywords:"vlakna psilijum psyllium laneno seme ovas inulin zatvor holesterol probava",content:"Različita vlakna imaju različita svojstva. Psilijum upija vodu i može pomoći regulisanju stolice; uvoditi ga postepeno uz dovoljno tečnosti i proveriti razmak od lekova prema deklaraciji/farmaceutu. Lan i ovas doprinose unosu vlakana. Inulin kod nekih ljudi pojačava gasove i nadutost. Kod otežanog gutanja, suženja creva ili jakog bola ne uzimati vlakna bez medicinskog saveta."},
 {slug:"food-allergens",title:"Alergeni u hrani i deklaracija",keywords:"alergeni gluten soja badem orasi kikiriki mleko laktoza deklaracija tragovi",content:"Kod alergije proveriti kompletan sastav i upozorenje o mogućim tragovima alergena; naziv proizvoda ili oznaka 'biljno' nisu dovoljni. Intolerancija na laktozu nije isto što i alergija na mlečne proteine. Kod celijakije potrebno je pouzdano bezglutensko označavanje i sprečavanje unakrsne kontaminacije. Teška alergijska reakcija sa otežanim disanjem ili otokom jezika/grla zahteva hitnu pomoć."}
 );
+
+GUIDES.push(...TEA_GUIDES);
 
 export async function ensureKnowledgeSchema(db) {
   await db.query(`

@@ -11,7 +11,7 @@ const INTENTS = [
   {
     id: "womens-health-general",
     adviceOnly: true,
-    patterns: ["zenski problemi", "zenskih problema", "zenske tegobe", "problemi kod zena", "problemi za zene", "hormonski problemi kod zena", "intimni problemi kod zena"],
+    patterns: ["zenski problemi", "zenske probleme", "zenskim problemima", "zenskih problema", "zenske tegobe", "zenskim tegobama", "problemi kod zena", "problemi za zene", "hormonski problemi kod zena", "intimni problemi kod zena"],
     intro: "Naravno, mogu da proverim šta BIO KUTAK ima u ponudi. 🌿 Da bih vas usmerila na odgovarajuće informacije, recite mi na šta konkretno mislite: PMS i menstrualni ciklus, bolne menstruacije, menopauza i valunzi, ili neku drugu tegobu? Ako je reč o neuobičajenom ili obilnom krvarenju, jakom bolu, mogućoj trudnoći, temperaturi ili tegobama intimne regije, važno je da se obratite ginekologu. Neću preporučivati preparat za lečenje niti nagađati bez dodatnih informacija."
   },
   {

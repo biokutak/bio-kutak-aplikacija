@@ -44,14 +44,14 @@ function paginationCandidates(html) {
     const href = absoluteUrl($(el).attr("href"));
     if (!href) return;
     const u = new URL(href);
-    const label = $(el).text().replace(/\\s+/g, " ").trim();
+    const label = $(el).text().replace(/\s+/g, " ").trim();
     const classes = [
       $(el).attr("class") || "",
       $(el).parent().attr("class") || "",
       $(el).parent().parent().attr("class") || ""
     ].join(" ").toLowerCase();
     const hasPageParam = [...u.searchParams.keys()].some((key) => /^(page|paged|strana|p|offset|start|limit)$/i.test(key));
-    const pageLabel = /^\\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹/i.test(label);
+    const pageLabel = /^\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹/i.test(label);
     if (hasPageParam || (/(pagination|pager|stran|page)/i.test(classes) && pageLabel)) found.add(href);
   });
   return [...found];
@@ -144,74 +144,86 @@ async function mapLimit(items, limit, fn) {
 }
 
 export async function syncCatalog(db) {
-  const startUrls = [`${SITE}/prodavnica`, `${SITE}/pretraga`];
+  const startUrls = [SITE + "/prodavnica", SITE + "/pretraga"];
+  const sitemapUrls = [SITE + "/sitemap.xml", SITE + "/sitemap_index.xml", SITE + "/sitemap-products.xml"];
   const startHtml = await Promise.all(startUrls.map(url => fetchText(url)));
-  const categorySlugs = [
-    "osnovne-namirnice","posebna-ishrana","organski-proizvodi","dodaci-ishrani",
-    "prirodna-kozmetika","program-za-kolace","poklon-setovi","vauceri"
-  ];
-  const categoryUrls = new Set(categorySlugs.map(slug => `${SITE}/${slug}`));
-  const excludedPages = new Set(["prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti","nacin-isporuke-i-placanja"]);
-  for (const html of startHtml) {
+  const listingHtml = startUrls.map((url,i) => ({url,html:startHtml[i]}));
+  const excluded = new Set(["","prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti","nacin-isporuke-i-placanja","korpa","podaci","potvrda"]);
+  const categoryUrls = new Set();
+  const productUrls = new Set();
+  const seenSitemaps = new Set();
+  const addCategoryLinks = (html) => {
     const $ = cheerio.load(html);
-    $("a[href]").each((_, el) => {
-      const href = absoluteUrl($(el).attr("href"));
+    $("nav a[href], .menu a[href], .categories a[href], .category-menu a[href], .sidebar a[href], #categories a[href], [class*='category'] a[href]").each((_,el) => {
+      const href=absoluteUrl($(el).attr("href"));
       if (!href) return;
-      const u = new URL(href);
-      const parts = u.pathname.split("/").filter(Boolean);
-      if (parts.length === 1 && !u.search && !excludedPages.has(parts[0].toLowerCase())) categoryUrls.add(href);
+      const parts=new URL(href).pathname.split("/").filter(Boolean);
+      if (parts.length && parts.length<=4 && !parts.some(p=>excluded.has(p.toLowerCase()))) categoryUrls.add(href);
     });
-  }
-  const categoryList = [...categoryUrls];
-  const categoryHtml = await mapLimit(categoryList,8,async (url) => ({
-    url, html: await fetchText(url).catch(() => "")
-  }));
-  const listingHtml = [
-    ...startUrls.map((url,i) => ({url,html:startHtml[i]})),
-    ...categoryHtml
-  ];
-
-  // Follow every discovered category pagination link instead of indexing only
-  // the first visible page. A bounded crawl prevents accidental loops.
-  const seenListingUrls = new Set(listingHtml.map((page) => page.url));
-  let paginationFrontier = new Set(listingHtml.flatMap((page) => paginationCandidates(page.html)));
-  for (let round = 0; round < 8 && paginationFrontier.size; round++) {
-    const batch = [...paginationFrontier].filter((url) => !seenListingUrls.has(url)).slice(0, 300);
-    paginationFrontier = new Set();
-    if (!batch.length) break;
-    for (const url of batch) seenListingUrls.add(url);
-    const pages = await mapLimit(batch,8,async (url) => ({
-      url, html: await fetchText(url).catch(() => "")
-    }));
-    listingHtml.push(...pages);
-    for (const page of pages) {
-      for (const nextUrl of paginationCandidates(page.html)) {
-        if (!seenListingUrls.has(nextUrl)) paginationFrontier.add(nextUrl);
+    $("a[href]").each((_,el) => {
+      const href=absoluteUrl($(el).attr("href"));
+      if (!href) return;
+      const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
+      if (parts.length===1 && !u.search && !parts.some(p=>excluded.has(p.toLowerCase()))) categoryUrls.add(href);
+    });
+  };
+  const readSitemap = async (url,depth=0) => {
+    if (depth>2 || seenSitemaps.has(url)) return;
+    seenSitemaps.add(url);
+    try {
+      const xml=await fetchText(url), $=cheerio.load(xml,{xmlMode:true});
+      const locs=$("loc").map((_,el)=>$(el).text().trim()).get();
+      for (const loc of locs) {
+        const u=absoluteUrl(loc); if (!u) continue;
+        if (/\.xml(?:\?|$)/i.test(u)) { if(depth<2) await readSitemap(u,depth+1); continue; }
+        const path=new URL(u).pathname, parts=path.split("/").filter(Boolean);
+        if (!parts.length || parts.some(p=>excluded.has(p.toLowerCase()))) continue;
+        if (/-\d+(?:\.\d+)?\/?$/.test(path) || /product|proizvod/i.test(path)) productUrls.add(u);
       }
+    } catch(e) { console.warn("Sitemap fetch failed:",url,e.message); }
+  };
+  await Promise.all(sitemapUrls.map(url=>readSitemap(url)));
+  try {
+    const robots=await fetchText(SITE+"/robots.txt");
+    for (const line of robots.split(/\r?\n/)) {
+      const m=line.match(/^\s*Sitemap:\s*(\S+)/i);
+      if(m) await readSitemap(m[1]);
     }
+  } catch {}
+  for (const page of listingHtml) addCategoryLinks(page.html);
+  const seenCategoryUrls=new Set(startUrls);
+  let categoryFrontier=new Set(categoryUrls);
+  for(let round=0;round<10 && categoryFrontier.size;round++) {
+    const batch=[...categoryFrontier].filter(u=>!seenCategoryUrls.has(u)).slice(0,400);
+    categoryFrontier=new Set(); if(!batch.length) break;
+    for(const u of batch) seenCategoryUrls.add(u);
+    const pages=await mapLimit(batch,8,async url=>({url,html:await fetchText(url).catch(()=> "")}));
+    listingHtml.push(...pages);
+    for(const page of pages) addCategoryLinks(page.html);
+    for(const u of categoryUrls) if(!seenCategoryUrls.has(u)) categoryFrontier.add(u);
   }
-
-  const allCandidates = new Map();
-  for (const page of listingHtml) {
-    for (const item of productCandidates(page.html)) allCandidates.set(item.url,item);
+  const seenListingUrls=new Set(listingHtml.map(p=>p.url));
+  let paginationFrontier=new Set(listingHtml.flatMap(p=>paginationCandidates(p.html)));
+  for(let round=0;round<16 && paginationFrontier.size;round++) {
+    const batch=[...paginationFrontier].filter(u=>!seenListingUrls.has(u)).slice(0,600);
+    paginationFrontier=new Set(); if(!batch.length) break;
+    for(const u of batch) seenListingUrls.add(u);
+    const pages=await mapLimit(batch,8,async url=>({url,html:await fetchText(url).catch(()=> "")}));
+    listingHtml.push(...pages);
+    for(const page of pages) for(const u of paginationCandidates(page.html)) if(!seenListingUrls.has(u)) paginationFrontier.add(u);
   }
-
-  const candidates = [...allCandidates.values()];
-  const products = await mapLimit(candidates,8,async (item) => {
-    const html = await fetchText(item.url);
-    return parseProduct(item.url,html,item.listText,item.context);
-  });
-  for (const p of products) {
+  const allCandidates=new Map();
+  for(const page of listingHtml) for(const item of productCandidates(page.html)) allCandidates.set(item.url,item);
+  for(const url of productUrls) allCandidates.set(url,{url,listText:"",context:""});
+  const candidates=[...allCandidates.values()];
+  const products=await mapLimit(candidates,8,async item=>parseProduct(item.url,await fetchText(item.url),item.listText,item.context));
+  for(const p of products) {
     await db.query(
-      `INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,NOW())
-       ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=EXCLUDED.sku,
-       category=EXCLUDED.category,price_rsd=EXCLUDED.price_rsd,
-       available=EXCLUDED.available,image_url=EXCLUDED.image_url,synced_at=NOW()`,
+      "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=EXCLUDED.sku,category=EXCLUDED.category,price_rsd=EXCLUDED.price_rsd,available=EXCLUDED.available,image_url=EXCLUDED.image_url,synced_at=NOW()",
       [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
     );
   }
-  return { listingPages: listingHtml.length, categories: categoryList.length, found: candidates.length, saved: products.length };
+  return {listingPages:listingHtml.length,categories:seenCategoryUrls.size,sitemapProducts:productUrls.size,found:candidates.length,saved:products.length};
 }
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);

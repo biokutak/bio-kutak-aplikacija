@@ -169,7 +169,7 @@ export async function syncCatalogV2(db) {
       console.log("CATALOG V2 SEED", {url:u,categoryLinks:categoryQueue.size,productCards:getProductCards(body).length});
     } catch(e) { console.warn("CATALOG V2 seed failed",{url:u,error:e.message}); }
   }
-  const categoryUrls=[...new Set([...categoryQueue,...[...sitemapUrls].filter(u=>new URL(u).pathname.split("/").filter(Boolean).length<=3)])];
+  const categoryUrls=[...new Set([SITE+"/prodavnica",...categoryQueue,...[...sitemapUrls].filter(u=>new URL(u).pathname.split("/").filter(Boolean).length<=3)])];
   console.log("CATALOG V2 CATEGORIES", {count:categoryUrls.length, sample:categoryUrls.slice(0,12)});
   
   const listingPages=new Map();

@@ -514,9 +514,9 @@ async function classifyAndReply(conversation, message) {
   const advice = await adviseCustomer(pool, message);
   if (advice) {
     if (advice.urgent) return { type: "auto", text: advice.reply };
-    if (advice.autoReply) return { type: "auto", text: advice.reply };
+    if (advice.autoReply) return { type: "auto", learningNeeded: Boolean(advice.learningNeeded), text: advice.reply };
     if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
-    return { type: "auto", text: advice.reply || "Mogu da pomognem opštim informacijama. Recite mi malo preciznije šta vas zanima." };
+    return { type: "auto", learningNeeded: Boolean(advice.learningNeeded), text: advice.reply || "Mogu da pomognem opštim informacijama. Recite mi malo preciznije šta vas zanima." };
   }
   // Use the knowledge base before the generic medical-topic handoff so known topics get an answer.
   const knowledgeAnswer = await answerFromKnowledge(pool, message);

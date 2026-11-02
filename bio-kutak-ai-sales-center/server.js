@@ -168,12 +168,37 @@ async function classifyAndReply(conversation, message) {
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     const wantsComparison = /\b(razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem)\b/i.test(lower);
     const catalogue = await pool.query(
-      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL ORDER BY name"
+      "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL ORDER BY name"
     );
     const mentionedProducts = catalogue.rows.filter(product => {
       const productName = normalizeText(product.name);
       return productName.length > 5 && recentContext.includes(productName);
     }).slice(0, 5);
+
+    const asksPriceOrStock = /\\b(cena|koliko kosta|koja je cena|na stanju|dostupan|dostupnost|link|gde mogu da kupim)\\b/i.test(lower);
+    const asksAlternatives = /\\b(ima li jos|jos proizvoda|slicni proizvodi|povoljniji|jeftiniji|alternativ)\\b/i.test(lower);
+    if (mentionedProducts.length && asksPriceOrStock) {
+      const product = mentionedProducts[0];
+      const price = product.price_rsd == null ? "Cena trenutno nije potvrđena u katalogu." : "Cena: " + Number(product.price_rsd).toLocaleString("sr-RS") + " RSD.";
+      const stock = product.available === true ? "Na sajtu je označen kao dostupan." : product.available === false ? "Na sajtu je označen kao trenutno nedostupan." : "Dostupnost nije potvrđena u katalogu.";
+      return { type: "auto", text: product.name + "\\n" + price + " " + stock + "\\n" + product.url + "\\n\\nCene i stanje mogu da se promene; konačnu potvrdu dobijate na stranici proizvoda ili u prodavnici." };
+    }
+
+    if (mentionedProducts.length && asksAlternatives) {
+      const base = mentionedProducts[0];
+      let alternatives = [];
+      if (base.category) {
+        const result = await pool.query(
+          "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND category=$1 AND name<>$2 ORDER BY CASE WHEN available IS TRUE THEN 0 ELSE 1 END, price_rsd ASC NULLS LAST, name LIMIT 6",
+          [base.category, base.name]
+        );
+        alternatives = result.rows;
+      }
+      if (alternatives.length) {
+        const lines = alternatives.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije navedena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + " — " + (p.available === true ? "dostupan prema sajtu" : p.available === false ? "trenutno nedostupan prema sajtu" : "stanje nije potvrđeno") + "\\n" + p.url);
+        return { type: "auto", text: "Evo još proizvoda iz iste kategorije kao " + base.name + ":\\n\\n" + lines.join("\\n\\n") + "\\n\\nPoređao sam ih po ceni, ali niža cena ne znači da je proizvod bolji ili odgovarajući za svaku osobu." };
+      }
+    }
 
     if (wantsComparison && mentionedProducts.length >= 2) {
       const comparison = mentionedProducts.slice(0, 4).map(product => {

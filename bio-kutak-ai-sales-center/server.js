@@ -158,7 +158,7 @@ function formatProducts(products) {
 }
 
 async function classifyAndReply(conversation, message) {
-  if (botPaused) return { type: "handoff", text: "Hvala na poruci! Proslediću vaše pitanje kolegama iz BIO KUTAK-a." };
+  if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
@@ -491,24 +491,24 @@ async function classifyAndReply(conversation, message) {
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.
   const advice = await adviseCustomer(pool, message);
   if (advice) {
-    if (advice.urgent) return { type: "handoff", text: advice.reply };
+    if (advice.urgent) return { type: "auto", text: advice.reply };
     if (advice.autoReply) return { type: "auto", text: advice.reply };
     if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
-    return { type: "handoff", text: advice.reply };
+    return { type: "auto", text: advice.reply || "Mogu da pomognem opštim informacijama. Recite mi malo preciznije šta vas zanima." };
   }
   // Use the knowledge base before the generic medical-topic handoff so known topics get an answer.
   const knowledgeAnswer = await answerFromKnowledge(pool, message);
   if (knowledgeAnswer) return knowledgeAnswer;
-  // Topics outside the adviser's supported scope remain with a human; no medical diagnosis or treatment advice.
+  // When the knowledge base has no exact match, still answer helpfully instead of routing routine questions to staff.
+  // Never diagnose or prescribe; explain the limit and ask one useful follow-up question.
   if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {
-    return { type: "handoff", text: "Hvala na pitanju. 🌿 Pošto se radi o zdravstvenoj temi koju naš savetnik ne može pouzdano da obradi, proslediću pitanje našem timu. Za zdravstvene odluke obratite se lekaru ili farmaceutu." };
+    return { type: "auto", text: "Mogu da objasnim opšte informacije i da proverim sastav proizvoda iz BIO KUTAK ponude, ali ne mogu da postavim dijagnozu niti da odredim terapiju. 🌿 Napišite mi šta tačno želite da saznate — koji simptom ili stanje, koliko dugo traje i da li pitate za odraslu osobu ili dete. Ako su simptomi jaki, nagli ili se pogoršavaju, obratite se lekaru; kod otežanog disanja, bola u grudima, gubitka svesti ili otoka jezika/grla odmah pozovite hitnu pomoć." };
   }
   const products = await searchProducts(pool, message, 5);
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };
   }
-  const suggestion = "Hvala na pitanju! 🌿 Proslediću ga našem timu kako bismo proverili tačne informacije i javili vam se.";
-  return { type: "handoff", text: suggestion };
+  return { type: "auto", text: "Nisam pronašla dovoljno pouzdan podatak ili tačan artikal za ovo pitanje u katalogu, pa neću da nagađam. 🌿 Mogu da objasnim opšte informacije ili da pronađem proizvod ako mi napišete naziv, sastojak ili šta tražite. Šta biste želeli da saznate?" };
 }
 
 async function handleIncoming({ channel, externalUserId, customerName, message, sessionToken }) {

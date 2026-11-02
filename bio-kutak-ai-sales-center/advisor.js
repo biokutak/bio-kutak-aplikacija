@@ -101,13 +101,13 @@ export async function adviseCustomer(db, message) {
       urgent: false,
       intent: intent.id,
       products: [],
-      reply: intro + "\\n\\nTrenutno nisam pronašao odgovarajući proizvod u našem katalogu. Mogu da prosledim pitanje kolegama iz BIO KUTAK-a."
+      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u našem katalogu. Mogu da prosledim pitanje kolegama iz BIO KUTAK-a."
     };
   }
   return {
     urgent: false,
     intent: intent.id,
     products,
-    reply: intro + "\\n\\nDa bih suzio izbor, možete mi reći još malo o tome šta tražite. U međuvremenu, pogledajte ove proizvode iz naše ponude:"
+    reply: intro + "\n\nDa bih suzio izbor, možete mi reći još malo o tome šta tražite. U međuvremenu, pogledajte ove proizvode iz naše ponude:"
   };
 }

@@ -183,10 +183,10 @@ async function classifyAndReply(conversation, message) {
           product.usage ? "Način upotrebe: " + product.usage : "Način upotrebe nije potvrđen u trenutno dostupnim podacima.",
           product.warnings ? "Upozorenje: " + product.warnings : "",
           product.price_rsd == null ? "Cena nije prikazana." : "Cena: " + Number(product.price_rsd).toLocaleString("sr-RS") + " RSD"
-        ].filter(Boolean).join("\\n");
-        return "• " + product.name + "\\n" + facts.slice(0, 1100) + "\\n" + product.url;
-      }).join("\\n\\n");
-      return { type: "auto", text: "Mogu da uporedim proizvode na osnovu podataka koji su trenutno dostupni u BIO KUTAK katalogu. 🌿\\n\\n" + comparison + "\\n\\nPoređenje se zasniva na deklaracijama i opisima koji su dostupni na sajtu. Ako neki podatak nedostaje, neću pretpostavljati da su proizvodi isti niti da je jedan bolji. Za konačan izbor proverite deklaraciju i posavetujte se sa farmaceutom ako imate zdravstveno stanje ili koristite terapiju." };
+        ].filter(Boolean).join("\n");
+        return "• " + product.name + "\n" + facts.slice(0, 1100) + "\n" + product.url;
+      }).join("\n\n");
+      return { type: "auto", text: "Mogu da uporedim proizvode na osnovu podataka koji su trenutno dostupni u BIO KUTAK katalogu. 🌿\n\n" + comparison + "\n\nPoređenje se zasniva na deklaracijama i opisima koji su dostupni na sajtu. Ako neki podatak nedostaje, neću pretpostavljati da su proizvodi isti niti da je jedan bolji. Za konačan izbor proverite deklaraciju i posavetujte se sa farmaceutom ako imate zdravstveno stanje ili koristite terapiju." };
     }
 
     if (mentionedProducts.length && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima)\b/i.test(lower)) {
@@ -196,12 +196,12 @@ async function classifyAndReply(conversation, message) {
         product.ingredients ? "Sastav: " + product.ingredients : "Sastav nije naveden u trenutno dostupnim podacima.",
         product.usage ? "Način upotrebe: " + product.usage : "Način upotrebe nije potvrđen u trenutno dostupnim podacima.",
         product.warnings ? "Upozorenje: " + product.warnings : ""
-      ].filter(Boolean).join("\\n\\n");
-      return { type: "auto", text: "Za **" + product.name + "** mogu da navedem sledeće podatke iz BIO KUTAK kataloga: 🌿\\n\\n" + details.slice(0, 2400) + "\\n\\nOpis sa sajta nije zamena za medicinski savet. Ako želite, mogu da uporedim ovaj proizvod sa drugim artiklom iz ponude." };
+      ].filter(Boolean).join("\n\n");
+      return { type: "auto", text: "Za **" + product.name + "** mogu da navedem sledeće podatke iz BIO KUTAK kataloga: 🌿\n\n" + details.slice(0, 2400) + "\n\nOpis sa sajta nije zamena za medicinski savet. Ako želite, mogu da uporedim ovaj proizvod sa drugim artiklom iz ponude." };
     }
 
     if (/magnezij|magnesium/.test(recentContext) && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi)\b/i.test(lower)) {
-      return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita, normalnom metabolizmu stvaranja energije i održavanju normalnih kostiju. Suplement nije lek za grčeve, nesanicu ili umor. 🌿\\n\\nU ponudi su oralni oblici (citrat i glicinat) i gelovi za spoljašnju upotrebu. Gel se ne može smatrati zamenom za suplement koji se pije. Za izbor oralnog proizvoda važno je proveriti količinu elementarnog magnezijuma po dnevnoj dozi. Ako imate bolest bubrega, trudni ste, dojite ili koristite terapiju, posavetujte se sa lekarom ili farmaceutom." };
+      return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita, normalnom metabolizmu stvaranja energije i održavanju normalnih kostiju. Suplement nije lek za grčeve, nesanicu ili umor. 🌿\n\nU ponudi su oralni oblici (citrat i glicinat) i gelovi za spoljašnju upotrebu. Gel se ne može smatrati zamenom za suplement koji se pije. Za izbor oralnog proizvoda važno je proveriti količinu elementarnog magnezijuma po dnevnoj dozi. Ako imate bolest bubrega, trudni ste, dojite ili koristite terapiju, posavetujte se sa lekarom ili farmaceutom." };
     }
   }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.

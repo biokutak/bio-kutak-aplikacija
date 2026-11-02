@@ -273,6 +273,24 @@ const INTENTS = [
 
 ];
 
+  {
+    id: "gastritis",
+    adviceOnly: true,
+    patterns: ["gastritis", "gastritisu", "upala zeluca", "upala želuca", "helikobakter", "helicobacter", "cir na zelucu", "čir na želucu"],
+    intro: "Kod gastritisa je važno utvrditi uzrok i pratiti savet lekara. Hrana, čajevi i suplementi ne leče gastritis, a neki mogu pogoršati tegobe ili uticati na terapiju. Nemojte prekidati propisane lekove. Ako imate crnu stolicu, povraćanje krvi, jak bol ili nesvesticu, odmah potražite medicinsku pomoć. Mogu da proverim sastav konkretnog proizvoda, ali neću ga predstavljati kao terapiju za gastritis."
+  },
+  {
+    id: "cholesterol",
+    adviceOnly: true,
+    patterns: ["holesterol", "povisen holesterol", "visok holesterol", "ldl", "trigliceridi"],
+    intro: "Kod povišenog holesterola izbor postupka zavisi od LDL-a, ukupnog kardiovaskularnog rizika i drugih nalaza. Ishrana sa više povrća, mahunarki, ovsa i drugih izvora rastvorljivih vlakana, manje zasićenih i trans masti i redovna fizička aktivnost mogu biti deo zdravih navika. To nije zamena za terapiju koju je propisao lekar. Neću preporučiti suplement kao sredstvo za snižavanje holesterola bez provere terapije i zdravstvenog stanja. Mogu da proverim deklaraciju konkretnog proizvoda."
+  },
+  {
+    id: "estrogen-hormones",
+    adviceOnly: true,
+    patterns: ["estrogen", "estrogena", "estrogenu", "estrogenski", "hormonski status", "hormoni kod zena"],
+    intro: "Estrogen je hormon čiji se nivo menja tokom života i menstrualnog ciklusa. Jedna vrednost se ne tumači bez uzrasta, faze ciklusa, simptoma i razloga zbog kog je analiza rađena. Nemojte pokušavati da menjate nivo hormona suplementima bez saveta ginekologa ili endokrinologa. Ako imate nalaz, mogu da objasnim šta naziv analize znači, ali tumačenje pripada lekaru."
+  },
 const URGENT = /bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
 
 function detectIntent(message) {

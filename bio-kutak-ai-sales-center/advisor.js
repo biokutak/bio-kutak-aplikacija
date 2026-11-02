@@ -157,7 +157,7 @@ const INTENTS = [
   },
   {
     id: "menstrual",
-    patterns: ["menstrualni bolovi", "bolna menstruacija", "pms", "predmenstrualni sindrom", "bolovi tokom ciklusa"],
+    patterns: ["menstrualni bolovi", "bolna menstruacija", "bolne menstruacije", "bolne menstruacija", "bolovima tokom menstruacije", "bol tokom menstruacije", "bolovi tokom ciklusa", "bolne menstruacije", "pms", "predmenstrualni sindrom"],
     terms: ["magnezijum", "kamilica", "djumbir"],
     intro: "Mogu da prikažem čajeve i proizvode iz ponude, ali oni nisu dokazano lečenje menstrualnih bolova. Ako je bol nov, veoma jak, praćen obilnim krvarenjem ili postoji mogućnost trudnoće, potražite medicinski savet."
   },
@@ -198,6 +198,12 @@ const INTENTS = [
     intro: "Mogu da prikažem proizvode za negu kože iz ponude. Pre upotrebe proverite sastav i alergije; osip koji se brzo širi, otok lica ili otežano disanje zahtevaju hitnu pomoć."
   },
 
+  {
+    id: "e-coli",
+    adviceOnly: true,
+    patterns: ["escherichia coli", "escherichia", "e coli", "ešerihija", "eserihija", "ešerihiju", "eserihiju", "bakterija u mokraci", "bakterije u mokraci"],
+    intro: "Ešerihija koli (E. coli) može izazvati urinarnu infekciju, ali nalaz i simptomi moraju da se procene kod lekara. Čajevi, brusnica i suplementi ne mogu da zamene urinokulturu niti antibiotik kada ga lekar propiše. Ako imate temperaturu, bol u slabinama, mučninu/povraćanje, krv u mokraći ili ste trudni, javite se lekaru bez odlaganja. Mogu da proverim sastav konkretnog proizvoda, ali neću preporučiti suplement kao lečenje infekcije."
+  },
   {
     id: "urinary",
     adviceOnly: true,
@@ -254,9 +260,9 @@ const INTENTS = [
   },
   {
     id: "prostate",
-    adviceOnly: true,
-    patterns: ["prostata", "uvećana prostata", "slab mlaz mokrace", "nocu ustajem da mokrim", "tesko mokrim"],
-    intro: "Promene mokrenja mogu biti povezane sa prostatom, ali zahtevaju pregled da bi se utvrdio uzrok. Nemojte odlagati pregled niti se oslanjati na suplemente. Ako ne možete da mokrite, imate temperaturu ili krv u mokraći, potražite hitnu medicinsku pomoć."
+    patterns: ["prostata", "uvećana prostata", "uvećanu prostatu", "za prostatu", "problemi sa prostatom", "slab mlaz mokrace", "nocu ustajem da mokrim", "tesko mokrim"],
+    terms: ["serenoa repens", "saw palmetto", "palma sabal", "seme bundeve", "ulje semenki bundeve", "kopriva koren"],
+    intro: "Mogu da proverim katalog za proizvode čiji sastav ili naziv odgovara pretrazi za prostatu. Važno: suplementi nisu dokazano lečenje uvećane prostate i ne treba da odlažu pregled kod urologa. Ako ne možete da mokrite, imate temperaturu, jak bol ili krv u mokraći, potražite hitnu medicinsku pomoć."
   },
   {
     id: "stomach-pain",
@@ -282,6 +288,12 @@ const INTENTS = [
     adviceOnly: true,
     patterns: ["holesterol", "povisen holesterol", "visok holesterol", "ldl", "trigliceridi"],
     intro: "Kod povišenog holesterola izbor postupka zavisi od LDL-a, ukupnog kardiovaskularnog rizika i drugih nalaza. Ishrana sa više povrća, mahunarki, ovsa i drugih izvora rastvorljivih vlakana, manje zasićenih i trans masti i redovna fizička aktivnost mogu biti deo zdravih navika. To nije zamena za terapiju koju je propisao lekar. Neću preporučiti suplement kao sredstvo za snižavanje holesterola bez provere terapije i zdravstvenog stanja. Mogu da proverim deklaraciju konkretnog proizvoda."
+  },
+  {
+    id: "hormonal-balance",
+    patterns: ["hormonalni balans", "hormonski balans", "hormonski disbalans", "hormonalni disbalans", "balans hormona", "regulisanje hormona", "hormoni kod zena", "hormonska ravnoteza"],
+    terms: ["crvena detelina", "soja", "laneno seme", "virak"],
+    intro: "Mogu da proverim proizvode iz BIO KUTAK ponude koji se često traže u vezi sa ženskim hormonskim promenama. Važno: ne postoji univerzalni suplement za 'hormonalni balans', a biljni preparati nisu dokazano lečenje hormonskog poremećaja. Ako imate neredovne cikluse, izražene simptome ili sumnju na hormonski problem, razgovarajte sa ginekologom/endokrinologom. Proverite interakcije pre upotrebe, posebno uz hormonsku terapiju."
   },
   {
     id: "estrogen-hormones",

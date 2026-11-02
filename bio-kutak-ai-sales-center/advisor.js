@@ -9,6 +9,12 @@ const normalize = (value) => String(value || "")
 
 const INTENTS = [
   {
+    id: "womens-health-general",
+    adviceOnly: true,
+    patterns: ["zenski problemi", "zenskih problema", "zenske tegobe", "problemi kod zena", "problemi za zene", "hormonski problemi kod zena", "intimni problemi kod zena"],
+    intro: "Naravno, mogu da proverim šta BIO KUTAK ima u ponudi. 🌿 Da bih vas usmerila na odgovarajuće informacije, recite mi na šta konkretno mislite: PMS i menstrualni ciklus, bolne menstruacije, menopauza i valunzi, ili neku drugu tegobu? Ako je reč o neuobičajenom ili obilnom krvarenju, jakom bolu, mogućoj trudnoći, temperaturi ili tegobama intimne regije, važno je da se obratite ginekologu. Neću preporučivati preparat za lečenje niti nagađati bez dodatnih informacija."
+  },
+  {
     id: "back-care",
     patterns: ["bole me ledja", "bol u ledjima", "krsta", "ukocena ledja", "ukocio sam se", "boli me kicma", "bol u kicmi", "vrat me boli", "boli me vrat", "ramena me bole", "bol u misicima", "upala misica", "zglobovi me bole", "bol u zglobovima"],
     terms: ["gavez mast", "mast od gaveza", "magnezijum hlorid gel", "magnezijum sprej"],

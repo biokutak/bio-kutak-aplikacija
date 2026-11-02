@@ -145,7 +145,7 @@ function formatProducts(products) {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     const claimText = [p.description, p.usage].filter(Boolean).join(" ");
-    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|preporu[cč]uje se.*zbog|povoljno deluje|antioksidativn.*svojstv|preventivn.*dejstv|smanjuje rizik|smanjuje zgr[u]?savanje|protiv (raka|tumora|dijabet|astme|depresij|aritmij)|napredovanje raka|sr[cč]anog udara/i.test(claimText);
     const details = [
       !containsUnverifiedHealthClaims && p.description ? p.description : "",
       p.ingredients ? "Sastav: " + p.ingredients : "",
@@ -165,7 +165,7 @@ async function classifyAndReply(conversation, message) {
   }
   // Keep ordinary conversation natural; casual messages are not customer-service handoffs.
   const casual = lower.trim().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
-  if (/^(h+a+h+a+h*a*|he+h*|lol+|:d+|xd+|okej|ok|u redu|dogovoreno|hvala|hvala ti|super|odlicno|vazi|kiss|cmok|cao|vidimo se|laku noc|dobar smeh i sex|umirem od smeha|na ucenju je draga|odoh sad)$/.test(casual)) {
+  if (/^(h+a+h+a+h*a*|he+h*|lol+|:d+|xd+|okej|ok|u redu|dogovoreno|hvala|hvala ti|super|odlicno|vazi|kiss|cmok|cao|vidimo se|laku noc|dobar smeh i sex|umirem od smeha|na ucenju je draga|neka uci|samo neka uci|neka nauci|samo neka nauci|neka douci|samo neka douci|odoh sad)$/.test(casual)) {
     const reply = /hvala/.test(casual) ? "Nema na čemu! 🌿 Tu sam ako vam zatreba pomoć oko proizvoda ili ponude." :
       /kiss|cmok/.test(casual) ? "🌿 Šaljem pozdrav iz BIO KUTAK-a! Tu sam kad zatreba." :
       /cao|vidimo se|odoh|laku noc/.test(casual) ? "Prijatno i svratite nam ponovo! 🌿" :

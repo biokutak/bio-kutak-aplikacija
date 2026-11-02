@@ -58,7 +58,7 @@ const INTENTS = [
   {
     id: "digestion",
     adviceOnly: true,
-    patterns: ["varenje", "za varenje", "probava", "digestivni problemi", "problemi sa varenjem", "problem sa varenjem", "problema sa varenjem", "nadutost", "nadutosti", "nadimanje", "nadimanju", "gasovi", "gasovima"],
+    patterns: ["varenje", "za varenje", "probava", "digestivni problemi", "problemi sa varenjem", "problem sa varenjem", "problema sa varenjem"],
     intro: "Varenje može značiti više različitih tegoba. Da ne bih preporučila pogrešan proizvod, recite mi da li imate nadutost/gasove, zatvor, proliv, gorušicu, mučninu ili bol u stomaku. Ako je bol jak ili iznenadan, imate krv u stolici, uporno povraćanje ili naglu promenu pražnjenja, obratite se lekaru."
   },
   {
@@ -130,9 +130,9 @@ const INTENTS = [
   },
   {
     id: "diarrhea",
+    adviceOnly: true,
     patterns: ["proliv", "dijareja", "retka stolica", "ucestala stolica"],
-    terms: ["kamilica", "nana"],
-    intro: "Kod proliva je najvažnija nadoknada tečnosti i elektrolita; proizvodi iz prodavnice nisu zamena za oralni rehidratacioni rastvor ili medicinski savet. Potražite lekara kod krvi u stolici, visoke temperature, jakog bola ili znakova dehidratacije."
+    intro: "Kod proliva je najvažnija nadoknada tečnosti i elektrolita. Uzimajte oralni rehidratacioni rastvor prema uputstvu; čajevi, suplementi i drugi proizvodi iz prodavnice nisu zamena za njega niti za medicinski savet. Neću preporučivati nasumične proizvode. Potražite lekara kod krvi u stolici, visoke temperature, jakog bola, znakova dehidratacije, ako ne možete da zadržite tečnost ili ako proliv traje ili se pogoršava. Kod odojčadi, starijih i hronično bolesnih potreban je raniji savet lekara."
   },
   {
     id: "constipation",
@@ -143,8 +143,10 @@ const INTENTS = [
   {
     id: "bloating",
     patterns: ["gasovi", "imam gasove", "gasovima", "nadutost", "nadutosti", "nadutost stomaka", "nadimanje", "nadimanju", "grcevi u stomaku"],
-    terms: ["komorac", "nana", "menta", "kamilica", "psilijum"],
-    intro: "Mogu da prikažem čajeve i proizvode sa vlaknima iz ponude. Nadutost i grčevi imaju različite uzroke; jak ili iznenadan bol, povraćanje ili krv u stolici zahtevaju pregled."
+    terms: ["komorac caj", "nana caj", "kamilica caj"],
+    allowedCategories: ["osnovne-namirnice"],
+    exclude: ["kockic", "etericno ulje", "ulje", "deo stik", "dezodorans", "sapun", "kozmetika"],
+    intro: "Ako je u pitanju blaga, povremena nadutost, mogu da proverim čajeve koji se piju kao napitak. Oni ne leče uzrok tegoba i ne odgovaraju svima; ako vam nana pogoršava gorušicu, izbegavajte je. Jak ili iznenadan bol, povraćanje, krv u stolici ili nemogućnost ispuštanja gasova zahtevaju hitnu medicinsku procenu."
   },
   {
     id: "joint-care",

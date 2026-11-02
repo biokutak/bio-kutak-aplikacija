@@ -180,11 +180,13 @@ async function classifyAndReply(conversation, message) {
       return { type: "auto", text: "Trenutno nemam dovoljno potvrđenih cena u katalogu da bih pouzdano izdvojila proizvode po ceni. 🌿" };
     }
     const recent = await pool.query(
-      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
+      "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
     const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
+    const lastBotReply = recent.rows.find(row => row.direction === "out")?.body || "";
+    const lastBotContext = normalizeText(lastBotReply);
     if (/\\b(oboje|oba|i jedno i drugo)\\b/i.test(lower) && /potencija|libido|erekcija/.test(recentContext)) {
       const potencyAdvice = await adviseCustomer(pool, "potencija libido");
       if (potencyAdvice?.products?.length) {
@@ -199,14 +201,9 @@ async function classifyAndReply(conversation, message) {
     );
     const mentionedProducts = catalogue.rows.filter(product => {
       const productName = normalizeText(product.name);
-      return productName.length > 5 && recentContext.includes(productName);
+      return productName.length > 5 && lastBotContext.includes(productName);
     }).slice(0, 5);
-    if (!mentionedProducts.length && (recentContext.includes("shilajit") || recentContext.includes("mumio"))) {
-      const contextual = await pool.query(
-        "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND concat_ws(' ',name,category) ILIKE ANY(ARRAY['%shilajit%','%mumio%']) ORDER BY price_rsd DESC NULLS LAST LIMIT 5"
-      );
-      mentionedProducts = contextual.rows;
-    }
+    const latestBotMentionsShilajit = lastBotContext.includes("shilajit") || lastBotContext.includes("mumio");
 
     const asksPriceOrStock = /\b(cena|koliko kosta|koja je cena|na stanju|dostupan|dostupnost|link|gde mogu da kupim)\b/i.test(lower);
     const asksAlternatives = /\b(ima li jos|jos proizvoda|slicni proizvodi|povoljniji|jeftiniji|alternativ)\b/i.test(lower);
@@ -249,7 +246,7 @@ async function classifyAndReply(conversation, message) {
 
     if (mentionedProducts.length && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima)\b/i.test(lower)) {
       const product = mentionedProducts[0];
-      if (/\\b(shilajit|mumio)\\b/i.test(recentContext)) {
+      if (latestBotMentionsShilajit) {
         return { type: "auto", text: "Shilajit (poznat i kao Mumio) je mineralna smolasta supstanca koja se prodaje kao dodatak ishrani. Tradicionalno se koristi za energiju i vitalnost, ali dokazi o zdravstvenim koristima su ograničeni. Nije lek i ne treba ga koristiti kao zamenu za terapiju. Važno je proveriti laboratorijsku čistoću proizvoda, posebno zbog mogućih teških metala i drugih zagađivača. Ako koristite lekove ili imate hronično oboljenje, posavetujte se sa lekarom ili farmaceutom. 🌿\\n\\nPitanje se odnosi na Shilajit/Mumio proizvode koje smo upravo prikazali. Mogu da navedem cenu, dostupnost, sastav ili način upotrebe prema deklaraciji." };
       }
       const details = [

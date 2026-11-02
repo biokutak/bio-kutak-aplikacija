@@ -159,6 +159,12 @@ async function classifyAndReply(conversation, message) {
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
+  const advice = await adviseCustomer(pool, message);
+  if (advice) {
+    if (advice.urgent) return { type: "handoff", text: advice.reply };
+    if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
+    return { type: "handoff", text: advice.reply };
+  }
   const products = await searchProducts(pool, message, 5);
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };

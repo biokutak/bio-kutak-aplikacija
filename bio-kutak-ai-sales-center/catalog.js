@@ -146,12 +146,10 @@ async function mapLimit(items, limit, fn) {
 
 export async function syncCatalog(db) {
   const startUrls = [SITE + "/prodavnica", SITE + "/pretraga"];
-  const sitemapUrls = [SITE + "/sitemap.xml", SITE + "/sitemap_index.xml", SITE + "/sitemap-products.xml"];
   const startHtml = await Promise.all(startUrls.map(url => fetchText(url)));
   const listingHtml = startUrls.map((url,i) => ({url,html:startHtml[i]}));
   const excluded = new Set(["","prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti","nacin-isporuke-i-placanja","korpa","podaci","potvrda"]);
   const categoryUrls = new Set();
-  const productUrls = new Set();
   const seenSitemaps = new Set();
   const addCategoryLinks = (html) => {
     const $ = cheerio.load(html);
@@ -169,29 +167,6 @@ export async function syncCatalog(db) {
       if (parts.length===1 && !u.search) add(href);
     });
   };
-  const readSitemap = async (url,depth=0) => {
-    if (depth>2 || seenSitemaps.has(url)) return;
-    seenSitemaps.add(url);
-    try {
-      const xml=await fetchText(url), $=cheerio.load(xml,{xmlMode:true});
-      const locs=$("loc").map((_,el)=>$(el).text().trim()).get();
-      for (const loc of locs) {
-        const u=absoluteUrl(loc); if (!u) continue;
-        if (/\.xml(?:\?|$)/i.test(u)) { if(depth<2) await readSitemap(u,depth+1); continue; }
-        const path=new URL(u).pathname, parts=path.split("/").filter(Boolean);
-        if (!parts.length || parts.some(p=>excluded.has(p.toLowerCase()))) continue;
-        if (/-\d+(?:\.\d+)?\/?$/.test(path) || /product|proizvod/i.test(path)) productUrls.add(u);
-      }
-    } catch(e) { console.warn("Sitemap fetch failed:",url,e.message); }
-  };
-  await Promise.all(sitemapUrls.map(url=>readSitemap(url)));
-  try {
-    const robots=await fetchText(SITE+"/robots.txt");
-    for (const line of robots.split(/\r?\n/)) {
-      const m=line.match(/^\s*Sitemap:\s*(\S+)/i);
-      if(m) await readSitemap(m[1]);
-    }
-  } catch {}
   for (const page of listingHtml) addCategoryLinks(page.html);
   const seenCategoryUrls=new Set(startUrls);
   let categoryFrontier=new Set(categoryUrls);
@@ -216,7 +191,6 @@ export async function syncCatalog(db) {
   }
   const allCandidates=new Map();
   for(const page of listingHtml) for(const item of productCandidates(page.html)) allCandidates.set(item.url,item);
-  for(const url of productUrls) allCandidates.set(url,{url,listText:"",context:""});
   const candidates=[...allCandidates.values()];
   const products=await mapLimit(candidates,8,async item=>parseProduct(item.url,await fetchText(item.url),item.listText,item.context));
   for(const p of products) {
@@ -225,7 +199,7 @@ export async function syncCatalog(db) {
       [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
     );
   }
-  return {listingPages:listingHtml.length,categories:seenCategoryUrls.size,sitemapProducts:productUrls.size,found:candidates.length,saved:products.length};
+  return {listingPages:listingHtml.length,categories:seenCategoryUrls.size,found:candidates.length,saved:products.length};
 }
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);

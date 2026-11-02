@@ -255,6 +255,13 @@ async function classifyAndReply(conversation, message) {
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
+    const latestBotMessage = recent.rows.find(row => row.direction === "out")?.body || "";
+    if (!/magnezij|magnesium/.test(lower) && /magnezij|magnesium/.test(latestBotMessage) && /kako se koristi|upotreba|doziranje/.test(lower)) {
+      return { type:"auto", text:"Naravno. Samo da ne dam pogrešno uputstvo: da li mislite na magnezijum gel za spoljašnju upotrebu ili na oralni magnezijum (citrat/glicinat u kapsulama ili tabletama)? Gel se ne pije, a oralni preparati se koriste prema deklaraciji." };
+    }
+    if (/med za varenje|med kod varenja/.test(lower)) {
+      return { type:"auto", text:"Da li tražite med kao prehrambeni proizvod ili pitate šta može pomoći kod tegoba sa varenjem? 🌿 Ako je u pitanju tegoba, napišite da li imate nadutost, gorušicu, zatvor, proliv ili bol." };
+    }
     if (/magnezij|magnesium/.test(lower) && /kako se koristi|upotreba|doziranje/.test(lower) && !/gel/.test(lower)) {
       const options = (await pool.query(
         "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (name ILIKE '%magnezij%' OR name ILIKE '%magnesium%') ORDER BY CASE WHEN name ILIKE '%citrat%' THEN 0 WHEN name ILIKE '%glycinat%' THEN 1 WHEN name ILIKE '%gel%' THEN 2 ELSE 3 END, name LIMIT 8"

@@ -150,7 +150,7 @@ function formatProducts(products) {
 
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "handoff", text: "Hvala na poruci! Proslediću vaše pitanje kolegama iz BIO KUTAK-a." };
-  const lower = message.toLocaleLowerCase("sr");
+  const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj");
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }

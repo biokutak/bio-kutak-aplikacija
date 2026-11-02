@@ -86,6 +86,20 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
       }
     }
   }
+  // When detail metadata truncates a decimal SKU (e.g. 5 instead of 5.24),
+  // the missing code digits can be prefixed to the concatenated price in the listing.
+  if (slugSku && rawSku && priceRaw != null) {
+    const normalizedSlug = slugSku.replace(/\./g,"");
+    const normalizedRaw = rawSku.replace(/\./g,"");
+    if (normalizedSlug.startsWith(normalizedRaw) && normalizedSlug.length > normalizedRaw.length) {
+      const missingCode = normalizedSlug.slice(normalizedRaw.length);
+      const digitsInPrice = String(priceRaw).replace(/\D/g,"");
+      if (missingCode && digitsInPrice.startsWith(missingCode) && digitsInPrice.length - missingCode.length >= 2) {
+        sku = rawSku.includes(".") ? rawSku + missingCode : rawSku + "." + missingCode;
+        priceRaw = digitsInPrice.slice(missingCode.length);
+      }
+    }
+  }
   const priceToken = priceRaw == null ? null : String(priceRaw).replace(/\s/g,"");
   const normalizedPrice = priceToken == null ? null :
     (priceToken.includes(",") && priceToken.includes(".") ? priceToken.replace(/\./g,"").replace(",",".") :

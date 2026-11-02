@@ -155,6 +155,35 @@ async function classifyAndReply(conversation, message) {
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }
+  // Keep ordinary conversation natural; casual messages are not customer-service handoffs.
+  const casual = lower.trim().replace(/[.!?]+$/g, "").trim();
+  if (/^(h+a+h+a+h*a*|he+h*|lol+|:d+|xd+|okej|ok|u redu|dogovoreno|hvala|hvala ti|super|odlicno|vazi|kiss|cmok|cao|vidimo se|laku noc|dobar smeh i sex|umirem od smeha|na ucenju je draga|odoh sad)$/.test(casual)) {
+    const reply = /hvala/.test(casual) ? "Nema na čemu! 🌿 Tu sam ako vam zatreba pomoć oko proizvoda ili ponude." :
+      /kiss|cmok/.test(casual) ? "🌿 Šaljem pozdrav iz BIO KUTAK-a! Tu sam kad zatreba." :
+      /cao|vidimo se|odoh|laku noc/.test(casual) ? "Prijatno i svratite nam ponovo! 🌿" :
+      "Baš lepo! 😊 Tu sam ako želite da nastavimo razgovor ili da potražimo neki proizvod.";
+    return { type: "auto", text: reply };
+  }
+  if (/^(ups nije dobro|nije dobro|pogresno|pogrešno|sta\??|шта\??)$/i.test(casual)) {
+    return { type: "auto", text: "Izvinite ako prethodni izbor nije bio odgovarajući. 🌿 Napišite mi tačno koji proizvod ili namirnicu tražite, pa ću ponovo pretražiti ponudu." };
+  }
+  // Food and dietary searches must not be mistaken for medical symptoms (e.g. "bez šećera").
+  const dietaryQuery = /bez glutena|bezglut|gluten|bez secera|bezsecer|bez dodatog secera|bez laktoze|posn|vegansk|vegan|biljni zelatin|agar|tofu|cokolad|keks|kolac|kolace/.test(lower);
+  if (dietaryQuery) {
+    const foodResults = await searchProducts(pool, message, 8);
+    if (foodResults.length) {
+      return { type: "auto", text: "Evo proizvoda iz BIO KUTAK ponude koji odgovaraju vašoj pretrazi: 🌿\\n\\n" + formatProducts(foodResults) + "\\n\\nZa posebnu ishranu obavezno proverite kompletnu deklaraciju i alergene; naziv proizvoda sam po sebi nije garancija da odgovara vašim potrebama." };
+    }
+    if (/bez glutena|bezglut|gluten/.test(lower)) {
+      return { type: "auto", text: "Mogu da proverim bezglutenske proizvode, ali trenutno nisam pronašla pouzdan rezultat za ovaj upit u katalogu. Da li tražite keks, brašno, testeninu ili sve bezglutenske proizvode?" };
+    }
+    if (/bez secera|bezsecer|bez dodatog secera/.test(lower)) {
+      return { type: "auto", text: "Trenutno nisam pronašla pouzdano potvrđen proizvod za ovaj upit. Da li tražite čokoladu, keks ili sve proizvode bez dodatog šećera?" };
+    }
+    if (/posn/.test(lower)) {
+      return { type: "auto", text: "Da li tražite posni keks, sastojke za posne kolače ili sve posne proizvode iz ponude? 🌿" };
+    }
+  }
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }

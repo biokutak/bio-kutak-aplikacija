@@ -188,7 +188,7 @@ async function classifyAndReply(conversation, message) {
     if (/\\b(oboje|oba|i jedno i drugo)\\b/i.test(lower) && /potencija|libido|erekcija/.test(recentContext)) {
       const potencyAdvice = await adviseCustomer(pool, "potencija libido");
       if (potencyAdvice?.products?.length) {
-        return { type: "auto", text: potencyAdvice.reply + "\\n\\n" + formatProducts(potencyAdvice.products) + "\\n\\nCene i dostupnost proverite na stranici proizvoda." };
+        return { type: "auto", text: potencyAdvice.reply + "\\n\\n" + formatProducts(potencyAdvice.products.map(p => ({ ...p, description: "" }))) + "\\n\\nPrikazani su prvo proizvodi sa višom cenom; cena ne znači da je preparat efikasniji. Cene i dostupnost proverite na stranici proizvoda." };
       }
       if (potencyAdvice?.autoReply) return { type: "auto", text: potencyAdvice.reply };
       return { type: "auto", text: "Razumem — mislite i na potenciju i na libido. 🌿 Proveriću katalog i prikazati samo proizvode čiji opis ili sastav izričito navodi ovu namenu." };

@@ -36,9 +36,9 @@ const INTENTS = [
   },
   {
     id: "digestion",
-    patterns: ["nadutost", "nadut stomak", "varenje", "probava", "zatvor", "redovna stolica", "digestivni problemi", "zeludac", "stomak me boli"],
-    terms: ["inulin", "psilijum", "laneno seme", "komorac", "nana", "menta"],
-    intro: "Mogu da prikažem proizvode iz ponude povezane sa vlaknima, čajevima i ishranom. Ako imate bol, uporne tegobe ili naglu promenu varenja, obratite se lekaru."
+    adviceOnly: true,
+    patterns: ["varenje", "probava", "digestivni problemi", "problemi sa varenjem"],
+    intro: "Varenje može značiti više različitih tegoba. Da ne bih preporučila pogrešan proizvod, recite mi da li imate nadutost/gasove, zatvor, proliv, gorušicu, mučninu ili bol u stomaku. Ako je bol jak ili iznenadan, imate krv u stolici, uporno povraćanje ili naglu promenu pražnjenja, obratite se lekaru."
   },
   {
     id: "skin",
@@ -115,7 +115,7 @@ const INTENTS = [
   },
   {
     id: "bloating",
-    patterns: ["gasovi", "imam gasove", "nadutost stomaka", "nadimanje", "grcevi u stomaku"],
+    patterns: ["gasovi", "imam gasove", "nadutost", "nadutost stomaka", "nadimanje", "grcevi u stomaku"],
     terms: ["komorac", "nana", "menta", "kamilica", "psilijum"],
     intro: "Mogu da prikažem čajeve i proizvode sa vlaknima iz ponude. Nadutost i grčevi imaju različite uzroke; jak ili iznenadan bol, povraćanje ili krv u stolici zahtevaju pregled."
   },
@@ -262,27 +262,46 @@ function detectIntent(message) {
   return INTENTS.find(intent => intent.patterns.some(pattern => text.includes(normalize(pattern)))) || null;
 }
 
+function containsWholePhrase(haystack, phrase) {
+  const padded = " " + normalize(haystack) + " ";
+  return padded.includes(" " + normalize(phrase) + " ");
+}
+
+function productMatchScore(product, terms, exclude = []) {
+  const name = normalize(product.name);
+  const category = normalize(product.category);
+  if (exclude.some(term => containsWholePhrase(name, term))) return 0;
+
+  let score = 0;
+  for (const rawTerm of terms) {
+    const term = normalize(rawTerm);
+    if (!term) continue;
+    const words = term.split(" ").filter(Boolean);
+    const nameHasPhrase = containsWholePhrase(name, term);
+    const categoryHasPhrase = containsWholePhrase(category, term);
+    const nameHasAllWords = words.length > 1 && words.every(word => containsWholePhrase(name, word));
+    const categoryHasAllWords = words.length > 1 && words.every(word => containsWholePhrase(category, word));
+
+    if (nameHasPhrase) score = Math.max(score, 100 + words.length * 5);
+    else if (nameHasAllWords) score = Math.max(score, 70 + words.length * 5);
+    else if (categoryHasPhrase) score = Math.max(score, 35 + words.length * 3);
+    else if (categoryHasAllWords) score = Math.max(score, 25 + words.length * 3);
+  }
+  return score;
+}
+
 async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
-  const normalizedTerms = [...new Set(terms.map(normalize).filter(Boolean))];
-  const clauses = normalizedTerms.map(term => {
-    const pattern = "'%" + term.replace(/'/g, "''") + "%'";
-    return "name ILIKE " + pattern + " OR COALESCE(category,'') ILIKE " + pattern;
-  });
-  const exclusions = exclude.map(term => "name NOT ILIKE '%" + term.replace(/'/g, "''") + "%'");
-  const sql = `SELECT name,sku,category,price_rsd,available,image_url,url
-     FROM products
-     WHERE (length(url)-length(replace(url,'/',''))) >= 4
-       AND (${clauses.join(" OR ")})
-       AND (${exclusions.join(" AND ") || "TRUE"})
-     ORDER BY name
-     LIMIT ${Math.max(1, Math.min(20, limit * 3))}`;
-  const result = await db.query(sql);
-  const score = (product) => {
-    const name = normalize(product.name);
-    const category = normalize(product.category);
-    return normalizedTerms.reduce((sum, term) => sum + (name.includes(term) ? 5 : category.includes(term) ? 2 : 0), 0);
-  };
-  return result.rows.sort((a,b) => score(b)-score(a)).slice(0,limit);
+  // The catalogue is small enough to rank locally. This deliberately avoids
+  // SQL ILIKE substring matches such as "nana" inside "ananas" or "banana".
+  const result = await db.query(
+    "SELECT name,sku,category,price_rsd,available,image_url,url FROM products WHERE url IS NOT NULL"
+  );
+  return result.rows
+    .map(product => ({ product, score: productMatchScore(product, terms, exclude) }))
+    .filter(item => item.score > 0)
+    .sort((a,b) => b.score - a.score || String(a.product.name).localeCompare(String(b.product.name), "sr"))
+    .slice(0, Math.max(1, Math.min(20, limit)))
+    .map(item => item.product);
 }
 
 export async function adviseCustomer(db, message) {

@@ -170,7 +170,24 @@ async function classifyAndReply(conversation, message) {
   // Food and dietary searches must not be mistaken for medical symptoms (e.g. "bez šećera").
   const dietaryQuery = /bez glutena|bezglut|gluten|bez secera|bezsecer|bez dodatog secera|bez laktoze|posn|vegansk|vegan|biljni zelatin|agar|tofu|cokolad|keks|kolac|kolace/.test(lower);
   if (dietaryQuery) {
-    const foodResults = await searchProducts(pool, message, 8);
+    let foodResults;
+    if (/bez glutena|bezglut|gluten/.test(lower)) {
+      foodResults = (await pool.query(
+        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND ((name ILIKE '%bez gluten%' OR name ILIKE '%bezgluten%' OR COALESCE(description,'') ILIKE '%bez glutena%' OR COALESCE(description,'') ILIKE '%bezglut%')) AND (name ILIKE '%keks%' OR name ILIKE '%brasn%' OR name ILIKE '%testenin%' OR $1 ILIKE '%sve%') ORDER BY name LIMIT 8",
+        [lower]
+      )).rows;
+    } else if (/bez secera|bezsecer|bez dodatog secera/.test(lower)) {
+      foodResults = (await pool.query(
+        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND (name ILIKE '%bez secer%' OR name ILIKE '%bez dodatog secer%' OR COALESCE(description,'') ILIKE '%bez secer%' OR COALESCE(description,'') ILIKE '%bez dodatog secer%') AND (name ILIKE '%cokolad%' OR name ILIKE '%keks%' OR $1 ILIKE '%sve%') ORDER BY name LIMIT 8",
+        [lower]
+      )).rows;
+    } else if (/posn/.test(lower)) {
+      foodResults = (await pool.query(
+        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND (name ILIKE '%posn%' OR COALESCE(description,'') ILIKE '%posn%') ORDER BY name LIMIT 8"
+      )).rows;
+    } else {
+      foodResults = await searchProducts(pool, message, 8);
+    }
     if (foodResults.length) {
       return { type: "auto", text: "Evo proizvoda iz BIO KUTAK ponude koji odgovaraju vašoj pretrazi: 🌿\n\n" + formatProducts(foodResults) + "\n\nZa posebnu ishranu obavezno proverite kompletnu deklaraciju i alergene; naziv proizvoda sam po sebi nije garancija da odgovara vašim potrebama." };
     }

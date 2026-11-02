@@ -145,7 +145,7 @@ function formatProducts(products) {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     const claimText = [p.description, p.usage].filter(Boolean).join(" ");
-    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|kandida|parazit|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
     const details = [
       !containsUnverifiedHealthClaims && p.description ? p.description : "",
       p.ingredients ? "Sastav: " + p.ingredients : "",
@@ -164,7 +164,7 @@ async function classifyAndReply(conversation, message) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }
   // Keep ordinary conversation natural; casual messages are not customer-service handoffs.
-  const casual = lower.trim().replace(/[.!?]+$/g, "").trim();
+  const casual = lower.trim().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
   if (/^(h+a+h+a+h*a*|he+h*|lol+|:d+|xd+|okej|ok|u redu|dogovoreno|hvala|hvala ti|super|odlicno|vazi|kiss|cmok|cao|vidimo se|laku noc|dobar smeh i sex|umirem od smeha|na ucenju je draga|odoh sad)$/.test(casual)) {
     const reply = /hvala/.test(casual) ? "Nema na čemu! 🌿 Tu sam ako vam zatreba pomoć oko proizvoda ili ponude." :
       /kiss|cmok/.test(casual) ? "🌿 Šaljem pozdrav iz BIO KUTAK-a! Tu sam kad zatreba." :
@@ -255,7 +255,6 @@ async function classifyAndReply(conversation, message) {
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
-    const recentText = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     if (/magnezij|magnesium/.test(lower) && /kako se koristi|upotreba|doziranje/.test(lower) && !/gel/.test(lower)) {
       const options = (await pool.query(
         "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (name ILIKE '%magnezij%' OR name ILIKE '%magnesium%') ORDER BY CASE WHEN name ILIKE '%citrat%' THEN 0 WHEN name ILIKE '%glycinat%' THEN 1 WHEN name ILIKE '%gel%' THEN 2 ELSE 3 END, name LIMIT 8"

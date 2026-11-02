@@ -283,7 +283,7 @@ export async function searchKnowledge(db, query, limit=5) {
      FROM knowledge_entries
      WHERE to_tsvector('simple',coalesce(title,'') || ' ' || coalesce(keywords,'') || ' ' || coalesce(content,'')) @@ to_tsquery('simple',$1)
         OR title ILIKE ANY($2::text[]) OR keywords ILIKE ANY($2::text[])
-     ORDER BY (rank + phrase_bonus) DESC, updated_at DESC LIMIT $3`,
+     ORDER BY rank DESC, phrase_bonus DESC, updated_at DESC LIMIT $3`,
     [tsQuery,patterns,Math.max(1,Math.min(10,limit))]
   );
   return result.rows;

@@ -81,12 +81,12 @@ function getProductCards(html) {
     const u=new URL(url), path=u.pathname.split("/").filter(Boolean);
     // Product detail URLs on BIO KUTAK have a category + product slug.
     if(path.length<2 || path.length>5 || path.some(x=>EXCLUDED.has(x.toLowerCase()))) return;
-    let node=$(el), best=$(el).text().replace(/\\s+/g," ").trim();
+    let node=$(el), best=$(el).text().replace(/\s+/g," ").trim();
     for(let depth=0;depth<8 && node.length;depth++,node=node.parent()){
-      const t=node.text().replace(/\\s+/g," ").trim();
-      if(t.length<2200 && (/Šifra\\s*:/i.test(t) || /\\bRSD\\b/i.test(t))){best=t;break;}
+      const t=node.text().replace(/\s+/g," ").trim();
+      if(t.length<2200 && (/Šifra\s*:/i.test(t) || /\bRSD\b/i.test(t))){best=t;break;}
     }
-    if(/Šifra\\s*:/i.test(best) || /\\bRSD\\b/i.test(best)){
+    if(/Šifra\s*:/i.test(best) || /\bRSD\b/i.test(best)){
       found.set(url,{url,text:best.slice(0,1800)});
     }
   });
@@ -99,15 +99,15 @@ function discoverCategoryUrls(html, baseUrl) {
     if(!href) return;
     const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
     if(parts.length<1 || parts.length>3 || parts.some(p=>EXCLUDED.has(p.toLowerCase()))) return;
-    let card=$(el), cardText=card.text().replace(/\\s+/g," ").trim();
+    let card=$(el), cardText=card.text().replace(/\s+/g," ").trim();
     for(let depth=0;depth<7 && card.length;depth++,card=card.parent()){
-      const t=card.text().replace(/\\s+/g," ").trim();
-      if(t.length<2200 && /Šifra\\s*:/i.test(t) && /\\bRSD\\b/i.test(t)){cardText=t;break;}
+      const t=card.text().replace(/\s+/g," ").trim();
+      if(t.length<2200 && /Šifra\s*:/i.test(t) && /\bRSD\b/i.test(t)){cardText=t;break;}
     }
     // Product cards carry both a SKU and a price; category/navigation links do not.
-    if(/Šifra\\s*:/i.test(cardText) && /\\bRSD\\b/i.test(cardText)) return;
-    if(/\\.(jpg|jpeg|png|gif|pdf|webp|xml)$/i.test(u.pathname)) return;
-    if(/\\/(korpa|podaci|potvrda)\\b/i.test(u.pathname)) return;
+    if(/Šifra\s*:/i.test(cardText) && /\bRSD\b/i.test(cardText)) return;
+    if(/\.(jpg|jpeg|png|gif|pdf|webp|xml)$/i.test(u.pathname)) return;
+    if(/\/(korpa|podaci|potvrda)\b/i.test(u.pathname)) return;
     out.add(u.origin+u.pathname);
   });
   return out;

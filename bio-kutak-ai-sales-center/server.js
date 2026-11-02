@@ -283,9 +283,9 @@ async function classifyAndReply(conversation, message) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
   // Protein questions are catalogue-shopping intents, not medical knowledge questions.
-  if (/\b(protein|proteini|proteinskim|proteinskih|belancevin|belan[cč]evin)\b/i.test(lower)) {
+  if (/\b(protein|proteina|proteine|proteinima|proteinski|proteinska|proteinsko|proteini|proteinskim|proteinskih|belancevin|belan[cč]evin)\b/i.test(lower)) {
     const plantOnly = /\b(biljn|biljne|biljni|vegansk|vegan|bez mleka|bez mlecnih|bez laktoze)\b/i.test(lower);
-    const sql = "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND category IN ('osnovne-namirnice','posebna-ishrana','dodaci-ishrani') AND (translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%proteinske plocice%','%protein kokos%','%bundevino brasno%','%golica%','%semenka%','%seme bundeve%','%pecena neslana soja%','%sojina kobasica%','%tempeh%','%naut%','%leblebija%','%brasno od crvenog sociva%','%brasno od zelenog sociva%','%brasno od pasulja%','%brasno od nauta%','%humus natural%','%humus sa povrcem%','%kikiriki puter%','%badem sirovi%','%badem peceni%','%pasulj crni%']) OR translate(lower(coalesce(ingredients,'')),'čćžšđ','cczsd') LIKE ANY(ARRAY['%protein gras%','%biljni protein%','%protein soje%','%protein bundev%'])) AND (NOT $1 OR (translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%surutk%' AND translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%mlecni protein%' AND translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%kazein%')) AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%biljni namaz%' AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%biljna pasteta%' ORDER BY CASE WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%proteinske plocice%' THEN 0 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%tempeh%' THEN 1 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%pecena neslana soja%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%sojina kobasica%' THEN 2 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%bundevino brasno%' THEN 3 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%golica%' THEN 4 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%naut%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%leblebija%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%sociva%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%pasulj%' THEN 5 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%kikiriki puter%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%badem%' THEN 6 ELSE 7 END, CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END,name LIMIT 12";
+    const sql = "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND category IN ('osnovne-namirnice','posebna-ishrana','dodaci-ishrani') AND (translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%proteinske plocice%','%protein kokos%','%cookie%','%badem sirovi%','%badem peceni%','%indijski orah%','%kikiriki%','%socivo%','%pasulj%','%grasak%','%bundevino brasno%','%golica%','%semenka%','%seme bundeve%','%pecena neslana soja%','%sojina kobasica%','%tempeh%','%naut%','%leblebija%','%brasno od crvenog sociva%','%brasno od zelenog sociva%','%brasno od pasulja%','%brasno od nauta%','%humus natural%','%humus sa povrcem%','%kikiriki puter%','%badem sirovi%','%badem peceni%','%pasulj crni%']) OR translate(lower(coalesce(ingredients,'')),'čćžšđ','cczsd') LIKE ANY(ARRAY['%protein gras%','%biljni protein%','%protein soje%','%protein bundev%'])) AND (NOT $1 OR (translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%surutk%' AND translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%mlecni protein%' AND translate(lower(name||' '||coalesce(ingredients,'')),'čćžšđ','cczsd') NOT LIKE '%kazein%')) AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%biljni namaz%' AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%biljna pasteta%' AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%cookie%' AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%keks%' ORDER BY CASE WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%proteinske plocice%' THEN 0 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%tempeh%' THEN 1 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%pecena neslana soja%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%sojina kobasica%' THEN 2 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%bundevino brasno%' THEN 3 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%golica%' THEN 4 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%naut%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%leblebija%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%sociva%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%pasulj%' THEN 5 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%kikiriki puter%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%badem%' THEN 6 ELSE 7 END, CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END,name LIMIT 12";
     const rows = (await pool.query(sql,[plantOnly])).rows;
     const intro = plantOnly ? "U BIO KUTAK ponudi sam pronašla nekoliko biljnih izvora proteina. 🌿" : "U BIO KUTAK ponudi ima namirnica koje mogu doprineti unosu proteina. 🌿";
     const note = plantOnly ? "Izdvojila sam proizvode biljnog porekla i izostavila artikle sa surutkom, mlečnim proteinima i kazeinom prema dostupnim deklaracijama." : "Predlozi su namirnice i proizvodi iz kataloga, a ne svi su proteinski praškovi. Za tačan sadržaj proteina po porciji proverite nutritivnu tabelu na pakovanju.";
@@ -334,8 +334,23 @@ async function classifyAndReply(conversation, message) {
     const asksMostExpensive = /\b(najskuplji|najskuplje|najvisa cena|najveca cena)\b/i.test(lower);
     const asksCheapest = /\b(najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najmanja cena)\b/i.test(lower);
     if (asksMostExpensive || asksCheapest) {
+      // A short follow-up such as "a nešto jeftinije" inherits the category from the preceding answer.
+      const rankingContextRows = await pool.query(
+        "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 12",
+        [conversation.id]
+      );
+      const rankingContext = normalizeText(rankingContextRows.rows.map(row => row.body || "").join(" "));
+      let contextualFilter = "";
+      let contextualLabel = "";
+      if (/imunitet|immunity|propolis|vitamin c|cink|ehinacea|amla/.test(rankingContext)) {
+        contextualFilter = " AND category IN ('osnovne-namirnice','dodaci-ishrani') AND translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%vitamin c%','%c vitamin%','%propolis%','%cink%','%ehinacea%','%amla%','%djumbir%'])";
+        contextualLabel = "povoljniji proizvodi povezani sa prethodnim pitanjem o imunitetu";
+      } else if (/spavanje|spavam|nesanic|lavanda|valerijan|maticnjak|melisa/.test(rankingContext)) {
+        contextualFilter = " AND category IN ('osnovne-namirnice','dodaci-ishrani') AND translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%valerijan%','%lavanda caj%','%maticnjak caj%','%kamilica caj%','%hmelj caj%'])";
+        contextualLabel = "povoljniji čajevi i proizvodi iz prethodne pretrage za večernju rutinu";
+      }
       const ranked = await pool.query(
-        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND price_rsd IS NOT NULL AND price_rsd > 0 ORDER BY price_rsd " + (asksMostExpensive ? "DESC" : "ASC") + ", name ASC LIMIT 5"
+        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND price_rsd IS NOT NULL AND price_rsd > 0" + contextualFilter + " ORDER BY price_rsd " + (asksMostExpensive ? "DESC" : "ASC") + ", name ASC LIMIT 5"
       );
       if (ranked.rows.length) {
         const lines = ranked.rows.map((p, i) =>
@@ -343,11 +358,11 @@ async function classifyAndReply(conversation, message) {
           (p.available === true ? " (dostupan prema sajtu)" : p.available === false ? " (trenutno nedostupan prema sajtu)" : " (stanje nije potvrđeno)") +
           "\n" + p.url
         );
-        return { type: "auto", text: (asksMostExpensive ? "Pet najskupljih proizvoda" : "Pet najpovoljnijih proizvoda") +
+        return { type: "auto", text: (contextualLabel ? "Pet " + contextualLabel : asksMostExpensive ? "Pet najskupljih proizvoda" : "Pet najpovoljnijih proizvoda") +
           " prema cenama koje su trenutno zabeležene u BIO KUTAK katalogu: 🌿\n\n" + lines.join("\n\n") +
           "\n\nCene i dostupnost mogu da se promene; proverite stranicu proizvoda za konačnu potvrdu." };
       }
-      return { type: "auto", text: "Trenutno nemam dovoljno potvrđenih cena u katalogu da bih pouzdano izdvojila proizvode po ceni. 🌿" };
+      return { type: "auto", text: contextualLabel ? "Trenutno nisam pronašla jeftiniji odgovarajući artikal u istoj grupi proizvoda. Neću prikazivati nepovezane proizvode samo zato što su jeftini. 🌿" : "Trenutno nemam dovoljno potvrđenih cena u katalogu da bih pouzdano izdvojila proizvode po ceni. 🌿" };
     }
     const recent = await pool.query(
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",

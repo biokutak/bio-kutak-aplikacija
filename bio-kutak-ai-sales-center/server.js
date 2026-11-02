@@ -178,6 +178,25 @@ async function classifyAndReply(conversation, message) {
   if (/^(popij zeno|pa da se otrujem|onda nemoj cukati palac|kad nemam naocare|pa nemam na ocima|imas godina a lazes|pa to da koristi je)$/.test(casual)) {
     return { type: "auto", text: "😊 Izgleda da smo se malo zapetljali u razgovoru! Samo da razjasnimo: ako govorimo o magnezijum gelu, on je namenjen za spoljašnju upotrebu — ne pije se. Recite mi koji proizvod imate i pomoći ću oko deklaracije." };
   }
+  // Direct sweetener recommendation: a shopping/nutrition question, never a symptom or medical handoff.
+  if (/zamena za secer|zamenu za secer|zamena secera|umesto secera|cime da zamenim secer|zasladjivac|zasladjivace|zasladjivaci/.test(lower)) {
+    const sweeteners = (await pool.query(
+      "SELECT name,price_rsd,available,url,ingredients,usage FROM products WHERE url IS NOT NULL AND (" +
+      "translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%eritritol%','%stevija%','%ksilitol%','%brezin secer%']) " +
+      "OR translate(lower(ingredients),'čćžšđ','cczsd') LIKE ANY(ARRAY['%eritritol%','%steviol glikozid%','%ksilitol%'])) " +
+      "ORDER BY CASE WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%stevija eritritol%' THEN 0 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%eritritol%' THEN 1 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%stevija%' THEN 2 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%ksilitol%' THEN 3 ELSE 4 END, name LIMIT 10"
+    )).rows;
+    const lines = sweeteners.map(p => {
+      const price = p.price_rsd == null ? "cena nije navedena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
+      const availability = p.available === false ? "trenutno nedostupan" : p.available === true ? "dostupnost prikazana na sajtu" : "proveriti dostupnost";
+      return "• " + p.name + " — " + price + " (" + availability + ")" +
+        (p.ingredients ? "\\nSastav: " + p.ingredients.slice(0,220) : "") +
+        (p.usage ? "\\nUpotreba: " + p.usage.slice(0,250) : "") + "\\n" + p.url;
+    });
+    return { type:"auto", text:"Ako želite da zamenite običan beli šećer, najpraktičnije opcije iz naše ponude su: 🌿\\n\\n" +
+      (lines.length ? lines.join("\\n\\n") : "Trenutno nisam pronašla zaslađivače u katalogu.") +
+      "\\n\\n**Kako da izaberete:**\\n• Eritritol — kristalna zamena za šećer; može imati blago rashlađujući ukus.\\n• Stevija + eritritol — praktična mešavina za napitke i recepte; proverite odnos zamene na deklaraciji jer se proizvodi razlikuju.\\n• Stevija — veoma je slatka, pa se koristi u maloj količini; tečna, tabletirana i praškasta nisu međusobno zamenljive kašičicu za kašičicu.\\n• Ksilitol (brezin šećer) — po slatkoći i upotrebi je sličniji običnom šećeru, ali sadrži kalorije.\\n\\n**Važno:** veće količine eritritola i ksilitola kod nekih ljudi izazivaju nadutost ili proliv; ksilitol je veoma otrovan za pse. Ako zamenu birate zbog dijabetesa ili insulinske rezistencije, nemojte se oslanjati samo na GI tabelu ili marketinške tvrdnje — proverite deklaraciju i dogovorite izbor sa lekarom/dijetetičarem.\\n\\nDa li vam treba za kafu i čaj ili za kolače i kuvanje?" };
+  }
   // Food and dietary searches must not be mistaken for medical symptoms (e.g. "bez šećera").
   const dietaryQuery = /bez glutena|bezglut|gluten|bez secera|bezsecer|bez dodatog secera|bez laktoze|posn|vegansk|vegan|biljni zelatin|agar|tofu|cokolad|keks|kolac|kolace/.test(lower);
   if (dietaryQuery) {

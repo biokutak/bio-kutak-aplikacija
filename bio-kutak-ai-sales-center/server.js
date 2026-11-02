@@ -170,6 +170,17 @@ async function classifyAndReply(conversation, message) {
       return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita i normalnom metabolizmu stvaranja energije. Potreban je i za održavanje normalnih kostiju. Suplement može biti koristan kada unos hranom nije dovoljan ili postoji manjak, ali nije lek za grčeve, nesanicu ili umor i ne deluje isto kod svih. 🌿\\n\\nU našoj ponudi su različiti oblici: citrate i glycinate su oralni suplementi (tačnu količinu magnezijuma proverite na deklaraciji), dok su magnezijum-hlorid gelovi proizvodi za spoljašnju upotrebu i nisu zamena za suplement koji se pije. Ako imate bolest bubrega, trudni ste, dojite ili koristite redovnu terapiju, pre uzimanja suplementa posavetujte se sa lekarom ili farmaceutom.\\n\\nDa li vas zanima koji oblik magnezijuma da izaberete ili želite da proverim sastav konkretnog proizvoda?" };
     }
   }
+  // Explain the difference between magnesium forms when the conversation is about magnesium.
+  if (/\\b(razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem)\\b/i.test(lower) && /magnezij|magnesium|citr(at|ate)|glicinat|glycinat/.test(lower)) {
+    const recent = await pool.query(
+      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
+      [conversation.id]
+    );
+    const recentContext = recent.rows.map(row => String(row.body || "")).join(" ").toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    if (/magnezij|magnesium|citr(at|ate)|glicinat|glycinat/.test(recentContext)) {
+      return { type: "auto", text: "Magnezijum citrat i magnezijum glicinat su dva različita oblika magnezijuma za oralnu upotrebu. 🌿\\n\\n• **Citrat**: magnezijum je vezan za limunsku kiselinu. Kod nekih osoba može više da omekša stolicu ili izazove proliv, pa to treba imati u vidu ako imate osetljiv stomak.\\n• **Glicinat (bisglicinat)**: magnezijum je vezan za aminokiselinu glicin. Često se bira kada se želi oblik koji se obično lakše podnosi u stomaku, mada individualna reakcija može da se razlikuje.\\n\\nNe postoji jedan oblik koji je najbolji za svakoga. Za pošteno poređenje naših proizvoda treba uporediti **količinu elementarnog magnezijuma po dnevnoj dozi**, a ne samo težinu jedinjenja ili broj kapsula. U podacima koje trenutno imam za MAGNEZIJUM CITRATE + B6 i MAGNEZIJUM GLYCINATE 90 caps nemam pouzdano potvrđenu količinu elementarnog magnezijuma, zato neću nagađati koji daje veću dozu. Proverite deklaraciju ili mi pošaljite fotografiju obe etikete pa ću ih uporediti.\\n\\nAko imate bolest bubrega ili uzimate redovnu terapiju, izbor suplementa proverite sa lekarom ili farmaceutom." };
+    }
+  }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.
   const advice = await adviseCustomer(pool, message);
   if (advice) {

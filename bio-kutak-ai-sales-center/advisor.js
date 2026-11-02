@@ -227,7 +227,7 @@ export async function adviseCustomer(db, message) {
   }
   const intent = detectIntent(message);
   if (!intent) {
-    const symptomLike = /\\b(bol|boli|boli me|svrbi|svrab|pece|temperatur|kasalj|kaslj|mucnin|povrac|krvar|otok|osip|umor|vrtoglav|proliv|zatvor|nesanic|trnjen|slabost|pritisak|secer|dijabet|astm|srce|bubreg|jetra)\\w*/i.test(normalizedMessage);
+    const symptomLike = /\b(bol|boli|boli me|svrbi|svrab|pece|temperatur|kasalj|kaslj|mucnin|povrac|krvar|otok|osip|umor|vrtoglav|proliv|zatvor|nesanic|trnjen|slabost|pritisak|secer|dijabet|astm|srce|bubreg|jetra)\w*/i.test(normalizedMessage);
     if (!symptomLike) return null;
     return {
       urgent: false,

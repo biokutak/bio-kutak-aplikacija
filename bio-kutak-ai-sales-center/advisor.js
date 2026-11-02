@@ -399,9 +399,10 @@ export async function adviseCustomer(db, message) {
   if (!products.length) {
     return {
       urgent: false,
+      autoReply: true,
       intent: intent.id,
       products: [],
-      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u našem katalogu. Mogu da prosledim pitanje kolegama iz BIO KUTAK-a."
+      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u našem katalogu. Neću nagađati niti preporučivati nepovezan artikal. Mogu da proverim sa kolegama da li postoji dodatna ponuda u prodavnici."
     };
   }
   return {

@@ -43,8 +43,10 @@ const INTENTS = [
   {
     id: "sleep",
     patterns: ["ne mogu da spavam", "los san", "lose spavam", "nesanica", "tesko zaspim", "budim se nocu", "za spavanje"],
-    terms: ["lavanda", "magnezijum", "caj kamilica", "matičnjak", "melisa"],
-    intro: "Mogu da pokažem proizvode iz ponude koji se tradicionalno koriste u večernjim rutinama i opuštanju. Ne mogu da garantujem da rešavaju nesanicu niti da zamene savet lekara."
+    terms: ["lavanda caj", "valerijana", "maticnjak caj", "hmelj caj", "kamilica caj"],
+    allowedCategories: ["osnovne-namirnice","dodaci-ishrani"],
+    exclude: ["sapun", "deo stik", "dezodorans", "gel", "krema", "ulje", "serum"],
+    intro: "Mogu da proverim biljne čajeve i preparate iz ponude koji se tradicionalno povezuju sa večernjom rutinom. To nije lečenje nesanice niti garancija dejstva. Ako nesanica traje redovno, pogoršava se ili utiče na svakodnevno funkcionisanje, razgovarajte sa lekarom ili farmaceutom. Poseban oprez je potreban uz lekove za smirenje ili spavanje, alkohol, trudnoću i dojenje."
   },
   {
     id: "immunity",
@@ -112,6 +114,12 @@ const INTENTS = [
     patterns: ["gorusica", "kiselina u zelucu", "vraca mi se kiselina", "refluks", "podrigivanje", "peckanje u zelucu"],
     terms: ["laneno seme", "ovsene pahuljice", "kamilica"],
     intro: "Mogu da prikažem prehrambene proizvode iz ponude, ali oni nisu terapija za gorušicu ili refluks. Ako se tegobe ponavljaju, imate otežano gutanje, povraćanje krvi ili jak bol u grudima, potražite medicinsku procenu."
+  },
+  {
+    id: "persistent-vomiting",
+    adviceOnly: true,
+    patterns: ["uporno povracanje", "uporno povracam", "stalno povracam", "ne prestajem da povracam", "povracam stalno"],
+    intro: "Uporno povraćanje nije situacija za preporuku suplementa ili čaja. Potrebna je medicinska procena, naročito ako ne možete da zadržite tečnost, mokrite znatno manje, imate vrtoglavicu, jak ili sve jači bol u stomaku, krv ili sadržaj nalik talogu kafe u povraćenom sadržaju, visoku temperaturu ili ste trudni. Potražite medicinsku pomoć bez odlaganja; kod izrazite slabosti, konfuzije, nesvestice ili jakog bola pozovite hitnu pomoć. Ako možete, uzimajte male gutljaje vode ili rastvora za rehidrataciju dok ne dobijete savet, ali nemojte odlagati pregled."
   },
   {
     id: "nausea",
@@ -273,7 +281,7 @@ const INTENTS = [
   {
     id: "stomach-pain",
     adviceOnly: true,
-    patterns: ["jak bol u stomaku", "iznenadan bol u stomaku", "bol u donjem delu stomaka", "bol ispod desnog rebra", "bol ispod levog rebra"],
+    patterns: ["bol u stomaku", "bol stomaka", "stomak me boli", "jak bol u stomaku", "iznenadan bol u stomaku", "bol u donjem delu stomaka", "bol ispod desnog rebra", "bol ispod levog rebra"],
     intro: "Bol u stomaku može imati mnogo uzroka i ne može se pouzdano proceniti preko poruke. Nemojte birati suplement kao terapiju. Jak, iznenadan ili sve jači bol, tvrd stomak, uporno povraćanje, krv u stolici ili moguća trudnoća zahtevaju hitnu medicinsku procenu."
   },
   {
@@ -403,7 +411,10 @@ export async function adviseCustomer(db, message) {
   if (intent.adviceOnly) {
     return { urgent: false, autoReply: true, intent: intent.id, products: [], reply: intro };
   }
-  const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
+  let products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
+  if (intent.allowedCategories?.length) {
+    products = products.filter(p => intent.allowedCategories.includes(p.category));
+  }
   if (!products.length) {
     return {
       urgent: false,

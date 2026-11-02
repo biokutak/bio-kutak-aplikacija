@@ -48,6 +48,25 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS warnings TEXT;
 CREATE INDEX IF NOT EXISTS products_name_search_idx ON products USING GIN (to_tsvector('simple', name));
 CREATE INDEX IF NOT EXISTS products_sku_idx ON products(sku);
 
+CREATE TABLE IF NOT EXISTS unanswered_questions (
+  id BIGSERIAL PRIMARY KEY,
+  conversation_id BIGINT REFERENCES conversations(id) ON DELETE SET NULL,
+  channel TEXT NOT NULL,
+  customer_name TEXT,
+  question TEXT NOT NULL,
+  question_hash TEXT UNIQUE NOT NULL,
+  draft_reply TEXT,
+  context JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','dismissed')),
+  occurrences INTEGER NOT NULL DEFAULT 1,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  resolution_title TEXT,
+  resolution TEXT
+);
+CREATE INDEX IF NOT EXISTS unanswered_questions_status_seen_idx ON unanswered_questions(status,last_seen_at DESC);
+
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,

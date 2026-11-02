@@ -282,10 +282,10 @@ export async function answerFromKnowledge(db, message) {
       !riskyClaims && product.usage ? "Način upotrebe sa deklaracije: " + product.usage : "",
       product.warnings ? "Upozorenja: " + product.warnings : "",
       riskyClaims ? "Napomena: opis sadrži zdravstvene tvrdnje koje ne predstavljam kao potvrđeno medicinsko dejstvo." : ""
-    ].filter(Boolean).join("\\n");
-    return { type:"auto", text:"Podaci o proizvodu **" + product.name + "** iz BIO KUTAK kataloga: 🌿\\n\\n" + price + " " + stock +
-      (details ? "\\n" + details.slice(0,1800) : "") + "\\n\\n" + product.url +
-      "\\n\\nOvo su podaci o artiklu, ne dijagnoza ili preporuka za lečenje. Ako ga birate zbog zdravstvene tegobe ili koristite terapiju, proverite izbor sa lekarom ili farmaceutom." };
+    ].filter(Boolean).join("\n");
+    return { type:"auto", text:"Podaci o proizvodu **" + product.name + "** iz BIO KUTAK kataloga: 🌿\n\n" + price + " " + stock +
+      (details ? "\n" + details.slice(0,1800) : "") + "\n\n" + product.url +
+      "\n\nOvo su podaci o artiklu, ne dijagnoza ili preporuka za lečenje. Ako ga birate zbog zdravstvene tegobe ili koristite terapiju, proverite izbor sa lekarom ili farmaceutom." };
   }
   return { type:"auto", text:"**" + best.title + "**\n\n" + best.content +
     "\n\nOvo su opšte informacije; za izbor konkretnog proizvoda proverite njegovu deklaraciju." };

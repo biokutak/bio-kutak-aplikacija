@@ -40,22 +40,35 @@ function productCandidates(html) {
 function paginationCandidates(html, currentUrl = SITE) {
   const $ = cheerio.load(html);
   const found = new Set();
+  const current = new URL(currentUrl);
+  const paginationSelector = [
+    ".pagination a[href]", ".pager a[href]", "[class*='pagination'] a[href]",
+    "[class*='pager'] a[href]", "[aria-label*='page'] a[href]",
+    "a[rel='next'][href]", "a[rel='prev'][href]"
+  ].join(",");
+  const inPagination = new Set($(paginationSelector).toArray());
   $("a[href]").each((_, el) => {
     const href = absoluteUrl($(el).attr("href"));
     if (!href) return;
     const u = new URL(href);
     const label = $(el).text().replace(/\s+/g, " ").trim();
-    const classes = [
-      $(el).attr("class") || "",
-      $(el).parent().attr("class") || "",
-      $(el).parent().parent().attr("class") || ""
-    ].join(" ").toLowerCase();
-    const hasPageParam = [...u.searchParams.keys()].some((key) => /^(page|paged|strana|p|offset|start|limit)$/i.test(key));
-    const pageLabel = /^\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹/i.test(label);
-    const current = new URL(currentUrl);
+    let node = $(el);
+    let ancestry = "";
+    for (let depth = 0; depth < 5 && node.length; depth++, node = node.parent()) {
+      ancestry += " " + (node.attr("class") || "") + " " + (node.attr("aria-label") || "");
+    }
+    ancestry = ancestry.toLowerCase();
+    const inPager = inPagination.has(el) || /(pagination|pager|stran|page-nav|page_nav)/i.test(ancestry);
+    const hasPageParam = [...u.searchParams.keys()].some((key) => /^(page|paged|strana|p|offset|start|limit|pg)$/i.test(key));
+    const pageLabel = /^\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹|→|←/i.test(label);
+    const numericPath = /(?:^|\/)(?:page|strana|stranica|p)\/?\d+(?:\/|$)/i.test(u.pathname)
+      || /\/\d+\/?$/.test(u.pathname);
     const sameListingPath = u.pathname === current.pathname;
     const numericPageLink = /^\d+$/.test(label) && sameListingPath && u.href !== current.href;
-    if (hasPageParam || numericPageLink || (/(pagination|pager|stran|page)/i.test(classes) && pageLabel)) found.add(href);
+    const relNext = /^(next|prev)$/i.test($(el).attr("rel") || "");
+    if ((hasPageParam && pageLabel) || (inPager && pageLabel) || (numericPath && pageLabel) || numericPageLink || relNext) {
+      if (u.href !== current.href) found.add(href);
+    }
   });
   return [...found];
 }

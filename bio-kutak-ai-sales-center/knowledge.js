@@ -260,9 +260,25 @@ export async function answerFromKnowledge(db, message) {
   const best = entries.find(entry => entry.entry_type === "guide") || entries.find(entry => entry.entry_type === "product");
   if (!best) return null;
   if (best.entry_type === "product") {
-    return { type:"auto", text:"Prema podacima za **" + best.title + "** u BIO KUTAK katalogu: 🌿\n\n" + best.content.slice(0,2600) +
-      (best.product_url ? "\n\n" + best.product_url : "") +
-      "\n\nOpis proizvoda je informacija iz kataloga, a ne potvrda medicinskog dejstva. Za zdravstvene tegobe ili kombinovanje sa terapijom posavetujte se sa lekarom ili farmaceutom." };
+    const product = (await db.query(
+      "SELECT name,category,price_rsd,available,url,ingredients,usage,warnings,description FROM products WHERE url=$1 LIMIT 1",
+      [best.product_url]
+    )).rows[0];
+    if (!product) return null;
+    const claimText = [product.description,product.usage].filter(Boolean).join(" ");
+    const riskyClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const price = product.price_rsd == null ? "Cena nije potvrđena u katalogu." : "Cena prema katalogu: " + Number(product.price_rsd).toLocaleString("sr-RS") + " RSD.";
+    const stock = product.available === true ? "Dostupnost: dostupno prema katalogu." : product.available === false ? "Dostupnost: trenutno nedostupno prema katalogu." : "Dostupnost nije potvrđena.";
+    const details = [
+      product.category ? "Kategorija: " + product.category : "",
+      product.ingredients ? "Sastav: " + product.ingredients : "",
+      !riskyClaims && product.usage ? "Način upotrebe sa deklaracije: " + product.usage : "",
+      product.warnings ? "Upozorenja: " + product.warnings : "",
+      riskyClaims ? "Napomena: opis sadrži zdravstvene tvrdnje koje ne predstavljam kao potvrđeno medicinsko dejstvo." : ""
+    ].filter(Boolean).join("\\n");
+    return { type:"auto", text:"Podaci o proizvodu **" + product.name + "** iz BIO KUTAK kataloga: 🌿\\n\\n" + price + " " + stock +
+      (details ? "\\n" + details.slice(0,1800) : "") + "\\n\\n" + product.url +
+      "\\n\\nOvo su podaci o artiklu, ne dijagnoza ili preporuka za lečenje. Ako ga birate zbog zdravstvene tegobe ili koristite terapiju, proverite izbor sa lekarom ili farmaceutom." };
   }
   return { type:"auto", text:"**" + best.title + "**\n\n" + best.content +
     "\n\nOvo su opšte informacije; za izbor konkretnog proizvoda proverite njegovu deklaraciju." };

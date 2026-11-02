@@ -58,8 +58,8 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
   const sourceText = body+" "+listingText;
   const slugTail = new URL(url).pathname.split("/").filter(Boolean).at(-1) || "";
   const slugSku = slugTail.match(/-(\d{1,6}(?:\.\d{1,6})?|\d{7,16})$/)?.[1] || null;
-  const rawSku = structured?.sku || structured?.mpn || structured?.gtin13 ||
-    sourceText.match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
+  const textSku = sourceText.match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
+  const rawSku = textSku || structured?.sku || structured?.mpn || structured?.gtin13 || null;
   let sku = rawSku || slugSku;
   let priceRaw = offers?.price ?? offers?.lowPrice ??
     sourceText.match(/(\d[\d\s.]*?(?:,\d{1,2})?)\s*RSD\b/i)?.[1] ??
@@ -80,7 +80,7 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
       const suffix = rawSku.slice(skuPrefix.length);
       if (suffix === "" || /^\d{2,6}$/.test(suffix)) {
         sku = skuPrefix;
-        if (suffix && offers?.price == null && offers?.lowPrice == null) priceRaw = suffix;
+        if (suffix) priceRaw = suffix;
       }
     }
   }

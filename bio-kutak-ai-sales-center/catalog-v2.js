@@ -27,10 +27,10 @@ async function get(url, timeout = 35000) {
   if (!response.ok) throw new Error("HTTP " + response.status + " " + url);
   return { body:await response.text(), type:response.headers.get("content-type") || "" };
 }
-async function getRetry(url) {
+async function getRetry(url, timeout = 35000) {
   let error;
   for (let n=1;n<=3;n++) {
-    try { return await get(url); }
+    try { return await get(url, timeout); }
     catch(e) { error=e; console.warn("Catalog V2 fetch retry", {url,attempt:n,error:e.message}); if(n<3) await sleep(n*1200); }
   }
   throw error;
@@ -180,7 +180,7 @@ export async function syncCatalogV2(db) {
     frontier=new Set();
     if(!batch.length) break;
     const pages=await mapLimit(batch,5,async url=>{
-      try { const {body}=await getRetry(url); return {url,html:body}; }
+      try { const {body}=await getRetry(url,18000); return {url,html:body}; }
       catch(e) { console.warn("CATALOG V2 category failed",{url,error:e.message}); return null; }
     });
     for(const p of pages) {

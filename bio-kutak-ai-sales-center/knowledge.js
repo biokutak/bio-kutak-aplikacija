@@ -256,11 +256,11 @@ export async function answerProductFollowUp(db, recentRows, message) {
 
 export async function answerFromKnowledge(db, message) {
   const original = normalize(message);
-  const teaTerm = /(kamilic|zalfij|salvi|nana|menta|pepermint|djumbir|ginger|lipa|tilia|majcina dusica|timijan|thymus|maticnjak|melisa|valerijan|odoljen|kopriv|urtica|komorac|fenel|sena|senna|uva ursi|medvedje grozdje|hibiskus|hibiscus|sipak|hajduck|malin|kantarion|hypericum|sladic|zov|bazga|maslacak|sikavic|biljni caj|caj za|cajevi)/.test(original);
-  const questionLike = teaTerm || /\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je|preporuka|preporucite|za|oko|u vezi sa)\b/.test(original) || original.split(" ").filter(x => x.length > 3).length >= 2;
+  const teaTerm = /(kamilic|zalfij|salvi|nana|menta|pepermint|djumbir|ginger|lipa|tilia|majcina dusica|timijan|thymus|maticnjak|melisa|valerijan|odoljen|kopriv|urtica|komorac|fenel|sena|senna|uva ursi|medvedje grozdje|hibiskus|hibiscus|sipak|hajduck|malin|kantarion|hypericum|sladic|zov|bazga|maslacak|sikavic|biljni caj|caj za|cajevi)/.test(original);\n  const vitaminTerm = /(vitamin|vitamini|multivitamin|b kompleks|folna kiselina|folat|kobalamin|biotin|niacin|retinol|beta karoten|askorbinska|tiamin|riboflavin|piridoksin|tokoferol|kalciferol|metilkobalamin|cijanokobalamin|vitamin [a-k]|[b-d][0-9]{1,2})/.test(original);
+  const questionLike = teaTerm || vitaminTerm || /\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je|preporuka|preporucite|za|oko|u vezi sa)\b/.test(original) || original.split(" ").filter(x => x.length > 3).length >= 2;
   if (!questionLike) return null;
   const stop = new Set(["sta","znaci","cemu","sluzi","za","je","kako","se","koristi","zasto","koja","koji","koje","razlika","objasni","reci","mi","o","molim","vas","moze","li","imam","muci","me","problem","sa","preporucujete","preporucujes","radim","mogu","da","kod","oko","u","vezi","moja","moj","moje","neki","neka","neko","treba","potrebno","zelim","hteo","htela","bih","imate","vam"]);
-  const terms = original.split(" ").filter(word => word.length>2 && !stop.has(word));
+  const terms = original.split(" ").filter(word => (word.length>2 || /^[a-k][0-9]{1,2}$/.test(word) || (word.length===1 && /^(a|c|d|e|k)$/.test(word) && /vitamin/.test(original))) && !stop.has(word));
   if (!terms.length) return null;
   const entries = await searchKnowledge(db,terms.join(" "),5);
   const best = entries.find(entry => entry.entry_type === "guide") || entries.find(entry => entry.entry_type === "product");
@@ -292,7 +292,7 @@ export async function answerFromKnowledge(db, message) {
 
 export async function searchKnowledge(db, query, limit=5) {
   await ensureKnowledgeSchema(db);
-  const terms = [...new Set(normalize(query).split(" ").filter(x=>x.length>2))].slice(0,10);
+  const normalizedQuery = normalize(query);\n  const terms = [...new Set(normalizedQuery.split(" ").filter(x=>x.length>2 || /^[a-k][0-9]{1,2}$/.test(x) || (x.length===1 && /^(a|c|d|e|k)$/.test(x) && /vitamin/.test(normalizedQuery))))].slice(0,10);
   if (!terms.length) return [];
   // OR retrieval handles short, natural-language customer queries with extra words.
   const tsQuery = terms.map(x => x.replace(/[^a-z0-9]/g,"")).filter(Boolean).join(" | ");

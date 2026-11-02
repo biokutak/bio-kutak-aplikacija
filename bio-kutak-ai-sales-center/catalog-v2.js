@@ -54,12 +54,31 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "") {
   const name = $("h1").first().text().trim() || structured?.name || $("meta[property='og:title']").attr("content") || "";
   if (!name) return null;
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
-  const sku = structured?.sku || structured?.mpn || structured?.gtin13 ||
-    (body+" "+listingText).match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
-  const priceRaw = offers?.price ?? offers?.lowPrice ??
-    (body+" "+listingText).match(/(?:Cena|Price)?\s*:?\s*(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ??
-    (body+" "+listingText).match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ?? null;
-  const price = priceRaw == null ? null : Number(String(priceRaw).replace(/\./g,"").replace(",","."));
+  const sourceText = body+" "+listingText;
+  const slugTail = new URL(url).pathname.split("/").filter(Boolean).at(-1) || "";
+  const slugSku = slugTail.match(/-(\d{3,14})$/)?.[1] || null;
+  const rawSku = structured?.sku || structured?.mpn || structured?.gtin13 ||
+    sourceText.match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
+  let sku = rawSku || slugSku;
+  let priceRaw = offers?.price ?? offers?.lowPrice ??
+    sourceText.match(/(?:Cena|Price)?\s*:?\s*(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ??
+    sourceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ??
+    sourceText.match(/(\d[\d\s.]*?(?:,\d{1,2})?)\s*RSD\b/i)?.[1] ?? null;
+  // Some BIO KUTAK cards concatenate SKU + price (e.g. EAN13 + 500).
+  // The product URL carries the real SKU, so split that suffix back into price.
+  if (slugSku && rawSku && rawSku.startsWith(slugSku) && rawSku.length > slugSku.length) {
+    const suffix = rawSku.slice(slugSku.length);
+    if (/^\d{2,6}$/.test(suffix)) {
+      sku = slugSku;
+      if (offers?.price == null && offers?.lowPrice == null) priceRaw = suffix;
+    }
+  }
+  const priceToken = priceRaw == null ? null : String(priceRaw).replace(/\s/g,"");
+  const normalizedPrice = priceToken == null ? null :
+    (priceToken.includes(",") && priceToken.includes(".") ? priceToken.replace(/\./g,"").replace(",",".") :
+     priceToken.includes(",") ? priceToken.replace(",",".") :
+     /\.\d{3}$/.test(priceToken) ? priceToken.replace(/\./g,"") : priceToken);
+  const price = normalizedPrice == null ? null : Number(normalizedPrice);
   const availabilityText = String(offers?.availability || structured?.availability || "") + " " + body + " " + listingText;
   const unavailable = /OutOfStock|Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(availabilityText);
   const available = unavailable ? false : (/InStock|Dodaj u korpu|\bKupi\b/i.test(availabilityText) ? true : null);

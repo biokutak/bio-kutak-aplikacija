@@ -39,7 +39,18 @@
   const add = (text, side) => {
     const node = document.createElement("div");
     node.className = "bk-ai-msg " + (side === "user" ? "bk-ai-user" : "bk-ai-bot");
-    node.textContent = text;
+    const parts = String(text || "").split(/(https:\/\/biokutak\.co\.rs\/[^\s<>"']*)/gi);
+    for (const part of parts) {
+      if (/^https:\/\/biokutak\.co\.rs\//i.test(part)) {
+        const link = document.createElement("a");
+        link.href = part.replace(/[),.;!?]+$/,"");
+        link.textContent = "Otvori proizvod";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.cssText = "color:#176b43;text-decoration:underline;font-weight:700;display:inline-block;margin-top:3px";
+        node.appendChild(link);
+      } else node.appendChild(document.createTextNode(part));
+    }
     log.appendChild(node);
     log.scrollTop = log.scrollHeight;
   };

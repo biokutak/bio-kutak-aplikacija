@@ -181,6 +181,25 @@ export async function answerProductFollowUp(db, recentRows, message) {
     (kind === "price" || kind === "availability" ? "\n\nPodaci su preuzeti iz BIO KUTAK kataloga i mogu se promeniti; konačnu potvrdu proverite u prodavnici." : "") };
 }
 
+export async function answerFromKnowledge(db, message) {
+  const original = normalize(message);
+  const questionLike = /\\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o)\\b/.test(original);
+  if (!questionLike) return null;
+  const stop = new Set(["sta","znaci","cemu","sluzi","za","je","kako","se","koristi","zasto","koja","koji","koje","razlika","objasni","reci","mi","o","molim","vas","moze","li"]);
+  const terms = original.split(" ").filter(word => word.length>2 && !stop.has(word));
+  if (!terms.length) return null;
+  const entries = await searchKnowledge(db,terms.join(" "),5);
+  const best = entries.find(entry => entry.entry_type === "product") || entries.find(entry => entry.entry_type === "guide");
+  if (!best) return null;
+  if (best.entry_type === "product") {
+    return { type:"auto", text:"Prema podacima za **" + best.title + "** u BIO KUTAK katalogu: 🌿\\n\\n" + best.content.slice(0,2600) +
+      (best.product_url ? "\\n\\n" + best.product_url : "") +
+      "\\n\\nOpis proizvoda je informacija iz kataloga, a ne potvrda medicinskog dejstva. Za zdravstvene tegobe ili kombinovanje sa terapijom posavetujte se sa lekarom ili farmaceutom." };
+  }
+  return { type:"auto", text:"**" + best.title + "**\\n\\n" + best.content +
+    "\\n\\nOvo su opšte informacije; za izbor konkretnog proizvoda proverite njegovu deklaraciju." };
+}
+
 export async function searchKnowledge(db, query, limit=5) {
   await ensureKnowledgeSchema(db);
   const terms = normalize(query).split(" ").filter(x=>x.length>2).slice(0,10);

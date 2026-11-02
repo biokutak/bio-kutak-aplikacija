@@ -172,7 +172,7 @@ async function classifyAndReply(conversation, message) {
   if (dietaryQuery) {
     const foodResults = await searchProducts(pool, message, 8);
     if (foodResults.length) {
-      return { type: "auto", text: "Evo proizvoda iz BIO KUTAK ponude koji odgovaraju vašoj pretrazi: 🌿\\n\\n" + formatProducts(foodResults) + "\\n\\nZa posebnu ishranu obavezno proverite kompletnu deklaraciju i alergene; naziv proizvoda sam po sebi nije garancija da odgovara vašim potrebama." };
+      return { type: "auto", text: "Evo proizvoda iz BIO KUTAK ponude koji odgovaraju vašoj pretrazi: 🌿\n\n" + formatProducts(foodResults) + "\n\nZa posebnu ishranu obavezno proverite kompletnu deklaraciju i alergene; naziv proizvoda sam po sebi nije garancija da odgovara vašim potrebama." };
     }
     if (/bez glutena|bezglut|gluten/.test(lower)) {
       return { type: "auto", text: "Mogu da proverim bezglutenske proizvode, ali trenutno nisam pronašla pouzdan rezultat za ovaj upit u katalogu. Da li tražite keks, brašno, testeninu ili sve bezglutenske proizvode?" };

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f6844">
+<title>Bio Kutak Pametnica – Pitajte nas</title>
+<style>
+:root{color-scheme:light;--green:#1f6844;--deep:#174b32;--pale:#edf5ee;--line:#dce8de;--ink:#203027}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(145deg,#f2f7f0,#e8f1e8);font-family:Arial,Helvetica,sans-serif;color:var(--ink);display:flex;flex-direction:column}
+header{background:#fff;border-bottom:1px solid var(--line);padding:15px 22px}
+.brand{max-width:900px;margin:auto;display:flex;align-items:center;gap:12px}
+.logo{width:46px;height:46px;border-radius:50%;background:var(--pale);display:grid;place-items:center;font-size:25px}
+.brand strong{display:block;color:var(--deep);font-size:18px}.brand small{color:#66766a}
+main{width:min(900px,100%);margin:28px auto;padding:0 16px;flex:1;display:flex;flex-direction:column}
+.intro{text-align:center;margin:8px auto 20px;max-width:650px}
+.intro h1{margin:0 0 8px;color:var(--deep);font-size:clamp(25px,4vw,34px)}
+.intro p{margin:0;color:#617066;line-height:1.5}
+.chat{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 40px #24472a12;overflow:hidden;display:flex;flex-direction:column;min-height:520px;max-height:calc(100vh - 245px)}
+.chathead{padding:14px 18px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:space-between}
+.chathead strong{font-size:16px}.online{font-size:12px;opacity:.9}
+.log{padding:18px;overflow-y:auto;flex:1;background:#fbfdfb}
+.msg{max-width:min(78%,620px);padding:12px 14px;border-radius:15px;margin:0 0 12px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.48;font-size:15px}
+.bot{background:var(--pale);border:1px solid #e0ebe1;border-bottom-left-radius:4px}
+.user{background:#e5efff;margin-left:auto;border-bottom-right-radius:4px}
+.msg a{color:var(--green);font-weight:700}
+.composer{padding:13px;border-top:1px solid var(--line);display:flex;gap:9px;background:#fff}
+input{flex:1;min-width:0;border:1px solid #ccd9ce;border-radius:12px;padding:13px;font-size:15px;outline-color:var(--green)}
+button{border:0;border-radius:12px;padding:0 20px;background:var(--green);color:white;font-weight:700;font-size:15px;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.note{text-align:center;color:#718075;font-size:11px;line-height:1.5;padding:10px 16px 15px}
+footer{text-align:center;color:#718075;font-size:12px;padding:16px}
+@media(max-width:600px){main{margin:14px auto;padding:0 10px}.chat{min-height:60vh;max-height:calc(100vh - 205px);border-radius:15px}.msg{max-width:90%}.composer{padding:10px}.composer button{padding:0 14px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo">🌿</div><div><strong>BIO KUTAK</strong><small>Priroda na vašoj strani</small></div></div></header>
+<main>
+<section class="intro"><h1>Dobro došli kod Bio Kutak Pametnice</h1><p>Recite nam šta tražite ili postavite pitanje o proizvodima iz naše ponude. Tu smo da pomognemo.</p></section>
+<section class="chat" aria-label="Razgovor sa Bio Kutak Pametnicom">
+<div class="chathead"><strong>🌿 Bio Kutak Pametnica</strong><span class="online">● Dostupna za pitanja</span></div>
+<div class="log" id="log" aria-live="polite"><div class="msg bot">Zdravo! Dobro došli u BIO KUTAK. 🌿<br><br>Kako mogu da vam pomognem? Možete pitati za proizvod, sastav, cenu ili dostupnost.</div></div>
+<form class="composer" id="form"><input id="message" maxlength="2000" placeholder="Napišite svoje pitanje..." autocomplete="off" required><button id="send" type="submit">Pošalji</button></form>
+<div class="note">Pametnica pruža informacije o proizvodima iz ponude i ne zamenjuje savet lekara ili farmaceuta. Za hitna zdravstvena stanja obratite se zdravstvenoj službi.</div>
+</section>
+</main>
+<footer>Bio Kutak · Dimitrija Tucovića 2, Subotica · 024/552-953</footer>
+<script>
+(()=>{
+ const log=document.getElementById('log'),form=document.getElementById('form'),input=document.getElementById('message'),send=document.getElementById('send');
+ const key='bk_pametnica_session_v1';let token=localStorage.getItem(key)||'',conversationId='',lastSeen=Date.now();
+ function add(text,side){
+  const el=document.createElement('div');el.className='msg '+(side==='user'?'user':'bot');
+  const chunks=String(text||'').split(/(https:\/\/biokutak\.co\.rs\/[^\s<>"']*)/gi);
+  for(const chunk of chunks){if(/^https:\/\/biokutak\.co\.rs\//i.test(chunk)){const a=document.createElement('a');a.href=chunk.replace(/[),.;!?]+$/,'');a.target='_blank';a.rel='noopener noreferrer';a.textContent='Otvori proizvod';el.appendChild(a)}else el.appendChild(document.createTextNode(chunk))}
+  log.appendChild(el);log.scrollTop=log.scrollHeight;
+ }
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();const message=input.value.trim();if(!message)return;
+  input.value='';send.disabled=true;add(message,'user');
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,sessionToken:token})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Greška');
+   token=d.sessionToken;conversationId=d.conversationId;localStorage.setItem(key,token);add(d.reply,'bot');lastSeen=Date.now();
+  }catch{add('Poruka trenutno nije mogla biti poslata. Proverite internet vezu i pokušajte ponovo.','bot')}
+  finally{send.disabled=false;input.focus()}
+ });
+ async function poll(){if(!conversationId||!token)return;try{const r=await fetch('/api/chat/'+encodeURIComponent(conversationId)+'/messages?token='+encodeURIComponent(token));if(!r.ok)return;const d=await r.json();for(const m of d.messages||[]){const stamp=new Date(m.created_at).getTime();if(m.direction==='out'&&(m.sender==='human'||m.sender==='human-approved')&&stamp>lastSeen){add(m.body,'bot');lastSeen=stamp}}}catch{}}
+ setInterval(poll,4000);
+})();
+</script>
+</body>
+</html>

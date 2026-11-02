@@ -18,7 +18,7 @@ const INTENTS = [
   {
     id: "dry-cough",
     patterns: ["suvi kasalj", "suv kasalj", "suvog kaslja", "suvim kasljem", "nadrazajni kasalj", "golicanje u grlu", "grebanje u grlu", "kasalj bez sekreta", "kasljem suvo", "kasalj"],
-    terms: ["beli slez caj", "bokvica caj", "majcina dusica caj", "timijan timjan caj", "lipov med"],
+    terms: ["beli slez caj", "bokvica caj", "majčina dušica čaj", "timijan-timjan čaj", "lipov med"],
     exclude: ["crni slez", "gavez", "koren", "list"],
     intro: "Za suvi kašalj mogu da pokažem čajeve i med iz naše ponude koji se tradicionalno koriste kao topli napici za umirenje nadraženog grla. Ovo nisu lekovi i ne leče uzrok kašlja. Ako kašalj traje duže od 3 nedelje, pogoršava se ili imate temperaturu, javite se lekaru. Kod otežanog disanja, bola u grudima ili iskašljavanja krvi potražite hitnu medicinsku pomoć."
   },

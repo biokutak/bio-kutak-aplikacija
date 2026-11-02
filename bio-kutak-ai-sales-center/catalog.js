@@ -122,6 +122,7 @@ function parseProduct(url, html, listText = "", context = "") {
     || $("img").filter((_, el) => /product|proizvod/i.test($(el).attr("alt") || "")).first().attr("src");
   const category = new URL(url).pathname.split("/").filter(Boolean)[0] || null;
 
+  if (!structured && !(sku && (price != null || buyAvailable || unavailable))) return null;
   return {
     url, name: name.slice(0, 240), sku: sku || null,
     category, priceRsd: price,
@@ -154,17 +155,18 @@ export async function syncCatalog(db) {
   const seenSitemaps = new Set();
   const addCategoryLinks = (html) => {
     const $ = cheerio.load(html);
-    $("nav a[href], .menu a[href], .categories a[href], .category-menu a[href], .sidebar a[href], #categories a[href], [class*='category'] a[href]").each((_,el) => {
-      const href=absoluteUrl($(el).attr("href"));
-      if (!href) return;
-      const parts=new URL(href).pathname.split("/").filter(Boolean);
+    const productLinks = new Set(productCandidates(html).map(item=>item.url));
+    const add = (href) => {
+      if (!href || productLinks.has(href)) return;
+      const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
       if (parts.length && parts.length<=4 && !parts.some(p=>excluded.has(p.toLowerCase()))) categoryUrls.add(href);
-    });
+    };
+    $("nav a[href], .menu a[href], .categories a[href], .category-menu a[href], .sidebar a[href], #categories a[href], [class*='category'] a[href]").each((_,el) => add(absoluteUrl($(el).attr("href"))));
     $("a[href]").each((_,el) => {
       const href=absoluteUrl($(el).attr("href"));
-      if (!href) return;
+      if (!href || productLinks.has(href)) return;
       const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
-      if (parts.length===1 && !u.search && !parts.some(p=>excluded.has(p.toLowerCase()))) categoryUrls.add(href);
+      if (parts.length===1 && !u.search) add(href);
     });
   };
   const readSitemap = async (url,depth=0) => {

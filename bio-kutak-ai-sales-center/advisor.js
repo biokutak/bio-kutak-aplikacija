@@ -247,6 +247,12 @@ const INTENTS = [
     intro: "Tokom trudnoće i dojenja nemojte uzimati biljne preparate, eterična ulja ili suplemente bez provere sa ginekologom ili farmaceutom. I proizvodi koji su inače prirodni mogu biti neodgovarajući u ovom periodu. Mogu da proverim sastav konkretnog proizvoda, ali konačnu procenu treba da da zdravstveni stručnjak."
   },
   {
+    id: "potency",
+    adviceOnly: true,
+    patterns: ["potencija", "problem sa potencijom", "problemi sa potencijom", "slaba potencija", "erekcija", "slaba erekcija", "problem sa erekcijom", "problemi sa erekcijom", "libido", "slab libido", "seksualna funkcija", "seksualna zelja"],
+    intro: "Razumem. 🌿 Tegobe sa potencijom mogu imati različite uzroke, uključujući cirkulaciju, šećer u krvi, hormone, stres ili dejstvo lekova. Da li mislite na teško postizanje ili održavanje erekcije, smanjenu seksualnu želju (libido), ili oboje? Ne bih preporučivao preparat naslepo — suplementi nisu dokazano lečenje erektilne disfunkcije i mogu stupiti u interakciju sa terapijom. Ako se problem ponavlja, najbolje je razgovarati sa lekarom ili urologom, jer ponekad može ukazivati na drugo zdravstveno stanje. Nemojte prekidati propisanu terapiju."
+  },
+  {
     id: "prostate",
     adviceOnly: true,
     patterns: ["prostata", "uvećana prostata", "slab mlaz mokrace", "nocu ustajem da mokrim", "tesko mokrim"],

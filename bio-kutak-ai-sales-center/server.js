@@ -2,7 +2,8 @@ import "dotenv/config";
 import express from "express";
 import pg from "pg";
 import crypto from "node:crypto";
-import { searchProducts, syncCatalog } from "./catalog.js";
+import { searchProducts } from "./catalog.js";
+import { syncCatalogV2 } from "./catalog-v2.js";
 
 const { Pool } = pg;
 const app = express();
@@ -213,7 +214,7 @@ app.get("/api/catalog/search", async (req,res) => {
 
 app.post("/api/catalog/sync", async (req,res) => {
   if (!process.env.ADMIN_API_KEY || !safeEqual(req.headers["x-admin-key"], process.env.ADMIN_API_KEY)) return res.sendStatus(401);
-  try { await ensureSchema(); res.json(await syncCatalog(pool)); }
+  try { await ensureSchema(); res.json(await syncCatalogV2(pool)); }
   catch (e) { res.status(500).json({ error:e.message }); }
 });
 
@@ -304,7 +305,7 @@ app.post("/webhooks/telegram", async (req,res) => {
       return res.sendStatus(200);
     }
     if (text === "/sync") {
-      const result = await syncCatalog(pool);
+      const result = await syncCatalogV2(pool);
       await telegram("sendMessage",{chat_id:chatId,text:`Sinhronizacija završena: ${result.saved} proizvoda.`});
       return res.sendStatus(200);
     }
@@ -380,7 +381,7 @@ app.listen(PORT, async () => {
   try {
     await ensureSchema();
     console.log("Database schema ready");
-    const result = await syncCatalog(pool);
+    const result = await syncCatalogV2(pool);
     console.log("Startup catalog sync:",result);
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.RENDER_EXTERNAL_URL) {
       await telegram("setWebhook", {
@@ -391,5 +392,5 @@ app.listen(PORT, async () => {
       console.log("Telegram webhook registered");
     }
   } catch (e) { console.error("Startup initialization:",e.message); }
-  setInterval(() => syncCatalog(pool).then(r => console.log("Scheduled catalog sync:",r)).catch(e => console.error("Scheduled catalog sync failed:",e.message)), 6 * 60 * 60 * 1000);
+  setInterval(() => syncCatalogV2(pool).then(r => console.log("Scheduled catalog sync:",r)).catch(e => console.error("Scheduled catalog sync failed:",e.message)), 6 * 60 * 60 * 1000);
 });

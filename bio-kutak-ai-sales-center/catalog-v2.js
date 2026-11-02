@@ -66,11 +66,22 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
     sourceText.match(/(\d{1,7}(?:[.,]\d{1,2})?)\s*RSD\b/i)?.[1] ?? null;
   // Some BIO KUTAK cards concatenate SKU + price (e.g. EAN13 + 500).
   // The product URL carries the real SKU, so split that suffix back into price.
-  if (slugSku && rawSku && rawSku.startsWith(slugSku) && rawSku.length > slugSku.length) {
-    const suffix = rawSku.slice(slugSku.length);
-    if (/^\d{2,6}$/.test(suffix)) {
-      sku = slugSku;
-      if (offers?.price == null && offers?.lowPrice == null) priceRaw = suffix;
+  if (slugSku && rawSku) {
+    let skuPrefix = rawSku.startsWith(slugSku) ? slugSku : null;
+    // Some BIO KUTAK slugs drop the decimal point from short codes (524 = 5.24).
+    if (!skuPrefix) {
+      const normalizedSlug = slugSku.replace(/\./g,"");
+      for (let end=1; end<=rawSku.length; end++) {
+        const candidate = rawSku.slice(0,end);
+        if (candidate.replace(/\./g,"") === normalizedSlug) { skuPrefix=candidate; break; }
+      }
+    }
+    if (skuPrefix) {
+      const suffix = rawSku.slice(skuPrefix.length);
+      if (suffix === "" || /^\d{2,6}$/.test(suffix)) {
+        sku = skuPrefix;
+        if (suffix && offers?.price == null && offers?.lowPrice == null) priceRaw = suffix;
+      }
     }
   }
   const priceToken = priceRaw == null ? null : String(priceRaw).replace(/\s/g,"");

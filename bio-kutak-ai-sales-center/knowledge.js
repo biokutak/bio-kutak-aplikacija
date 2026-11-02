@@ -72,6 +72,29 @@ const GUIDES = [
 ];
 
 
+
+  
+GUIDES.push(
+  {
+    slug: "learned-digestion-bloating",
+    title: "Nadutost i gasovi – bezbedne opšte smernice",
+    keywords: "nadutost nadutosti nadimanje gasovi gasovima stomak varenje probava podrigivanje",
+    content: "Kada kupac kaže da ima nadutost ili gasove, Pametnica treba da prepozna da je to preciziranje prethodnog pitanja o varenju i da ne ponavlja isto opšte pitanje. Nadutost i gasovi mogu imati više uzroka; ne postavljati dijagnozu i ne obećavati da čaj ili suplement leči tegobu. Kod blagih povremenih tegoba mogu pomoći sporije jedenje, manji obroci, dovoljno tečnosti i praćenje hrane koja lično izaziva gasove. Ne preporučivati nasumične artikle. Ako se prikazuju proizvodi, birati samo čajeve namenjene za pripremu napitka iz prehrambene kategorije i proveriti sastav, upozorenja i dostupnost; nikada ne nuditi etarska ulja, kozmetiku, dezodoranse, sapune ili proizvode koji samo sadrže reč nana. Nana može pogoršati gorušicu kod nekih osoba. Jak ili iznenadan bol, izraženo nadut stomak uz povraćanje ili nemogućnost ispuštanja gasova, krv u stolici, neobjašnjiv gubitak težine ili uporne/pogoršavajuće tegobe zahtevaju medicinsku procenu."
+  },
+  {
+    slug: "learned-diarrhea-safe-response",
+    title: "Proliv – rehidratacija i upozoravajući simptomi",
+    keywords: "proliv dijareja retka stolica ucestala stolica dehidratacija elektroliti oralni rehidratacioni rastvor",
+    content: "Kod proliva je prioritet nadoknada tečnosti i elektrolita. Preporučiti oralni rehidratacioni rastvor (ORS) prema uputstvu na pakovanju i česte male gutljaje tečnosti. Ne predstavljati čajeve, suplemente, hranu ili proizvode iz prodavnice kao zamenu za ORS ili medicinsku procenu. Pametnica ne treba da prikazuje nepovezane artikle iz kataloga. Potražiti lekara kod krvi ili crne stolice, visoke temperature, jakog bola, znakova dehidratacije (vrlo malo mokrenja, jaka žeđ, suva usta, vrtoglavica, izrazita malaksalost), nemogućnosti zadržavanja tečnosti, pogoršanja ili trajanja tegoba. Kod odojčadi, male dece, starijih i hronično bolesnih prag za javljanje lekaru treba da bude niži. Ne postavljati dijagnozu niti propisivati lekove."
+  },
+  {
+    slug: "learned-digestion-clarification",
+    title: "Pitanje o boljem varenju – prvo razjasniti tegobu",
+    keywords: "bolje varenje varenje probava digestivno nadutost gasovi zatvor proliv gorušica mucnina bol stomak",
+    content: "Ako kupac pita opšte 'šta preporučujete za bolje varenje', Pametnica treba kratko da razjasni koju tegobu ima: nadutost/gasove, zatvor, proliv, gorušicu, mučninu ili bol u stomaku. Kada kupac odgovori jednom od ponuđenih tegoba, tretirati odgovor kao izbor i nastaviti odgovarajućim tokom; ne ponavljati početno pitanje. Za bol, uporno povraćanje, krv u stolici, jak ili iznenadan bol, znake dehidratacije ili naglo pogoršanje ne preporučivati proizvod naslepo već uputiti na medicinsku procenu."
+  }
+);
+
 GUIDES.push(
 {slug:"vitamin-d",title:"Vitamin D – uloga i oprez",keywords:"vitamin d d3 kosti misici imunitet sunce nedostatak",content:"Vitamin D doprinosi normalnoj apsorpciji kalcijuma i fosfora i održavanju normalnih kostiju i mišića. Potreba za suplementacijom zavisi od ishrane, izlaganja suncu, uzrasta i zdravstvenih faktora. Kod sumnje na manjak lekar može preporučiti analizu. Visoke doze bez nadzora mogu biti štetne."},
 {slug:"vitamin-c",title:"Vitamin C – osnovne informacije",keywords:"vitamin c askorbinska kiselina kolagen imunitet",content:"Vitamin C doprinosi normalnom stvaranju kolagena i normalnoj funkciji imunskog sistema. Veće količine kod nekih osoba mogu izazvati stomačne tegobe. Osobe sa istorijom bubrežnih kamenaca ili određenim bolestima treba da pitaju lekara o visokim dozama."},

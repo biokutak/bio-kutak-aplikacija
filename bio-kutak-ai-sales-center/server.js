@@ -157,28 +157,51 @@ async function classifyAndReply(conversation, message) {
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
-  // Answer short follow-up questions using the recent conversation context.
-  // This prevents a product question such as “čemu služi?” from being escalated
-  // when the customer has just asked about magnesium products.
-  if (/\\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi)\\b/i.test(lower)) {
+  // Product-aware follow-ups: use the previous conversation and verified catalogue fields.
+  const isFollowUp = /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima)\b/i.test(lower);
+  if (isFollowUp) {
     const recent = await pool.query(
-      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
+      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
-    const recentContext = recent.rows.map(row => String(row.body || "")).join(" ").toLocaleLowerCase("sr");
-    if (/magnezij|magnesium/.test(recentContext)) {
-      return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita i normalnom metabolizmu stvaranja energije. Potreban je i za održavanje normalnih kostiju. Suplement može biti koristan kada unos hranom nije dovoljan ili postoji manjak, ali nije lek za grčeve, nesanicu ili umor i ne deluje isto kod svih. 🌿\\n\\nU našoj ponudi su različiti oblici: citrate i glycinate su oralni suplementi (tačnu količinu magnezijuma proverite na deklaraciji), dok su magnezijum-hlorid gelovi proizvodi za spoljašnju upotrebu i nisu zamena za suplement koji se pije. Ako imate bolest bubrega, trudni ste, dojite ili koristite redovnu terapiju, pre uzimanja suplementa posavetujte se sa lekarom ili farmaceutom.\\n\\nDa li vas zanima koji oblik magnezijuma da izaberete ili želite da proverim sastav konkretnog proizvoda?" };
+    const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
+    const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
+    const wantsComparison = /\b(razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem)\b/i.test(lower);
+    const catalogue = await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL ORDER BY name"
+    );
+    const mentionedProducts = catalogue.rows.filter(product => {
+      const productName = normalizeText(product.name);
+      return productName.length > 5 && recentContext.includes(productName);
+    }).slice(0, 5);
+
+    if (wantsComparison && mentionedProducts.length >= 2) {
+      const comparison = mentionedProducts.slice(0, 4).map(product => {
+        const facts = [
+          product.description ? "Opis: " + product.description : "",
+          product.ingredients ? "Sastav: " + product.ingredients : "Sastav nije naveden u trenutno dostupnim podacima.",
+          product.usage ? "Način upotrebe: " + product.usage : "Način upotrebe nije potvrđen u trenutno dostupnim podacima.",
+          product.warnings ? "Upozorenje: " + product.warnings : "",
+          product.price_rsd == null ? "Cena nije prikazana." : "Cena: " + Number(product.price_rsd).toLocaleString("sr-RS") + " RSD"
+        ].filter(Boolean).join("\\n");
+        return "• " + product.name + "\\n" + facts.slice(0, 1100) + "\\n" + product.url;
+      }).join("\\n\\n");
+      return { type: "auto", text: "Mogu da uporedim proizvode na osnovu podataka koji su trenutno dostupni u BIO KUTAK katalogu. 🌿\\n\\n" + comparison + "\\n\\nPoređenje se zasniva na deklaracijama i opisima koji su dostupni na sajtu. Ako neki podatak nedostaje, neću pretpostavljati da su proizvodi isti niti da je jedan bolji. Za konačan izbor proverite deklaraciju i posavetujte se sa farmaceutom ako imate zdravstveno stanje ili koristite terapiju." };
     }
-  }
-  // Explain the difference between magnesium forms when the conversation is about magnesium.
-  if (/\\b(razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem)\\b/i.test(lower) && /magnezij|magnesium|citr(at|ate)|glicinat|glycinat/.test(lower)) {
-    const recent = await pool.query(
-      "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
-      [conversation.id]
-    );
-    const recentContext = recent.rows.map(row => String(row.body || "")).join(" ").toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
-    if (/magnezij|magnesium|citr(at|ate)|glicinat|glycinat/.test(recentContext)) {
-      return { type: "auto", text: "Magnezijum citrat i magnezijum glicinat su dva različita oblika magnezijuma za oralnu upotrebu. 🌿\\n\\n• **Citrat**: magnezijum je vezan za limunsku kiselinu. Kod nekih osoba može više da omekša stolicu ili izazove proliv, pa to treba imati u vidu ako imate osetljiv stomak.\\n• **Glicinat (bisglicinat)**: magnezijum je vezan za aminokiselinu glicin. Često se bira kada se želi oblik koji se obično lakše podnosi u stomaku, mada individualna reakcija može da se razlikuje.\\n\\nNe postoji jedan oblik koji je najbolji za svakoga. Za pošteno poređenje naših proizvoda treba uporediti **količinu elementarnog magnezijuma po dnevnoj dozi**, a ne samo težinu jedinjenja ili broj kapsula. U podacima koje trenutno imam za MAGNEZIJUM CITRATE + B6 i MAGNEZIJUM GLYCINATE 90 caps nemam pouzdano potvrđenu količinu elementarnog magnezijuma, zato neću nagađati koji daje veću dozu. Proverite deklaraciju ili mi pošaljite fotografiju obe etikete pa ću ih uporediti.\\n\\nAko imate bolest bubrega ili uzimate redovnu terapiju, izbor suplementa proverite sa lekarom ili farmaceutom." };
+
+    if (mentionedProducts.length && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima)\b/i.test(lower)) {
+      const product = mentionedProducts[0];
+      const details = [
+        product.description ? "Opis proizvoda na sajtu: " + product.description : "Opis namene nije naveden u katalogu.",
+        product.ingredients ? "Sastav: " + product.ingredients : "Sastav nije naveden u trenutno dostupnim podacima.",
+        product.usage ? "Način upotrebe: " + product.usage : "Način upotrebe nije potvrđen u trenutno dostupnim podacima.",
+        product.warnings ? "Upozorenje: " + product.warnings : ""
+      ].filter(Boolean).join("\\n\\n");
+      return { type: "auto", text: "Za **" + product.name + "** mogu da navedem sledeće podatke iz BIO KUTAK kataloga: 🌿\\n\\n" + details.slice(0, 2400) + "\\n\\nOpis sa sajta nije zamena za medicinski savet. Ako želite, mogu da uporedim ovaj proizvod sa drugim artiklom iz ponude." };
+    }
+
+    if (/magnezij|magnesium/.test(recentContext) && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi)\b/i.test(lower)) {
+      return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita, normalnom metabolizmu stvaranja energije i održavanju normalnih kostiju. Suplement nije lek za grčeve, nesanicu ili umor. 🌿\\n\\nU ponudi su oralni oblici (citrat i glicinat) i gelovi za spoljašnju upotrebu. Gel se ne može smatrati zamenom za suplement koji se pije. Za izbor oralnog proizvoda važno je proveriti količinu elementarnog magnezijuma po dnevnoj dozi. Ako imate bolest bubrega, trudni ste, dojite ili koristite terapiju, posavetujte se sa lekarom ili farmaceutom." };
     }
   }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.

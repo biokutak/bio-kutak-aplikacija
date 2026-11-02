@@ -49,7 +49,7 @@ const INTENTS = [
   {
     id: "digestion",
     adviceOnly: true,
-    patterns: ["varenje", "probava", "digestivni problemi", "problemi sa varenjem"],
+    patterns: ["varenje", "za varenje", "probava", "digestivni problemi", "problemi sa varenjem", "problem sa varenjem", "problema sa varenjem", "nadutost", "nadutosti", "nadimanje", "nadimanju", "gasovi", "gasovima"],
     intro: "Varenje može značiti više različitih tegoba. Da ne bih preporučila pogrešan proizvod, recite mi da li imate nadutost/gasove, zatvor, proliv, gorušicu, mučninu ili bol u stomaku. Ako je bol jak ili iznenadan, imate krv u stolici, uporno povraćanje ili naglu promenu pražnjenja, obratite se lekaru."
   },
   {
@@ -127,7 +127,7 @@ const INTENTS = [
   },
   {
     id: "bloating",
-    patterns: ["gasovi", "imam gasove", "nadutost", "nadutost stomaka", "nadimanje", "grcevi u stomaku"],
+    patterns: ["gasovi", "imam gasove", "gasovima", "nadutost", "nadutosti", "nadutost stomaka", "nadimanje", "nadimanju", "grcevi u stomaku"],
     terms: ["komorac", "nana", "menta", "kamilica", "psilijum"],
     intro: "Mogu da prikažem čajeve i proizvode sa vlaknima iz ponude. Nadutost i grčevi imaju različite uzroke; jak ili iznenadan bol, povraćanje ili krv u stolici zahtevaju pregled."
   },

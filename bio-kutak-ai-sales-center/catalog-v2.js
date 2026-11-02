@@ -169,15 +169,28 @@ export async function syncCatalogV2(db) {
       console.log("CATALOG V2 SEED", {url:u,categoryLinks:categoryQueue.size,productCards:getProductCards(body).length});
     } catch(e) { console.warn("CATALOG V2 seed failed",{url:u,error:e.message}); }
   }
-  const categoryUrls=[...new Set([SITE+"/prodavnica",...categoryQueue,...[...sitemapUrls].filter(u=>new URL(u).pathname.split("/").filter(Boolean).length<=3)])];
-  console.log("CATALOG V2 CATEGORIES", {count:categoryUrls.length, sample:categoryUrls.slice(0,12)});
-  
+  const categoryUrls=[...new Set([SITE+"/prodavnica",...categoryQueue])];
+  console.log("CATALOG V2 CATEGORY SEEDS", {count:categoryUrls.length, sample:categoryUrls.slice(0,12)});
+
+  // Walk category/subcategory links breadth-first; product cards are excluded by SKU+price.
   const listingPages=new Map();
-  const firstPages=await mapLimit(categoryUrls,5,async url=>{
-    const {body}=await getRetry(url);
-    return {url,html:body};
-  });
-  for(const p of firstPages) listingPages.set(p.url,p.html);
+  let frontier=new Set(categoryUrls);
+  for(let round=0;round<6 && frontier.size;round++) {
+    const batch=[...frontier].filter(url=>!listingPages.has(url)).slice(0,250);
+    frontier=new Set();
+    if(!batch.length) break;
+    const pages=await mapLimit(batch,5,async url=>{
+      try { const {body}=await getRetry(url); return {url,html:body}; }
+      catch(e) { console.warn("CATALOG V2 category failed",{url,error:e.message}); return null; }
+    });
+    for(const p of pages) {
+      if(!p?.html) continue;
+      listingPages.set(p.url,p.html);
+      for(const child of discoverCategoryUrls(p.html,p.url)) if(!listingPages.has(child)) frontier.add(child);
+    }
+    console.log("CATALOG V2 CATEGORY ROUND",{round:round+1,requested:batch.length,loaded:pages.length,totalCategories:listingPages.size,queuedChildren:frontier.size});
+  }
+  const firstPages=[...listingPages].map(([url,html])=>({url,html}));
   const paginationJobs=[];
   for(const p of firstPages) {
     const max=pageNumberMax(p.html);

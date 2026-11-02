@@ -294,7 +294,7 @@ async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
   // The catalogue is small enough to rank locally. This deliberately avoids
   // SQL ILIKE substring matches such as "nana" inside "ananas" or "banana".
   const result = await db.query(
-    "SELECT name,sku,category,price_rsd,available,image_url,url FROM products WHERE url IS NOT NULL"
+    "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL"
   );
   return result.rows
     .map(product => ({ product, score: productMatchScore(product, terms, exclude) }))

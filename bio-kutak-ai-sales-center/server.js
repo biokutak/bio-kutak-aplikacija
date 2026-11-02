@@ -4,6 +4,7 @@ import pg from "pg";
 import crypto from "node:crypto";
 import { searchProducts } from "./catalog.js";
 import { syncCatalogV2 } from "./catalog-v2.js";
+import { adviseCustomer } from "./advisor.js";
 
 const { Pool } = pg;
 const app = express();

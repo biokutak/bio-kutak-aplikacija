@@ -138,7 +138,7 @@ async function notifyAdmins(conversation, incoming, suggestion, { autoSent = fal
 }
 
 function formatProducts(products) {
-  return products.slice(0,3).map((p) => {
+  return products.slice(0,5).map((p) => {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : `${Number(p.price_rsd).toLocaleString("sr-RS")} RSD`;
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     return `• ${p.name} – ${price} ( ${availability} )\n${p.url}`;
@@ -157,7 +157,7 @@ async function classifyAndReply(conversation, message) {
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
-  const products = await searchProducts(pool, message, 3);
+  const products = await searchProducts(pool, message, 5);
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };
   }

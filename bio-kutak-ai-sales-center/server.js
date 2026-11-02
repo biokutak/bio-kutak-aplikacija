@@ -524,7 +524,7 @@ async function classifyAndReply(conversation, message) {
   // When the knowledge base has no exact match, still answer helpfully instead of routing routine questions to staff.
   // Never diagnose or prescribe; explain the limit and ask one useful follow-up question.
   if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {
-    return { type: "auto", text: "Mogu da objasnim opšte informacije i da proverim sastav proizvoda iz BIO KUTAK ponude, ali ne mogu da postavim dijagnozu niti da odredim terapiju. 🌿 Napišite mi šta tačno želite da saznate — koji simptom ili stanje, koliko dugo traje i da li pitate za odraslu osobu ili dete. Ako su simptomi jaki, nagli ili se pogoršavaju, obratite se lekaru; kod otežanog disanja, bola u grudima, gubitka svesti ili otoka jezika/grla odmah pozovite hitnu pomoć." };
+    return { type: "auto", learningNeeded: true, text: "Mogu da objasnim opšte informacije i da proverim sastav proizvoda iz BIO KUTAK ponude, ali ne mogu da postavim dijagnozu niti da odredim terapiju. 🌿 Zabeležila sam pitanje da dopunimo bazu znanja. Napišite mi šta tačno želite da saznate — koji simptom ili stanje, koliko dugo traje i da li pitate za odraslu osobu ili dete. Ako su simptomi jaki, nagli ili se pogoršavaju, obratite se lekaru; kod otežanog disanja, bola u grudima, gubitka svesti ili otoka jezika/grla odmah pozovite hitnu pomoć." };
   }
   const products = await searchProducts(pool, message, 5);
   if (products.length) {

@@ -331,6 +331,24 @@ async function classifyAndReply(conversation, message) {
       return { type: "auto", text: "Magnezijum je mineral koji doprinosi normalnom radu mišića i nervnog sistema, ravnoteži elektrolita, normalnom metabolizmu stvaranja energije i održavanju normalnih kostiju. Suplement nije lek za grčeve, nesanicu ili umor. 🌿\n\nU ponudi su oralni oblici (citrat i glicinat) i gelovi za spoljašnju upotrebu. Gel se ne može smatrati zamenom za suplement koji se pije. Za izbor oralnog proizvoda važno je proveriti količinu elementarnog magnezijuma po dnevnoj dozi. Ako imate bolest bubrega, trudni ste, dojite ili koristite terapiju, posavetujte se sa lekarom ili farmaceutom." };
     }
   }
+  // Dedicated, catalogue-grounded answers for common herb and wellness-program questions.
+  if (/\\b(holesterol|holesterola|holesterolu|ldl|trigliceridi|masnoce u krvi)\\b/i.test(lower)) {
+    const foods = await pool.query(
+      "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (name ILIKE '%mekinje ovsene%' OR name ILIKE '%mleveni lan%' OR name ILIKE '%laneno brasno%' OR name ILIKE '%leblebija%') ORDER BY CASE WHEN name ILIKE '%mekinje ovsene%' THEN 0 WHEN name ILIKE '%mleveni lan%' THEN 1 ELSE 2 END, name LIMIT 5"
+    );
+    const lines = foods.rows.map(p => "• " + p.name + (p.price_rsd == null ? "" : " — " + Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + "\\n" + p.url);
+    return { type:"auto", text:"Kod povišenog holesterola najvažniji su ukupna procena rizika i laboratorijski nalazi, posebno LDL i trigliceridi. Kao deo uravnotežene ishrane mogu se razmotriti namirnice sa rastvorljivim vlaknima, poput ovsa i lana. To nije terapija niti zamena za lekove koje je propisao lekar. 🌿\\n\\nU BIO KUTAK katalogu sam pronašla ove prehrambene proizvode:" + (lines.length ? "\\n\\n" + lines.join("\\n\\n") : "\\nTrenutno nemam potvrđene artikle za ovaj upit.") + "\\n\\nNemojte prekidati ili menjati terapiju zbog suplementa. Ako mi kažete da li je povišen LDL, trigliceridi ili oba, mogu preciznije da usmerim pretragu." };
+  }
+  if (/\\bvirak\\b|alchemilla/.test(lower)) {
+    const result = await pool.query("SELECT name,price_rsd,available,url,ingredients,usage FROM products WHERE url IS NOT NULL AND (name ILIKE '%virak%' OR COALESCE(ingredients,'') ILIKE '%Alchemilla vulgaris%') ORDER BY name LIMIT 5");
+    const p = result.rows[0];
+    return { type:"auto", text:"Virak (Alchemilla vulgaris) je biljka koja se u tradicionalnoj upotrebi najčešće povezuje sa menstrualnim i drugim ženskim tegobama. Važno je razlikovati tradicionalnu upotrebu od dokazanog dejstva: nema dovoljno pouzdanih dokaza da virak reguliše hormone, leči policistične jajnike ili rešava poremećaje ciklusa. 🌿" + (p ? "\\n\\nU BIO KUTAK ponudi imamo: **" + p.name + "**" + (p.price_rsd == null ? "" : " — " + Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + "\\nSastav: " + (p.ingredients || "pogledajte deklaraciju") + "\\n" + p.url : "\\nTrenutno nisam pronašla proizvod sa virkom u katalogu.") + "\\n\\nAko ste trudni, dojite, koristite terapiju ili imate hormonsko oboljenje, proverite upotrebu sa lekarom ili farmaceutom. Ne bih ga predstavljala kao terapiju za PCOS ili hormonski disbalans." };
+  }
+  if (/antiparazit|protiv parazita|crevni parazit|paraziti|parazitar/.test(lower)) {
+    const result = await pool.query("SELECT name,price_rsd,available,url,usage FROM products WHERE url IS NOT NULL AND (name ILIKE '%detox naturalis%' OR name ILIKE '%tinktura crnog oraha%' OR name ILIKE '%tinktura pelina%' OR name ILIKE '%tinktura karanfilica%' OR name ILIKE '%biljne kapi protiv kandide%') ORDER BY CASE WHEN name ILIKE '%detox naturalis%' THEN 0 ELSE 1 END, name LIMIT 8");
+    const lines = result.rows.map(p => "• **" + p.name + "**" + (p.price_rsd == null ? "" : " — " + Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + "\\n" + p.url);
+    return { type:"auto", text:"Razumem — pitate za antiparazitni program. 🌿 U katalogu sam pronašla sledeće proizvode koji se opisuju u vezi sa ovom temom:" + (lines.length ? "\\n\\n" + lines.join("\\n\\n") : "\\nTrenutno nemam potvrđen poseban antiparazitni program kao komplet u katalogu.") + "\\n\\nVažno: biljni preparati i suplementi nisu dokazano lečenje crevnih parazita i ne treba ih koristiti umesto dijagnostike i terapije. Ako sumnjate na parazite, lekar može odrediti odgovarajuću analizu stolice i lečenje prema uzročniku. Neću sastavljati režim niti doziranje kombinovanjem tinktura. Poseban oprez je potreban u trudnoći i dojenju, kod dece, epilepsije i uz lekove." };
+  }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.
   const advice = await adviseCustomer(pool, message);
   if (advice) {
@@ -339,12 +357,13 @@ async function classifyAndReply(conversation, message) {
     if (advice.products.length) return { type: "auto", text: advice.reply + "\n\n" + formatProducts(advice.products) + "\n\nCene i dostupnost proverite na stranici proizvoda." };
     return { type: "handoff", text: advice.reply };
   }
+  // Use the knowledge base before the generic medical-topic handoff so known topics get an answer.
+  const knowledgeAnswer = await answerFromKnowledge(pool, message);
+  if (knowledgeAnswer) return knowledgeAnswer;
   // Topics outside the adviser's supported scope remain with a human; no medical diagnosis or treatment advice.
   if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {
     return { type: "handoff", text: "Hvala na pitanju. 🌿 Pošto se radi o zdravstvenoj temi koju naš savetnik ne može pouzdano da obradi, proslediću pitanje našem timu. Za zdravstvene odluke obratite se lekaru ili farmaceutu." };
   }
-  const knowledgeAnswer = await answerFromKnowledge(pool, message);
-  if (knowledgeAnswer) return knowledgeAnswer;
   const products = await searchProducts(pool, message, 5);
   if (products.length) {
     return { type: "auto", text: `Pronašao sam sledeće proizvode u BIO KUTAK katalogu:\n\n${formatProducts(products)}\n\nŽelite li da proverim još neki proizvod? Cene i dostupnost proverite i na stranici proizvoda.` };

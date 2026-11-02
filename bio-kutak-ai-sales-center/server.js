@@ -230,7 +230,7 @@ async function classifyAndReply(conversation, message) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
   // Product-aware follow-ups: use the previous conversation and verified catalogue fields.
-  const isFollowUp = /\b(oboje|oba|i jedno i drugo|cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima|najskuplji|najskuplje|najskuplji proizvodi|najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najvisa cena|najveca cena|najmanja cena|najjeftiniji proizvodi|koliko kosta|koja je cena|cena|na stanju|dostupan|dostupnost|povoljniji|jeftiniji|ima li jos|jos proizvoda|slicni proizvodi|link|gde mogu da kupim)\b/i.test(lower);
+  const isFollowUp = /\b(med za varenje|med kod varenja|oboje|oba|i jedno i drugo|cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima|najskuplji|najskuplje|najskuplji proizvodi|najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najvisa cena|najveca cena|najmanja cena|najjeftiniji proizvodi|koliko kosta|koja je cena|cena|na stanju|dostupan|dostupnost|povoljniji|jeftiniji|ima li jos|jos proizvoda|slicni proizvodi|link|gde mogu da kupim)\b/i.test(lower);
   if (isFollowUp) {
     // Broad catalogue ranking questions do not require a product to have been mentioned earlier.
     const asksMostExpensive = /\b(najskuplji|najskuplje|najvisa cena|najveca cena)\b/i.test(lower);

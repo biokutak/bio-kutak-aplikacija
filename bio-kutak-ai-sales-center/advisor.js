@@ -9,6 +9,12 @@ const normalize = (value) => String(value || "")
 
 const INTENTS = [
   {
+    id: "mens-health-general",
+    adviceOnly: true,
+    patterns: ["muski problemi", "muske probleme", "muskih problema", "muske tegobe", "muskih tegoba", "problem kod muskaraca", "problemi kod muskaraca", "za muskarce", "musko zdravlje", "intimni problemi kod muskaraca"],
+    intro: "Naravno, mogu da proverim šta BIO KUTAK ima u ponudi. 🌿 Da bih vas pravilno usmerio, recite mi na šta konkretno mislite: prostata i mokrenje, potencija i libido, opadanje kose ili neku drugu tegobu? Ako imate bol, krv u mokraći, nemogućnost mokrenja ili iznenadne i jake simptome, obratite se lekaru. Neću preporučivati preparat za lečenje niti nagađati bez dodatnih informacija."
+  },
+  {
     id: "womens-health-general",
     adviceOnly: true,
     patterns: ["zenski problemi", "zenske probleme", "zenskim problemima", "zenskih problema", "zenske tegobe", "zenskim tegobama", "problemi kod zena", "problemi za zene", "hormonski problemi kod zena", "intimni problemi kod zena"],

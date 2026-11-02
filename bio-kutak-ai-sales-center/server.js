@@ -139,9 +139,9 @@ async function notifyAdmins(conversation, incoming, suggestion, { autoSent = fal
 
 function formatProducts(products) {
   return products.slice(0,5).map((p) => {
-    const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : `${Number(p.price_rsd).toLocaleString("sr-RS")} RSD`;
+    const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
-    return `• ${p.name} – ${price} ( ${availability} )\n${p.url}`;
+    return "• " + p.name + " – " + price + " (" + availability + ")\n" + p.url;
   }).join("\n\n");
 }
 

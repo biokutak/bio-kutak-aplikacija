@@ -19,7 +19,8 @@ function localUrl(raw, base = SITE) {
     const u = new URL(raw, base);
     if (u.hostname !== HOST || !/^https?:$/.test(u.protocol)) return null;
     u.hash = "";
-    return u.toString();
+    // Encode literal plus signs in product slugs so servers do not interpret them as spaces.
+    return u.origin + u.pathname.replace(/\+/g,"%2B") + u.search;
   } catch { return null; }
 }
 async function get(url, timeout = 35000) {

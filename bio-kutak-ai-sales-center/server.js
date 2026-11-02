@@ -145,7 +145,7 @@ function formatProducts(products) {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     const claimText = [p.description, p.usage].filter(Boolean).join(" ");
-    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|kandida|parazit|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
     const details = [
       !containsUnverifiedHealthClaims && p.description ? p.description : "",
       p.ingredients ? "Sastav: " + p.ingredients : "",
@@ -256,6 +256,13 @@ async function classifyAndReply(conversation, message) {
       [conversation.id]
     );
     const recentText = normalizeText(recent.rows.map(row => row.body || "").join(" "));
+    if (/magnezij|magnesium/.test(lower) && /kako se koristi|upotreba|doziranje/.test(lower) && !/gel/.test(lower)) {
+      const options = (await pool.query(
+        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (name ILIKE '%magnezij%' OR name ILIKE '%magnesium%') ORDER BY CASE WHEN name ILIKE '%citrat%' THEN 0 WHEN name ILIKE '%glycinat%' THEN 1 WHEN name ILIKE '%gel%' THEN 2 ELSE 3 END, name LIMIT 8"
+      )).rows;
+      const lines = options.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije navedena" : Number(p.price_rsd).toLocaleString("sr-RS")+" RSD") + "\\n" + p.url);
+      return { type:"auto", text:"Magnezijum se ne koristi isto u svim oblicima. 🌿 Oralni preparati (npr. citrat ili glicinat) uzimaju se prema deklaraciji i količini elementarnog magnezijuma, dok je magnezijum hlorid gel namenjen spoljašnjoj upotrebi i ne pije se.\\n\\nU ponudi imamo:" + (lines.length ? "\\n\\n"+lines.join("\\n\\n") : "") + "\\n\\nDa li pitate za gel ili za kapsule/tablete? Ako napišete tačan naziv, preneću način upotrebe sa deklaracije." };
+    }
     if (/magnezij|magnesium/.test(lower) && /gel|kako se koristi|upotreba/.test(lower)) {
       const gels = (await pool.query(
         "SELECT name,price_rsd,available,url,usage,warnings FROM products WHERE url IS NOT NULL AND (name ILIKE '%magnezijum hlorid gel%' OR name ILIKE '%magnesium gel%') ORDER BY name"

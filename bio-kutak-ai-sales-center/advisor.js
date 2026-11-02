@@ -63,7 +63,128 @@ const INTENTS = [
     patterns: ["mrsavljenje", "smrsam", "skidanje kilograma", "kontrola tezine", "zdravo mrsavljenje", "dijeta"],
     terms: ["psilijum", "inulin", "ovsene", "chia", "laneno seme"],
     intro: "Mogu da prikažem namirnice i proizvode koji se uklapaju u uravnoteženu ishranu. Ne preporučujem preparate kao brzo ili garantovano rešenje za mršavljenje."
-  }
+  },
+
+  {
+    id: "headache",
+    patterns: ["glavobolja", "boli me glava", "migrena", "migrene", "pritisak u glavi", "teska glava"],
+    terms: ["magnezijum", "caj nana", "caj kamilica"],
+    intro: "Mogu da prikažem proizvode iz ponude za opštu podršku ishrani i opuštanju. Čajevi i suplementi ne leče glavobolju niti migrenu. Ako je glavobolja iznenadna i veoma jaka, nova ili praćena smetnjama vida, govora, slabošću ili ukočenim vratom, odmah potražite medicinsku pomoć."
+  },
+  {
+    id: "cold-flu",
+    patterns: ["prehlada", "grip", "simptomi gripa", "curi mi nos", "zapusен nos", "zapusен mi je nos", "kijam", "kijavica", "temperatura i prehlada"],
+    terms: ["c vitamin", "propolis", "djumbir", "limun", "zova", "nana"],
+    intro: "Mogu da pokažem čajeve, med i prehrambene proizvode iz ponude za tople napitke i podršku ishrani. To nisu lekovi i ne sprečavaju niti leče grip ili prehladu. Kod otežanog disanja, bola u grudima, konfuzije ili izrazito lošeg stanja obratite se hitno lekaru."
+  },
+  {
+    id: "sore-throat",
+    patterns: ["bol u grlu", "boli me grlo", "grebe me grlo", "pece me grlo", "promuklost", "upala grla"],
+    terms: ["beli slez caj", "bokvica caj", "majčina dušica čaj", "lipov med", "propolis"],
+    intro: "Mogu da prikažem tople napitke, med i proizvode iz ponude koji se tradicionalno koriste za umirenje nadraženog grla. Ne leče infekciju. Ako teško gutate ili dišete, imate visoku temperaturu ili se stanje pogoršava, javite se lekaru."
+  },
+  {
+    id: "allergy",
+    patterns: ["alergija", "alergije", "polenska alergija", "svrbe me oci", "suzne oci", "alergijski rinitis", "reakcija na polen"],
+    terms: ["kopriva", "c vitamin", "kvercetin"],
+    intro: "Alergije mogu zahtevati odgovarajuću dijagnostiku i terapiju. Mogu da proverim samo da li u katalogu postoje prehrambeni proizvodi ili suplementi povezani sa vašom pretragom; oni nisu zamena za lekove protiv alergije. Kod otoka jezika ili grla ili otežanog disanja odmah zovite hitnu pomoć."
+  },
+  {
+    id: "heartburn",
+    patterns: ["gorusica", "kiselina u zelucu", "vraca mi se kiselina", "refluks", "podrigivanje", "peckanje u zelucu"],
+    terms: ["laneno seme", "ovsene pahuljice", "kamilica"],
+    intro: "Mogu da prikažem prehrambene proizvode iz ponude, ali oni nisu terapija za gorušicu ili refluks. Ako se tegobe ponavljaju, imate otežano gutanje, povraćanje krvi ili jak bol u grudima, potražite medicinsku procenu."
+  },
+  {
+    id: "nausea",
+    patterns: ["mucnina", "muka mi je", "imam mucninu", "nadimanje i mucnina", "povraca mi se"],
+    terms: ["djumbir", "nana", "menta", "kamilica"],
+    intro: "Mogu da pokažem čajeve i prehrambene proizvode iz ponude koji se koriste kao napici. Ne mogu da utvrdim uzrok mučnine. Ako ne možete da zadržite tečnost, imate jak bol, krv u povraćanju ili znake dehidratacije, javite se lekaru."
+  },
+  {
+    id: "diarrhea",
+    patterns: ["proliv", "dijareja", "retka stolica", "ucestala stolica"],
+    terms: ["kamilica", "nana"],
+    intro: "Kod proliva je najvažnija nadoknada tečnosti i elektrolita; proizvodi iz prodavnice nisu zamena za oralni rehidratacioni rastvor ili medicinski savet. Potražite lekara kod krvi u stolici, visoke temperature, jakog bola ili znakova dehidratacije."
+  },
+  {
+    id: "constipation",
+    patterns: ["zatvor", "opstipacija", "tesko praznim creva", "tvrda stolica", "neredovna stolica"],
+    terms: ["psilijum", "inulin", "laneno seme", "suve sljive"],
+    intro: "Mogu da prikažem proizvode sa vlaknima iz kataloga. Vlakna uvodite postepeno i uz dovoljno tečnosti; nisu prikladna za svaku osobu. Kod jakog bola, povraćanja, krvi u stolici ili nagle promene pražnjenja obratite se lekaru."
+  },
+  {
+    id: "bloating",
+    patterns: ["gasovi", "imam gasove", "nadutost stomaka", "nadimanje", "grcevi u stomaku"],
+    terms: ["komorac", "nana", "menta", "kamilica", "psilijum"],
+    intro: "Mogu da prikažem čajeve i proizvode sa vlaknima iz ponude. Nadutost i grčevi imaju različite uzroke; jak ili iznenadan bol, povraćanje ili krv u stolici zahtevaju pregled."
+  },
+  {
+    id: "joint-care",
+    patterns: ["bol u kolenu", "bole me kolena", "bol u kuku", "bol u zglobovima", "ukoceni zglobovi", "artritis", "reuma", "boli me lakat"],
+    terms: ["magnezijum gel", "magnezijum sprej", "gavez mast", "kolagen"],
+    intro: "Mogu da prikažem preparate za spoljašnju negu ili proizvode iz ponude koji se pretražuju uz negu zglobova. Ne leče artritis niti uzrok bola. Ako je zglob crven, vruć, jako otečen ili imate temperaturu, potražite lekara."
+  },
+  {
+    id: "muscle-cramps",
+    patterns: ["grcevi u nogama", "grc u listu", "hvataju me grcevi", "trzanje misica", "misicni grcevi"],
+    terms: ["magnezijum", "magnezijum hlorid gel", "magnezijum sprej"],
+    intro: "Mogu da pokažem proizvode sa magnezijumom iz kataloga, ali grčevi imaju više mogućih uzroka i suplement nije uvek rešenje. Ako su grčevi česti, jaki ili praćeni otokom i crvenilom jedne noge, javite se lekaru."
+  },
+  {
+    id: "stress",
+    patterns: ["stres", "napetost", "nervoza", "anksioznost", "uznemirenost", "tesko se opustam"],
+    terms: ["matičnjak", "melisa", "lavanda", "kamilica"],
+    intro: "Mogu da prikažem čajeve i proizvode za opuštajuću večernju rutinu. Oni nisu terapija za anksioznost ili druge probleme mentalnog zdravlja. Ako tegobe ometaju svakodnevni život, razgovarajte sa zdravstvenim stručnjakom."
+  },
+  {
+    id: "menopause",
+    patterns: ["menopauza", "valunzi", "talasi vrucine", "nocno znojenje", "simptomi menopauze"],
+    terms: ["soja", "laneno seme", "magnezijum", "crvena detelina"],
+    intro: "Mogu da proverim katalog za prehrambene proizvode i suplemente koji se često traže u ovom periodu. Njihova delotvornost za simptome menopauze nije zagarantovana; izbor proverite sa lekarom ili farmaceutom, posebno ako koristite terapiju."
+  },
+  {
+    id: "menstrual",
+    patterns: ["menstrualni bolovi", "bolna menstruacija", "pms", "predmenstrualni sindrom", "bolovi tokom ciklusa"],
+    terms: ["magnezijum", "kamilica", "djumbir"],
+    intro: "Mogu da prikažem čajeve i proizvode iz ponude, ali oni nisu dokazano lečenje menstrualnih bolova. Ako je bol nov, veoma jak, praćen obilnim krvarenjem ili postoji mogućnost trudnoće, potražite medicinski savet."
+  },
+  {
+    id: "circulation",
+    patterns: ["teske noge", "umorne noge", "hladne ruke i noge", "slaba cirkulacija", "oticanje nogu", "vene na nogama", "prosirene vene"],
+    terms: ["divlji kesten", "vinova loza", "ginko"],
+    intro: "Mogu da prikažem proizvode iz kataloga koji se traže za negu nogu. Ne mogu da procenim cirkulaciju niti da preporučim lečenje. Iznenadan otok ili bol samo jedne noge, naročito uz nedostatak vazduha, zahteva hitnu procenu."
+  },
+  {
+    id: "hemorrhoids",
+    patterns: ["hemoroidi", "suljevi", "svrab oko anusa", "bol pri stolici"],
+    terms: ["psilijum", "laneno seme"],
+    intro: "Mogu da prikažem proizvode sa vlaknima koji mogu doprineti redovnijoj stolici. To nije terapija za hemoroide. Krvarenje iz završnog dela creva treba proveriti kod lekara, posebno ako se ponavlja."
+  },
+  {
+    id: "oral-care",
+    patterns: ["afte", "ranice u ustima", "neprijatan zadah", "suva usta", "krvare mi desni"],
+    terms: ["propolis", "zalfija", "kamilica"],
+    intro: "Mogu da prikažem proizvode za oralnu negu iz kataloga. Ne zamenjuju stomatološki pregled; krvarenje desni, ranice koje ne prolaze ili zubobolja zahtevaju procenu stomatologa."
+  },
+  {
+    id: "eye-care",
+    patterns: ["suve oci", "peckanje ociju", "umorne oci", "naprezanje ociju"],
+    terms: ["omega 3", "borovnica"],
+    intro: "Mogu da proverim da li u katalogu postoje prehrambeni proizvodi povezani sa vašom pretragom. Suplementi ne leče očne bolesti. Iznenadan gubitak vida, jak bol ili povreda oka zahtevaju hitnu medicinsku procenu."
+  },
+  {
+    id: "memory-focus",
+    patterns: ["slaba koncentracija", "lose pamtim", "zaboravnost", "pamcenje", "fokus", "koncentracija"],
+    terms: ["omega 3", "vitamin b", "magnezijum"],
+    intro: "Mogu da prikažem proizvode iz ponude povezane sa ishranom. Zaboravnost i problemi sa koncentracijom mogu imati različite uzroke i suplementi nisu zamena za pregled ako su tegobe nove ili se pogoršavaju."
+  },
+  {
+    id: "dry-skin",
+    patterns: ["svrab koze", "koza me svrbi", "ispucala koza", "ekcem", "crvenilo i svrab"],
+    terms: ["neven", "bademovo ulje", "krema za lice", "hidratantna krema"],
+    intro: "Mogu da prikažem proizvode za negu kože iz ponude. Pre upotrebe proverite sastav i alergije; osip koji se brzo širi, otok lica ili otežano disanje zahtevaju hitnu pomoć."
+  },
 ];
 
 const URGENT = /trnjenje (nogu|ruku)|gubitak kontrole (nad|nad mokrenjem|nad stolicom)|ne mogu da mokrim|slabost nogu|iznenadan jak bol|bol u grudima|otezano disanje|otezano disanje|gubitak svesti|krv u stolici|visoka temperatura/i;
@@ -97,12 +218,22 @@ async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
 }
 
 export async function adviseCustomer(db, message) {
-  const intent = detectIntent(message);
-  if (!intent) return null;
-  if (URGENT.test(normalize(message))) {
+  const normalizedMessage = normalize(message);
+  if (URGENT.test(normalizedMessage)) {
     return {
       urgent: true,
       reply: "Ovi simptomi mogu zahtevati hitnu medicinsku procenu. Nemojte se oslanjati na preparate iz prodavnice — odmah se obratite lekaru ili hitnoj službi."
+    };
+  }
+  const intent = detectIntent(message);
+  if (!intent) {
+    const symptomLike = /\\b(bol|boli|boli me|svrbi|svrab|pece|temperatur|kasalj|kaslj|mucnin|povrac|krvar|otok|osip|umor|vrtoglav|proliv|zatvor|nesanic|trnjen|slabost|pritisak|secer|dijabet|astm|srce|bubreg|jetra)\\w*/i.test(normalizedMessage);
+    if (!symptomLike) return null;
+    return {
+      urgent: false,
+      intent: "unclassified-symptom",
+      products: [],
+      reply: "Razumem. Ne želim da nagađam niti da vam preporučim pogrešan proizvod. Opišite tegobu malo preciznije ili se obratite farmaceutu/lekaru. U našem katalogu trenutno nisam pouzdano povezao ovu tegobu sa odgovarajućim artiklom. Ako su simptomi jaki, nagli ili se pogoršavaju, potražite medicinsku pomoć."
     };
   }
   const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);

@@ -164,22 +164,28 @@ async function classifyAndReply(conversation, message) {
       "Baš lepo! 😊 Tu sam ako želite da nastavimo razgovor ili da potražimo neki proizvod.";
     return { type: "auto", text: reply };
   }
-  if (/^(ups nije dobro|nije dobro|pogresno|pogrešno|sta\??|шта\??)$/i.test(casual)) {
-    return { type: "auto", text: "Izvinite ako prethodni izbor nije bio odgovarajući. 🌿 Napišite mi tačno koji proizvod ili namirnicu tražite, pa ću ponovo pretražiti ponudu." };
+  if (/^(ups nije dobro|nije dobro|pogresno|pogrešno|sta\??|шта\??|kako\??|koji\??|koja\??|koje\??|a\??)$/i.test(casual)) {
+    return { type: "auto", text: "Izvinite ako prethodni odgovor nije bio jasan. 🌿 Na šta tačno mislite — na proizvod koji smo pomenuli ili na nešto drugo? Napišite mi još jednu reč i nastavljamo." };
+  }
+  if (/^(popij zeno|pa da se otrujem|onda nemoj cukati palac|kad nemam naocare|pa nemam na ocima|imas godina a lazes|pa to da koristi je)$/.test(casual)) {
+    return { type: "auto", text: "😊 Izgleda da smo se malo zapetljali u razgovoru! Samo da razjasnimo: ako govorimo o magnezijum gelu, on je namenjen za spoljašnju upotrebu — ne pije se. Recite mi koji proizvod imate i pomoći ću oko deklaracije." };
   }
   // Food and dietary searches must not be mistaken for medical symptoms (e.g. "bez šećera").
   const dietaryQuery = /bez glutena|bezglut|gluten|bez secera|bezsecer|bez dodatog secera|bez laktoze|posn|vegansk|vegan|biljni zelatin|agar|tofu|cokolad|keks|kolac|kolace/.test(lower);
   if (dietaryQuery) {
     let foodResults;
     if (/bez glutena|bezglut|gluten/.test(lower)) {
+      const wanted = /keks|kolac|cokolad/.test(lower) ? " AND translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%keks%','%kolac%','%cokolad%'])" :
+        /brasn/.test(lower) ? " AND translate(lower(name),'čćžšđ','cczsd') LIKE '%brasn%'" :
+        /testenin/.test(lower) ? " AND translate(lower(name),'čćžšđ','cczsd') LIKE '%testenin%'" : "";
       foodResults = (await pool.query(
-        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND ((name ILIKE '%bez gluten%' OR name ILIKE '%bezgluten%' OR COALESCE(description,'') ILIKE '%bez glutena%' OR COALESCE(description,'') ILIKE '%bezglut%')) AND (name ILIKE '%keks%' OR name ILIKE '%brasn%' OR name ILIKE '%testenin%' OR $1 ILIKE '%sve%') ORDER BY name LIMIT 8",
-        [lower]
+        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND translate(lower(concat_ws(' ',name,description,ingredients)),'čćžšđ','cczsd') LIKE ANY(ARRAY['%bez gluten%','%bezgluten%','%gluten free%','%bez glutena%'])" + wanted + " ORDER BY name LIMIT 12"
       )).rows;
     } else if (/bez secera|bezsecer|bez dodatog secera/.test(lower)) {
+      const wanted = /cokolad/.test(lower) ? " AND translate(lower(name),'čćžšđ','cczsd') LIKE '%cokolad%'" :
+        /keks/.test(lower) ? " AND translate(lower(name),'čćžšđ','cczsd') LIKE '%keks%'" : "";
       foodResults = (await pool.query(
-        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND (name ILIKE '%bez secer%' OR name ILIKE '%bez dodatog secer%' OR COALESCE(description,'') ILIKE '%bez secer%' OR COALESCE(description,'') ILIKE '%bez dodatog secer%') AND (name ILIKE '%cokolad%' OR name ILIKE '%keks%' OR $1 ILIKE '%sve%') ORDER BY name LIMIT 8",
-        [lower]
+        "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND translate(lower(concat_ws(' ',name,description,ingredients)),'čćžšđ','cczsd') LIKE ANY(ARRAY['%bez secera%','%bez dodatog secera%','%bez dodatka secera%'])" + wanted + " ORDER BY name LIMIT 12"
       )).rows;
     } else if (/posn/.test(lower)) {
       foodResults = (await pool.query(
@@ -200,6 +206,17 @@ async function classifyAndReply(conversation, message) {
     if (/posn/.test(lower)) {
       return { type: "auto", text: "Da li tražite posni keks, sastojke za posne kolače ili sve posne proizvode iz ponude? 🌿" };
     }
+  }
+  // Weight-management catalogue search: show real matching foods/products, without promising weight loss.
+  if (/mrsav|smrs|kilogram|kontrola tezine|dijeta/.test(lower)) {
+    const weightProducts = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage FROM products WHERE url IS NOT NULL AND (" +
+      "translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%garcinia%','%mct%','%bosiljak seme%','%cia seme%','%chia%','%laneno seme%','%mekinje ovsene%','%inulin%','%psilijum%','%fiber z%']) " +
+      "OR (translate(lower(name),'čćžšđ','cczsd') LIKE '%caj%' AND translate(lower(concat_ws(' ',description,usage)),'čćžšđ','cczsd') LIKE '%mrsav%')) " +
+      "ORDER BY CASE WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%garcinia%' THEN 0 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%mct%' THEN 1 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%bosiljak seme%' THEN 2 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%cia seme%','%chia%']) THEN 3 ELSE 4 END, name LIMIT 12"
+    )).rows;
+    return { type:"auto", text:"U BIO KUTAK katalogu sam pronašla proizvode koji se mogu uklopiti u raznovrsnu ishranu i plan kontrole telesne težine. 🌿 Važno: nijedan od njih sam po sebi ne garantuje mršavljenje; MCT ulje/prah je kaloričan, a garcinia i čajevi za mršavljenje nisu zamena za uravnoteženu ishranu i stručni savet." +
+      (weightProducts.length ? "\\n\\n" + formatProducts(weightProducts.map(p=>({...p,description:"",ingredients:"",usage:""}))) : "\\n\\nTrenutno nisam pronašla dovoljno pouzdanih podataka za posebne čajeve za mršavljenje ili slim čokoladu. Mogu da proverim i namirnice poput čija semena, semena bosiljka i ovsa.") };
   }
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
@@ -230,6 +247,19 @@ async function classifyAndReply(conversation, message) {
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
+    const recentText = normalizeText(recent.rows.map(row => row.body || "").join(" "));
+    if (/magnezij|magnesium/.test(lower) && /gel|kako se koristi|upotreba/.test(lower)) {
+      const gels = (await pool.query(
+        "SELECT name,price_rsd,available,url,usage,warnings FROM products WHERE url IS NOT NULL AND (name ILIKE '%magnezijum hlorid gel%' OR name ILIKE '%magnesium gel%') ORDER BY name"
+      )).rows;
+      if (gels.length) {
+        const lines = gels.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije navedena" : Number(p.price_rsd).toLocaleString("sr-RS")+" RSD") +
+          "\\nNačin upotrebe prema katalogu: " + (p.usage || "nije naveden; proverite deklaraciju") +
+          (p.warnings ? "\\nUpozorenje: " + p.warnings : "") + "\\n" + p.url);
+        return { type:"auto", text:"Magnezijum hlorid gel je proizvod za spoljašnju upotrebu, ne pije se. Prema deklaracijama u našem katalogu: 🌿\\n\\n" + lines.join("\\n\\n") +
+          "\\n\\nPratite uputstvo na konkretnom pakovanju. Prekinite upotrebu ako nastane jaka iritacija; ne nanositi na oštećenu kožu ili sluzokožu." };
+      }
+    }
     const knowledgeReply = await answerProductFollowUp(pool, recent.rows, message);
     if (knowledgeReply) return knowledgeReply;
     const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();

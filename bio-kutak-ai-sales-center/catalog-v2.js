@@ -97,7 +97,13 @@ function discoverCategoryUrls(html, baseUrl) {
     const href=localUrl($(el).attr("href"),baseUrl);
     if(!href) return;
     const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
-    if(parts.length<1 || parts.length>3 || parts.some(p=>EXCLUDED.has(p.toLowerCase()))) return;
+    if(parts.length!==1 || parts.some(p=>EXCLUDED.has(p.toLowerCase()))) return;
+    let card=$(el), cardText=card.text().replace(/\\s+/g," ").trim();
+    for(let depth=0;depth<7 && card.length;depth++,card=card.parent()){
+      const t=card.text().replace(/\\s+/g," ").trim();
+      if(/Šifra\\s*:/i.test(t) && /RSD/i.test(t)){cardText=t;break;}
+    }
+    if(/Šifra\\s*:/i.test(cardText) && /RSD/i.test(cardText)) return;
     if(/\.(jpg|jpeg|png|gif|pdf|webp|xml)$/i.test(u.pathname)) return;
     if(/\/(korpa|podaci|potvrda)\b/i.test(u.pathname)) return;
     out.add(u.origin+u.pathname);
@@ -155,10 +161,6 @@ export async function syncCatalogV2(db) {
   }
 
   const seedUrls=new Set([SITE+"/",SITE+"/prodavnica"]);
-  for(const u of sitemapUrls) {
-    const path=new URL(u).pathname.split("/").filter(Boolean);
-    if(path.length && path.length<=3 && !path.some(p=>EXCLUDED.has(p.toLowerCase()))) seedUrls.add(u);
-  }
   const categoryQueue=new Set();
   for(const u of seedUrls) {
     try {
@@ -182,8 +184,7 @@ export async function syncCatalogV2(db) {
     if(max>1) for(let n=2;n<=max;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n});
     else {
       // Some category templates omit numeric pager links. Probe forward until two empty pages.
-      paginationJobs.push({category:p.url,url:pageUrl(p.url,2),n:2,probe:true});
-      paginationJobs.push({category:p.url,url:pageUrl(p.url,3),n:3,probe:true});
+      for(let n=2;n<=12;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n,probe:true});
     }
   }
   const pageResults=await mapLimit(paginationJobs,5,async job=>{
@@ -214,12 +215,11 @@ export async function syncCatalogV2(db) {
     return p ? { ...p, _isProduct:true } : null;
   });
   const products=new Map();
-  for(const item of candidates.values()) {
-    const {body}=await getRetry(item.url).then(x=>x).catch(()=>({body:""}));
-    if(!body) continue;
-    const p=productDataFromHtml(body,item.url,item.text,item.categoryName);
-    if(p) products.set(p.url,p);
-  }
+  const listingProducts=await mapLimit([...candidates.values()],8,async item=>{
+    const {body}=await getRetry(item.url);
+    return productDataFromHtml(body,item.url,item.text,item.categoryName);
+  });
+  for(const p of listingProducts) if(p) products.set(p.url,p);
   for(const p of sitemapProducts) if(p?._isProduct) {delete p._isProduct;products.set(p.url,p);}
   console.log("CATALOG V2 PARSED", {candidates:candidates.size,sitemapProducts:sitemapProducts.length,parsed:products.size});
   const rows=[...products.values()];

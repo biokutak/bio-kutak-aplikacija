@@ -31,12 +31,32 @@ function productCandidates(html) {
     }
     const looksLikeProduct = /Šifra\s*:/i.test(cardText) || /RSD/i.test(cardText) || /Kupi|Trenutno nedostupan/i.test(cardText);
     const excluded = /^(prodavnica|pretraga|kontakt|o-nama|blog|naslovna|kako-kupovati|uslovi-koriscenja)$/i;
-    if (parts.length >= 2 && parts.length <= 3 && !parts.some((p) => excluded.test(p)) && looksLikeProduct) {
+    if (parts.length >= 1 && parts.length <= 5 && !parts.some((p) => excluded.test(p)) && looksLikeProduct) {
       found.set(href, { url: href, listText: cardText.slice(0,1500), context: cardText.slice(0,1500) });
     }
   });
   return [...found.values()];
 }
+function paginationCandidates(html) {
+  const $ = cheerio.load(html);
+  const found = new Set();
+  $("a[href]").each((_, el) => {
+    const href = absoluteUrl($(el).attr("href"));
+    if (!href) return;
+    const u = new URL(href);
+    const label = $(el).text().replace(/\\s+/g, " ").trim();
+    const classes = [
+      $(el).attr("class") || "",
+      $(el).parent().attr("class") || "",
+      $(el).parent().parent().attr("class") || ""
+    ].join(" ").toLowerCase();
+    const hasPageParam = [...u.searchParams.keys()].some((key) => /^(page|paged|strana|p|offset|start|limit)$/i.test(key));
+    const pageLabel = /^\\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹/i.test(label);
+    if (hasPageParam || (/(pagination|pager|stran|page)/i.test(classes) && pageLabel)) found.add(href);
+  });
+  return [...found];
+}
+
 async function fetchText(url) {
   const response = await fetch(url, {
     headers: { "user-agent": "BIO-KUTAK-AI-SalesCenter/0.1 (+https://biokutak.co.rs)" },
@@ -142,7 +162,7 @@ export async function syncCatalog(db) {
       if (parts.length === 1 && !u.search && !excludedPages.has(parts[0].toLowerCase())) categoryUrls.add(href);
     });
   }
-  const categoryList = [...categoryUrls].slice(0,35);
+  const categoryList = [...categoryUrls];
   const categoryHtml = await mapLimit(categoryList,8,async (url) => ({
     url, html: await fetchText(url).catch(() => "")
   }));
@@ -150,12 +170,33 @@ export async function syncCatalog(db) {
     ...startUrls.map((url,i) => ({url,html:startHtml[i]})),
     ...categoryHtml
   ];
+
+  // Follow every discovered category pagination link instead of indexing only
+  // the first visible page. A bounded crawl prevents accidental loops.
+  const seenListingUrls = new Set(listingHtml.map((page) => page.url));
+  let paginationFrontier = new Set(listingHtml.flatMap((page) => paginationCandidates(page.html)));
+  for (let round = 0; round < 8 && paginationFrontier.size; round++) {
+    const batch = [...paginationFrontier].filter((url) => !seenListingUrls.has(url)).slice(0, 300);
+    paginationFrontier = new Set();
+    if (!batch.length) break;
+    for (const url of batch) seenListingUrls.add(url);
+    const pages = await mapLimit(batch,8,async (url) => ({
+      url, html: await fetchText(url).catch(() => "")
+    }));
+    listingHtml.push(...pages);
+    for (const page of pages) {
+      for (const nextUrl of paginationCandidates(page.html)) {
+        if (!seenListingUrls.has(nextUrl)) paginationFrontier.add(nextUrl);
+      }
+    }
+  }
+
   const allCandidates = new Map();
   for (const page of listingHtml) {
     for (const item of productCandidates(page.html)) allCandidates.set(item.url,item);
   }
 
-  const candidates = [...allCandidates.values()].slice(0,300);
+  const candidates = [...allCandidates.values()];
   const products = await mapLimit(candidates,8,async (item) => {
     const html = await fetchText(item.url);
     return parseProduct(item.url,html,item.listText,item.context);

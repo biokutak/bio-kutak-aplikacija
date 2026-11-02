@@ -98,12 +98,12 @@ function discoverCategoryUrls(html, baseUrl) {
     if(!href) return;
     const u=new URL(href), parts=u.pathname.split("/").filter(Boolean);
     if(parts.length!==1 || parts.some(p=>EXCLUDED.has(p.toLowerCase()))) return;
-    let card=$(el), cardText=card.text().replace(/\\s+/g," ").trim();
+    let card=$(el), cardText=card.text().replace(/\s+/g," ").trim();
     for(let depth=0;depth<7 && card.length;depth++,card=card.parent()){
-      const t=card.text().replace(/\\s+/g," ").trim();
-      if(/Šifra\\s*:/i.test(t) && /RSD/i.test(t)){cardText=t;break;}
+      const t=card.text().replace(/\s+/g," ").trim();
+      if(/Šifra\s*:/i.test(t) && /RSD/i.test(t)){cardText=t;break;}
     }
-    if(/Šifra\\s*:/i.test(cardText) && /RSD/i.test(cardText)) return;
+    if(/Šifra\s*:/i.test(cardText) && /RSD/i.test(cardText)) return;
     if(/\.(jpg|jpeg|png|gif|pdf|webp|xml)$/i.test(u.pathname)) return;
     if(/\/(korpa|podaci|potvrda)\b/i.test(u.pathname)) return;
     out.add(u.origin+u.pathname);

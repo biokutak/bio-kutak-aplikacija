@@ -226,18 +226,22 @@ export async function syncCatalog(db) {
   }
   const seenListingUrls=new Set(listingHtml.map(p=>p.url));
   let paginationFrontier=new Set(listingHtml.flatMap(p=>paginationCandidates(p.html,p.url)));
+  console.log("Catalog pagination discovery:", { initialPages: listingHtml.length, queuedPages: paginationFrontier.size, sample: [...paginationFrontier].slice(0,3) });
   for(let round=0;round<16 && paginationFrontier.size;round++) {
     const batch=[...paginationFrontier].filter(u=>!seenListingUrls.has(u)).slice(0,600);
     paginationFrontier=new Set(); if(!batch.length) break;
     for(const u of batch) seenListingUrls.add(u);
     const pages=await mapLimit(batch,8,async url=>({url,html:await fetchText(url).catch(()=> "")}));
     listingHtml.push(...pages);
+    console.log("Catalog pagination batch:", { round: round + 1, requested: batch.length, fetched: pages.filter(p=>p.html).length, listingPages: listingHtml.length, candidatesOnBatch: pages.reduce((n,p)=>n+productCandidates(p.html).length,0) });
     for(const page of pages) for(const u of paginationCandidates(page.html,page.url)) if(!seenListingUrls.has(u)) paginationFrontier.add(u);
   }
   const allCandidates=new Map();
   for(const page of listingHtml) for(const item of productCandidates(page.html)) allCandidates.set(item.url,item);
   const candidates=[...allCandidates.values()];
+  console.log("Catalog product candidates:", { listingPages: listingHtml.length, candidates: candidates.length });
   const products=await mapLimit(candidates,8,async item=>parseProduct(item.url,await fetchText(item.url),item.listText,item.context));
+  console.log("Catalog product parsing:", { candidates: candidates.length, parsed: products.length });
   for(const p of products) {
     await db.query(
       "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=EXCLUDED.sku,category=EXCLUDED.category,price_rsd=EXCLUDED.price_rsd,available=EXCLUDED.available,image_url=EXCLUDED.image_url,synced_at=NOW()",

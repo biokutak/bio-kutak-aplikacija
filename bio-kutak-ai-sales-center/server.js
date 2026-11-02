@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { searchProducts } from "./catalog.js";
 import { syncCatalogV2 } from "./catalog-v2.js";
 import { adviseCustomer } from "./advisor.js";
+import { rebuildKnowledgeBase, ensureKnowledgeSchema, answerProductFollowUp, searchKnowledge } from "./knowledge.js";
 
 const { Pool } = pg;
 const app = express();
@@ -183,6 +184,8 @@ async function classifyAndReply(conversation, message) {
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]
     );
+    const knowledgeReply = await answerProductFollowUp(pool, recent.rows, message);
+    if (knowledgeReply) return knowledgeReply;
     const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     const lastBotReply = recent.rows.find(row => row.direction === "out")?.body || "";
@@ -349,10 +352,32 @@ app.get("/api/catalog/search", async (req,res) => {
   catch (e) { res.status(503).json({ error:"Katalog trenutno nije dostupan." }); }
 });
 
+app.get("/api/knowledge/status", async (_req,res) => {
+  try {
+    await ensureSchema();
+    await ensureKnowledgeSchema(pool);
+    const counts = await pool.query("SELECT entry_type,COUNT(*)::int AS total FROM knowledge_entries GROUP BY entry_type");
+    const products = await pool.query("SELECT COUNT(*)::int AS total FROM products");
+    res.json({ ok:true, entries:counts.rows, catalogProducts:products.rows[0]?.total || 0 });
+  } catch (e) { res.status(503).json({ ok:false, error:"Baza znanja trenutno nije dostupna." }); }
+});
+
+app.get("/api/knowledge/search", async (req,res) => {
+  try {
+    await ensureSchema();
+    const entries = await searchKnowledge(pool, String(req.query.q || "").slice(0,200), 8);
+    res.json({ entries });
+  } catch (e) { res.status(503).json({ error:"Pretraga baze znanja trenutno nije dostupna." }); }
+});
+
 app.post("/api/catalog/sync", async (req,res) => {
   if (!process.env.ADMIN_API_KEY || !safeEqual(req.headers["x-admin-key"], process.env.ADMIN_API_KEY)) return res.sendStatus(401);
-  try { await ensureSchema(); res.json(await syncCatalogV2(pool)); }
-  catch (e) { res.status(500).json({ error:e.message }); }
+  try {
+    await ensureSchema();
+    const catalog = await syncCatalogV2(pool);
+    const knowledge = await rebuildKnowledgeBase(pool);
+    res.json({ catalog, knowledge });
+  } catch (e) { res.status(500).json({ error:e.message }); }
 });
 
 app.post("/api/chat", async (req,res) => {
@@ -518,7 +543,13 @@ app.listen(PORT, async () => {
   try {
     await ensureSchema();
     console.log("Database schema ready");
-    syncCatalogV2(pool).then(result => console.log("Startup catalog sync:",result)).catch(e => console.error("Startup catalog sync failed:",e.message));
+    await ensureKnowledgeSchema(pool);
+    rebuildKnowledgeBase(pool).then(result => console.log("Knowledge base initialized:",result)).catch(e => console.error("Knowledge base initialization failed:",e.message));
+    syncCatalogV2(pool).then(async result => {
+      console.log("Startup catalog sync:",result);
+      const knowledge = await rebuildKnowledgeBase(pool);
+      console.log("Knowledge base synced:",knowledge);
+    }).catch(e => console.error("Startup catalog sync failed:",e.message));
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.RENDER_EXTERNAL_URL) {
       await telegram("setWebhook", {
         url: process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "") + "/webhooks/telegram",
@@ -528,5 +559,9 @@ app.listen(PORT, async () => {
       console.log("Telegram webhook registered");
     }
   } catch (e) { console.error("Startup initialization:",e.message); }
-  setInterval(() => syncCatalogV2(pool).then(r => console.log("Scheduled catalog sync:",r)).catch(e => console.error("Scheduled catalog sync failed:",e.message)), 6 * 60 * 60 * 1000);
+  setInterval(() => syncCatalogV2(pool).then(async r => {
+    console.log("Scheduled catalog sync:",r);
+    const knowledge = await rebuildKnowledgeBase(pool);
+    console.log("Scheduled knowledge base sync:",knowledge);
+  }).catch(e => console.error("Scheduled catalog sync failed:",e.message)), 6 * 60 * 60 * 1000);
 });

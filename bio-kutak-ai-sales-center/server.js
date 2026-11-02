@@ -381,8 +381,7 @@ app.listen(PORT, async () => {
   try {
     await ensureSchema();
     console.log("Database schema ready");
-    const result = await syncCatalogV2(pool);
-    console.log("Startup catalog sync:",result);
+    syncCatalogV2(pool).then(result => console.log("Startup catalog sync:",result)).catch(e => console.error("Startup catalog sync failed:",e.message));
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.RENDER_EXTERNAL_URL) {
       await telegram("setWebhook", {
         url: process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "") + "/webhooks/telegram",

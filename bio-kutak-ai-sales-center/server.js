@@ -163,6 +163,9 @@ async function classifyAndReply(conversation, message) {
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }
+  if (/\bpametna pametnic(a|e)\b|\bpametna si pametnic(a|e)\b/.test(lower)) {
+    return { type:"auto", text:"Trudim se! 🌿 Najvažnije mi je da vam pronađem tačan artikal, cenu i dostupnost iz BIO KUTAK kataloga — bez nagađanja. Slobodno me testirajte." };
+  }
   // Keep ordinary conversation natural; casual messages are not customer-service handoffs.
   const casual = lower.trim().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
   if (/^(h+a+h+a+h*a*|he+h*|lol+|:d+|xd+|okej|ok|u redu|dogovoreno|hvala|hvala ti|super|odlicno|vazi|kiss|cmok|cao|vidimo se|laku noc|dobar smeh i sex|umirem od smeha|na ucenju je draga|neka uci|samo neka uci|neka nauci|samo neka nauci|neka douci|samo neka douci|odoh sad)$/.test(casual)) {
@@ -257,6 +260,42 @@ async function classifyAndReply(conversation, message) {
   if (/radno vreme|kada radite|adresa|gde se nalazite|telefon|kontakt/.test(lower)) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
+  // Direct catalogue intents must win over fuzzy product search and educational knowledge.
+  // Flour requests search actual flour products, never snacks that merely contain flour.
+  if (/\b(koja|koje|koji|imate li|imate)\b.*\b(brasna|brasno)\b|\b(brasna|brasno)\b.*\b(imate|ponuda)\b/i.test(lower)) {
+    const flour = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND translate(lower(name),'čćžšđ','cczsd') LIKE '%brasno%' AND translate(lower(name),'čćžšđ','cczsd') NOT LIKE '%bez brasna%' AND name NOT ILIKE '%kreker%' AND name NOT ILIKE 'Brašno, mekinje%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, name LIMIT 20"
+    )).rows;
+    return { type:"auto", text: flour.length
+      ? "Evo brašna koja sam pronašla u BIO KUTAK katalogu: 🌿\n\n" + formatProducts(flour) + "\n\nPrikazala sam artikle koji se zaista prodaju kao brašno, a ne krekere ili druge proizvode koji samo sadrže brašno. Ako tražite bezglutenska brašna, mogu da izdvojim samo njih."
+      : "Trenutno nisam pronašla brašna u katalogu. Mogu da proverim sa prodavnicom." };
+  }
+  // The unqualified word oil defaults to edible oils; cosmetic and essential oils are separate.
+  if (/\b(koja|koje|koji|imate li|imate)\b.*\bulja\b|\bulja\b.*\b(imate|ponuda)\b/i.test(lower)) {
+    const oils = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND name ILIKE '%ulje%' AND category IN ('osnovne-namirnice','organski-proizvodi') AND name NOT ILIKE '%MCT%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, name LIMIT 25"
+    )).rows;
+    return { type:"auto", text: oils.length
+      ? "Evo jestivih ulja iz BIO KUTAK ponude: 🌿\n\n" + formatProducts(oils) + "\n\nAko ste mislili na ulja za negu kože i kose ili eterična ulja, recite mi — to je posebna kategorija."
+      : "Trenutno nisam pronašla jestiva ulja u katalogu. Mogu da proverim sa prodavnicom." };
+  }
+  // A vitamin name alone is a shopping query first; show the actual matching store item.
+  if (/\bvitamin\s*c\b|\bc\s*vitamin\b/i.test(lower) && !/sta je|cemu sluzi|kako deluje|objasni|uloga|izvori|nedostatak/i.test(lower)) {
+    const rows = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND (translate(lower(name),'čćžšđ','cczsd') LIKE '%vitamin c%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%c vitamin%') ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST LIMIT 10"
+    )).rows;
+    return { type:"auto", text: rows.length
+      ? "Ovo je vitamin C koji sam pronašla u BIO KUTAK katalogu: 🌿\n\n" + formatProducts(rows) + "\n\nŽelite li cenu, sastav ili opšte informacije o vitaminu C?"
+      : "Trenutno nisam pronašla proizvod sa vitaminom C u katalogu. To ne znači da ga nema u prodavnici — mogu da proverim sa kolegama." };
+  }
+  if (/\bvitamin\s*d\b|\bd\s*vitamin\b/i.test(lower) && !/sta je|cemu sluzi|kako deluje|objasni|uloga|izvori|nedostatak|analiza|25.?oh/i.test(lower)) {
+    const rows = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND translate(lower(name),'čćžšđ','cczsd') LIKE '%vitamin d%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST LIMIT 10"
+    )).rows;
+    return { type:"auto", text: rows.length
+      ? "Ovo su proizvodi sa vitaminom D koje sam pronašla u BIO KUTAK katalogu: 🌿\n\n" + formatProducts(rows) + "\n\nŽelite li cenu, sastav ili opšte informacije o vitaminu D?"
+      : "Trenutno nisam pronašla proizvod sa vitaminom D u katalogu. Mogu da proverim sa prodavnicom." };
+  }
   // Product-aware follow-ups: use the previous conversation and verified catalogue fields.
   const isFollowUp = /\b(med za varenje|med kod varenja|oboje|oba|i jedno i drugo|cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima|najskuplji|najskuplje|najskuplji proizvodi|najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najvisa cena|najveca cena|najmanja cena|najjeftiniji proizvodi|koliko kosta|koja je cena|cena|na stanju|dostupan|dostupnost|povoljniji|jeftiniji|ima li jos|jos proizvoda|slicni proizvodi|link|gde mogu da kupim)\b/i.test(lower);
   if (isFollowUp) {
@@ -315,6 +354,15 @@ async function classifyAndReply(conversation, message) {
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     const lastBotReply = recent.rows.find(row => row.direction === "out")?.body || "";
     const lastBotContext = normalizeText(lastBotReply);
+    const asksAnyPrice = /\b(cena|koliko kosta|koja je cena)\b/i.test(lower);
+    if (asksAnyPrice && /\bvitamin d\b/.test(recentContext)) {
+      const rows = (await pool.query("SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND translate(lower(name),'čćžšđ','cczsd') LIKE '%vitamin d%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST")).rows;
+      if (rows.length) return { type:"auto", text:"Cene proizvoda sa vitaminom D u BIO KUTAK katalogu: 🌿\n\n" + rows.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + " — " + (p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno prema sajtu" : "dostupnost nije potvrđena") + "\n" + p.url).join("\n\n") };
+    }
+    if (asksAnyPrice && /\bvitamin c\b/.test(recentContext)) {
+      const rows = (await pool.query("SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND (translate(lower(name),'čćžšđ','cczsd') LIKE '%vitamin c%' OR translate(lower(name),'čćžšđ','cczsd') LIKE '%c vitamin%') ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST")).rows;
+      if (rows.length) return { type:"auto", text:"Cena proizvoda sa vitaminom C u BIO KUTAK katalogu: 🌿\n\n" + rows.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + " — " + (p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno prema sajtu" : "dostupnost nije potvrđena") + "\n" + p.url).join("\n\n") };
+    }
     // Resolve short price/availability questions directly against the product family in the latest bot reply.
     // This is intentionally independent of exact full-name matching in the rendered catalogue text.
     const latestReplyMentionsShilajit = lastBotContext.includes("shilajit") || lastBotContext.includes("mumio");
@@ -355,6 +403,9 @@ async function classifyAndReply(conversation, message) {
 
     const asksPriceOrStock = /\b(cena|koliko kosta|koja je cena|na stanju|dostupan|dostupnost|link|gde mogu da kupim)\b/i.test(lower);
     const asksAlternatives = /\b(ima li jos|jos proizvoda|slicni proizvodi|povoljniji|jeftiniji|alternativ)\b/i.test(lower);
+    if (asksPriceOrStock && !mentionedProducts.length && asksAnyPrice) {
+      return { type:"auto", text:"Naravno. 🌿 Na koji proizvod mislite? Napišite naziv ili grupu proizvoda (na primer vitamin D, čaj ili ulje), pa ću proveriti cenu u katalogu." };
+    }
     if (mentionedProducts.length && asksPriceOrStock) {
       const product = mentionedProducts[0];
       const price = product.price_rsd == null ? "Cena trenutno nije potvrđena u katalogu." : "Cena: " + Number(product.price_rsd).toLocaleString("sr-RS") + " RSD.";

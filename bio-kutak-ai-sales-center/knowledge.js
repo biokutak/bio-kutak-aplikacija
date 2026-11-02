@@ -1,3 +1,4 @@
+import { VITAMIN_GUIDES } from "./vitamin-guides.js";
 import { TEA_GUIDES } from "./tea-guides.js";
 const normalize = value => String(value || "")
   .toLocaleLowerCase("sr")
@@ -139,6 +140,7 @@ GUIDES.push(
 );
 
 GUIDES.push(...TEA_GUIDES);
+GUIDES.push(...VITAMIN_GUIDES);
 
 export async function ensureKnowledgeSchema(db) {
   await db.query(`

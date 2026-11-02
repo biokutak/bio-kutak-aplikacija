@@ -345,7 +345,7 @@ export async function adviseCustomer(db, message) {
   const intro = intent.intro;
   if (intent.id === "potency") {
     const result = await db.query(
-      "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND concat_ws(' ',name,category,description,ingredients) ILIKE ANY(ARRAY['%libido%','%potenc%','%erekc%','%seksual%']) ORDER BY CASE WHEN available IS TRUE THEN 0 ELSE 1 END, name LIMIT 5"
+      "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND (concat_ws(' ',name,category,description,ingredients) ILIKE ANY(ARRAY['%libido%','%potenc%','%erekc%','%seksual%']) OR name ILIKE '%shilajit%' OR name ILIKE '%šilajit%') ORDER BY price_rsd DESC NULLS LAST, CASE WHEN available IS TRUE THEN 0 ELSE 1 END, name LIMIT 5"
     );
     if (!result.rows.length) {
       return {

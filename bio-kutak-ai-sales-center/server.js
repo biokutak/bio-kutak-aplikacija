@@ -128,12 +128,12 @@ async function notifyAdmins(conversation, incoming, suggestion, { autoSent = fal
     `Kanal: ${conversation.channel}`,
     `Kupac: ${conversation.customer_name || conversation.external_user_id || "Posetilac sajta"}`,
     "",
-    `Poruka kupca: ${incoming}`,
+    `Poruka kupca: ${String(incoming || "").slice(0,1000)}`,
     "",
-    `${autoSent ? "Poslati odgovor" : "Predlog odgovora"}: ${suggestion}`,
+    `${autoSent ? "Poslati odgovor" : "Predlog odgovora"}: ${String(suggestion || "").slice(0,1800)}`,
     "",
     "Odgovori direktno na ovu Telegram poruku da preuzmeš razgovor i odgovoriš kupcu."
-  ].join("\n");
+  ].join("\n").slice(0,3900);
   for (const chatId of adminIds()) {
     const sent = await telegram("sendMessage", { chat_id: chatId, text: message, reply_markup: keyboard });
     await pool.query("UPDATE conversations SET telegram_message_id=$1 WHERE id=$2", [sent.message_id, conversation.id]);
@@ -144,8 +144,16 @@ function formatProducts(products) {
   return products.slice(0,5).map((p) => {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
-    const details = [p.description, p.ingredients ? "Sastav: " + p.ingredients : "", p.usage ? "Način upotrebe: " + p.usage : "", p.warnings ? "Upozorenje: " + p.warnings : ""].filter(Boolean).join("\n");
-    return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\n" + details.slice(0,900) : "") + "\n" + p.url;
+    const claimText = [p.description, p.usage].filter(Boolean).join(" ");
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const details = [
+      !containsUnverifiedHealthClaims && p.description ? p.description : "",
+      p.ingredients ? "Sastav: " + p.ingredients : "",
+      !containsUnverifiedHealthClaims && p.usage ? "Način upotrebe: " + p.usage : "",
+      p.warnings ? "Upozorenje: " + p.warnings : ""
+    ].filter(Boolean).join("\n");
+    const claimNote = containsUnverifiedHealthClaims ? "\nNapomena: opis sadrži zdravstvene tvrdnje koje nisu potvrda medicinskog dejstva; ne prikazujem ih kao preporuku." : "";
+    return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\n" + details.slice(0,900) : "") + claimNote + "\n" + p.url;
   }).join("\n\n");
 }
 

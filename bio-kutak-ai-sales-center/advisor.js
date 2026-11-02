@@ -68,18 +68,19 @@ function detectIntent(message) {
 
 async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
   const normalizedTerms = [...new Set(terms.map(normalize).filter(Boolean))];
-  const clauses = normalizedTerms.map((_, i) => `name ILIKE ${i + 1} OR COALESCE(category,'') ILIKE ${i + 1}`);
-  const exclusions = exclude.map((_, i) => `name NOT ILIKE ${normalizedTerms.length + i + 1}`).join(" AND ");
-  const result = await db.query(
-    `SELECT name,sku,category,price_rsd,available,image_url,url
+  const clauses = normalizedTerms.map(term => {
+    const pattern = "'%" + term.replace(/'/g, "''") + "%'";
+    return "name ILIKE " + pattern + " OR COALESCE(category,'') ILIKE " + pattern;
+  });
+  const exclusions = exclude.map(term => "name NOT ILIKE '%" + term.replace(/'/g, "''") + "%'");
+  const sql = `SELECT name,sku,category,price_rsd,available,image_url,url
      FROM products
      WHERE (length(url)-length(replace(url,'/',''))) >= 4
        AND (${clauses.join(" OR ")})
-       AND (${exclusions || "TRUE"})
+       AND (${exclusions.join(" AND ") || "TRUE"})
      ORDER BY name
-     LIMIT ${Math.max(1, Math.min(20, limit * 3))}`,
-    [...normalizedTerms.map(term => `%${term}%`), ...exclude.map(term => `%${term}%`)]
-  );
+     LIMIT ${Math.max(1, Math.min(20, limit * 3))}`;
+  const result = await db.query(sql);
   const score = (product) => {
     const name = normalize(product.name);
     const category = normalize(product.category);

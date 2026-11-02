@@ -145,7 +145,7 @@ function formatProducts(products) {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     const claimText = [p.description, p.usage].filter(Boolean).join(" ");
-    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|protiv (raka|tumora|dijabet|astme|depresij|aritmij)/i.test(claimText);
     const details = [
       !containsUnverifiedHealthClaims && p.description ? p.description : "",
       p.ingredients ? "Sastav: " + p.ingredients : "",
@@ -196,6 +196,15 @@ async function classifyAndReply(conversation, message) {
     return { type:"auto", text:"Ako želite da zamenite običan beli šećer, najpraktičnije opcije iz naše ponude su: 🌿\\n\\n" +
       (lines.length ? lines.join("\\n\\n") : "Trenutno nisam pronašla zaslađivače u katalogu.") +
       "\\n\\n**Kako da izaberete:**\\n• Eritritol — kristalna zamena za šećer; može imati blago rashlađujući ukus.\\n• Stevija + eritritol — praktična mešavina za napitke i recepte; proverite odnos zamene na deklaraciji jer se proizvodi razlikuju.\\n• Stevija — veoma je slatka, pa se koristi u maloj količini; tečna, tabletirana i praškasta nisu međusobno zamenljive kašičicu za kašičicu.\\n• Ksilitol (brezin šećer) — po slatkoći i upotrebi je sličniji običnom šećeru, ali sadrži kalorije.\\n\\n**Važno:** veće količine eritritola i ksilitola kod nekih ljudi izazivaju nadutost ili proliv; ksilitol je veoma otrovan za pse. Ako zamenu birate zbog dijabetesa ili insulinske rezistencije, nemojte se oslanjati samo na GI tabelu ili marketinške tvrdnje — proverite deklaraciju i dogovorite izbor sa lekarom/dijetetičarem.\\n\\nDa li vam treba za kafu i čaj ili za kolače i kuvanje?" };
+  }
+  // Plant-based milk alternatives are ordinary food searches, not symptom/medical handoffs.
+  if (/zamena za (kravlje )?mleko|zamenu za (kravlje )?mleko|umesto (kravljeg )?mleka|biljno mleko|biljni napitak|biljne napitke|mleko bez laktoze/.test(lower)) {
+    const milkProducts = (await pool.query(
+      "SELECT name,price_rsd,available,url,ingredients,description FROM products WHERE url IS NOT NULL AND translate(lower(concat_ws(' ',name,category,ingredients,description)),'čćžšđ','cczsd') LIKE ANY(ARRAY['%sojino mleko%','%sojin napitak%','%bademovo mleko%','%bademov napitak%','%ovseno mleko%','%ovseni napitak%','%pirincano mleko%','%pirincani napitak%','%kokosovo mleko%','%kokosov napitak%','%biljni napitak%','%napitak od soje%','%napitak od badema%','%napitak od ovsa%']) ORDER BY CASE WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%soj%' THEN 0 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%ovs%' THEN 1 WHEN translate(lower(name),'čćžšđ','cczsd') LIKE '%badem%' THEN 2 ELSE 3 END, name LIMIT 10"
+    )).rows;
+    return { type:"auto", text:"Ako tražite zamenu za kravlje mleko, najčešće opcije su sojin, ovseni, bademov ili pirinčani napitak. Izbor zavisi od ukusa, alergija i načina upotrebe. Sojin napitak obično ima više proteina od većine drugih biljnih napitaka; proverite deklaraciju, posebno dodat šećer, kalcijum i vitamin B12. 🌿\\n\\n" +
+      (milkProducts.length ? formatProducts(milkProducts) : "Trenutno nisam pronašla biljne napitke u našem katalogu. Mogu da proverim sa kolegama da li ih imamo u prodavnici.") +
+      "\\n\\nDa li vam treba za kafu, kuvanje ili svakodnevno umesto mleka? Ako izbegavate mleko zbog alergije na proteine kravljeg mleka, napitak bez laktoze nije odgovarajuća zamena." };
   }
   // Food and dietary searches must not be mistaken for medical symptoms (e.g. "bez šećera").
   const dietaryQuery = /bez glutena|bezglut|gluten|bez secera|bezsecer|bez dodatog secera|bez laktoze|posn|vegansk|vegan|biljni zelatin|agar|tofu|cokolad|keks|kolac|kolace/.test(lower);

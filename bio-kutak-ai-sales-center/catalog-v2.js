@@ -191,25 +191,42 @@ export async function syncCatalogV2(db) {
     console.log("CATALOG V2 CATEGORY ROUND",{round:round+1,requested:batch.length,loaded:pages.length,totalCategories:listingPages.size,queuedChildren:frontier.size});
   }
   const firstPages=[...listingPages].map(([url,html])=>({url,html}));
-  const paginationJobs=[];
-  for(const p of firstPages) {
-    const max=pageNumberMax(p.html);
-    if(max>1) for(let n=2;n<=max;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n});
-    else {
-      // Some category templates omit numeric pager links. Probe forward until two empty pages.
-      for(let n=2;n<=3;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n,probe:true});
+  // Do not trust the visible pager window: walk each category sequentially until two pages add no new products.
+  const categoryPagination=await mapLimit(firstPages,5,async p=>{
+    const knownMax=pageNumberMax(p.html);
+    const minProbe=Math.max(5,knownMax+2);
+    const seen=new Set(getProductCards(p.html).map(x=>x.url));
+    const extraPages=[];
+    let emptyStreak=0;
+    for(let n=2;n<=100;n++) {
+      let body="";
+      try {
+        ({body}=await get(pageUrl(p.url,n),18000));
+      } catch(e) {
+        console.warn("CATALOG V2 pagination fetch failed",{category:p.url,page:n,error:e.message});
+        emptyStreak++;
+        if(n>=minProbe && emptyStreak>=2) break;
+        continue;
+      }
+      const cards=getProductCards(body);
+      const fresh=cards.filter(x=>!seen.has(x.url));
+      if(fresh.length===0) emptyStreak++; else {
+        emptyStreak=0;
+        for(const card of fresh) seen.add(card.url);
+        extraPages.push({url:pageUrl(p.url,n),html:body});
+      }
+      if(n%5===0) console.log("CATALOG V2 pagination progress",{category:p.url,page:n,newProducts:fresh.length,uniqueInCategory:seen.size});
+      if(n>=minProbe && emptyStreak>=2) break;
+      if(cards.length===0 && n>=minProbe) break;
     }
-  }
-  const pageResults=await mapLimit(paginationJobs,5,async job=>{
-    const {body}=await getRetry(job.url);
-    const count=getProductCards(body).length;
-    return {...job,html:body,count};
+    console.log("CATALOG V2 category pagination complete",{category:p.url,knownPagerMax:knownMax,extraPages:extraPages.length,uniqueProducts:seen.size});
+    return extraPages;
   });
-  for(const p of pageResults) if(p.count>0) listingPages.set(p.url,p.html);
+  for(const pages of categoryPagination) for(const p of pages) listingPages.set(p.url,p.html);
   console.log("CATALOG V2 LISTINGS", {
     categories:categoryUrls.length, listingPages:listingPages.size,
     productCards:[...listingPages.values()].reduce((n,h)=>n+getProductCards(h).length,0),
-    paginationRequested:paginationJobs.length, paginationNonempty:pageResults.filter(p=>p.count>0).length
+    categoryPaginationJobs:categoryPagination.length
   });
 
   const candidates=new Map();

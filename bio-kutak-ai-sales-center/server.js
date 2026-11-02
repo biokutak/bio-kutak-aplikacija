@@ -150,7 +150,7 @@ function formatProducts(products) {
 
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "handoff", text: "Hvala na poruci! Proslediću vaše pitanje kolegama iz BIO KUTAK-a." };
-  const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj");
+  const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }
@@ -158,8 +158,27 @@ async function classifyAndReply(conversation, message) {
     return { type: "auto", text: "BIO KUTAK, Dimitrija Tucovića 2, Subotica. Telefon: 024/552-953. Radno vreme: ponedeljak–petak 08–19h, subota 08–13h, nedelja ne radimo. 🌿" };
   }
   // Product-aware follow-ups: use the previous conversation and verified catalogue fields.
-  const isFollowUp = /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima)\b/i.test(lower);
+  const isFollowUp = /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima|ima li|da li ima|najskuplji|najskuplje|najskuplji proizvodi|najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najvisa cena|najveca cena|najmanja cena|najjeftiniji proizvodi|koliko kosta|koja je cena|cena|na stanju|dostupan|dostupnost|povoljniji|jeftiniji|ima li jos|jos proizvoda|slicni proizvodi|link|gde mogu da kupim)\b/i.test(lower);
   if (isFollowUp) {
+    // Broad catalogue ranking questions do not require a product to have been mentioned earlier.
+    const asksMostExpensive = /\b(najskuplji|najskuplje|najvisa cena|najveca cena)\b/i.test(lower);
+    const asksCheapest = /\b(najjeftiniji|najjeftinije|najpovoljniji|najpovoljnije|najmanja cena)\b/i.test(lower);
+    if (asksMostExpensive || asksCheapest) {
+      const ranked = await pool.query(
+        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND price_rsd IS NOT NULL AND price_rsd > 0 ORDER BY price_rsd " + (asksMostExpensive ? "DESC" : "ASC") + ", name ASC LIMIT 5"
+      );
+      if (ranked.rows.length) {
+        const lines = ranked.rows.map((p, i) =>
+          (i + 1) + ". " + p.name + " — " + Number(p.price_rsd).toLocaleString("sr-RS") + " RSD" +
+          (p.available === true ? " (dostupan prema sajtu)" : p.available === false ? " (trenutno nedostupan prema sajtu)" : " (stanje nije potvrđeno)") +
+          "\n" + p.url
+        );
+        return { type: "auto", text: (asksMostExpensive ? "Pet najskupljih proizvoda" : "Pet najpovoljnijih proizvoda") +
+          " prema cenama koje su trenutno zabeležene u BIO KUTAK katalogu: 🌿\n\n" + lines.join("\n\n") +
+          "\n\nCene i dostupnost mogu da se promene; proverite stranicu proizvoda za konačnu potvrdu." };
+      }
+      return { type: "auto", text: "Trenutno nemam dovoljno potvrđenih cena u katalogu da bih pouzdano izdvojila proizvode po ceni. 🌿" };
+    }
     const recent = await pool.query(
       "SELECT body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
       [conversation.id]

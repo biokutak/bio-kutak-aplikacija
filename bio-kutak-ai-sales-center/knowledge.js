@@ -100,29 +100,35 @@ export async function rebuildKnowledgeBase(db) {
     );
   }
   const result = await db.query(
-    `SELECT id,url,name,sku,category,price_rsd,available,description,ingredients,usage,warnings
-     FROM products WHERE url IS NOT NULL`
+    `INSERT INTO knowledge_entries(slug,entry_type,title,keywords,content,product_url,source,verified_at,updated_at)
+     SELECT
+       'product:' || id::text,
+       'product',
+       name,
+       concat_ws(' ',category,sku,name),
+       concat_ws(E'\\n',
+         name,
+         CASE WHEN category IS NOT NULL THEN 'Kategorija: ' || category END,
+         CASE WHEN sku IS NOT NULL THEN 'Šifra: ' || sku END,
+         CASE WHEN description IS NOT NULL THEN 'Opis: ' || description END,
+         CASE WHEN ingredients IS NOT NULL THEN 'Sastav: ' || ingredients END,
+         CASE WHEN usage IS NOT NULL THEN 'Način upotrebe: ' || usage END,
+         CASE WHEN warnings IS NOT NULL THEN 'Upozorenja: ' || warnings END,
+         CASE WHEN price_rsd IS NULL THEN 'Cena nije potvrđena.' ELSE 'Cena: ' || price_rsd::text || ' RSD.' END,
+         CASE WHEN available IS TRUE THEN 'Dostupnost: dostupno prema katalogu.' WHEN available IS FALSE THEN 'Dostupnost: trenutno nedostupno prema katalogu.' ELSE 'Dostupnost nije potvrđena.' END
+       ),
+       url,
+       'BIO KUTAK katalog',
+       NOW(),
+       NOW()
+     FROM products WHERE url IS NOT NULL
+     ON CONFLICT(slug) DO UPDATE SET
+       title=EXCLUDED.title,keywords=EXCLUDED.keywords,content=EXCLUDED.content,
+       product_url=EXCLUDED.product_url,source=EXCLUDED.source,
+       verified_at=NOW(),updated_at=NOW()
+     RETURNING id`
   );
-  for (const p of result.rows) {
-    const content = [
-      p.name,
-      p.category ? "Kategorija: " + p.category : "",
-      p.sku ? "Šifra: " + p.sku : "",
-      p.description ? "Opis: " + p.description : "",
-      p.ingredients ? "Sastav: " + p.ingredients : "",
-      p.usage ? "Način upotrebe: " + p.usage : "",
-      p.warnings ? "Upozorenja: " + p.warnings : "",
-      p.price_rsd == null ? "Cena nije potvrđena." : "Cena: " + p.price_rsd + " RSD.",
-      p.available === true ? "Dostupnost: dostupno prema katalogu." : p.available === false ? "Dostupnost: trenutno nedostupno prema katalogu." : "Dostupnost nije potvrđena."
-    ].filter(Boolean).join("\n");
-    await db.query(
-      `INSERT INTO knowledge_entries(slug,entry_type,title,keywords,content,product_url,source,verified_at,updated_at)
-       VALUES($1,'product',$2,$3,$4,$5,'BIO KUTAK katalog',NOW(),NOW())
-       ON CONFLICT(slug) DO UPDATE SET title=EXCLUDED.title,keywords=EXCLUDED.keywords,content=EXCLUDED.content,product_url=EXCLUDED.product_url,source=EXCLUDED.source,verified_at=NOW(),updated_at=NOW()`,
-      ["product:" + p.id,p.name,[p.category,p.sku,p.name].filter(Boolean).join(" "),content,p.url]
-    );
-  }
-  return { guides:GUIDES.length, products:result.rows.length, total:GUIDES.length+result.rows.length };
+  return { guides:GUIDES.length, products:result.rowCount, total:GUIDES.length+result.rowCount };
 }
 
 const QUESTION_TYPES = [

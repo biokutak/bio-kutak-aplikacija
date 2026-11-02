@@ -39,7 +39,7 @@ async function getRetry(url, timeout = 35000) {
 function xmlLocations(xml) {
   return [...xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi)].map(m=>m[1].trim().replaceAll("&amp;","&"));
 }
-function productDataFromHtml(html, url, listingText = "", categoryName = "") {
+function productDataFromHtml(html, url, listingText = "", categoryName = "", listingName = "", listingImage = "") {
   const $ = cheerio.load(html);
   let structured = null;
   const walk = v => {
@@ -52,7 +52,7 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "") {
   };
   $("script[type='application/ld+json']").each((_,el)=>{try{walk(JSON.parse($(el).contents().text()));}catch{}});
   const body = $("body").text().replace(/\u00a0/g," ").replace(/\s+/g," ").trim();
-  const name = $("h1").first().text().trim() || structured?.name || $("meta[property='og:title']").attr("content") || "";
+  const name = $("h1").first().text().trim() || structured?.name || $("meta[property='og:title']").attr("content") || listingName || "";
   if (!name) return null;
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
   const sourceText = body+" "+listingText;
@@ -84,7 +84,7 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "") {
   const unavailable = /OutOfStock|Trenutno nedostupan|Nije dostupno|Nema na stanju/i.test(availabilityText);
   const available = unavailable ? false : (/InStock|Dodaj u korpu|\bKupi\b/i.test(availabilityText) ? true : null);
   const rawImage = Array.isArray(structured?.image) ? structured.image[0] : structured?.image;
-  const image = rawImage || $("meta[property='og:image']").attr("content") || $("main img").first().attr("src") || $("img").first().attr("src");
+  const image = rawImage || $("meta[property='og:image']").attr("content") || $("main img").first().attr("src") || $("img").first().attr("src") || listingImage;
   const imageUrl = image ? localUrl(image) || image : null;
   const cleanPrice = Number.isFinite(price) && price>0 && price<1000000 ? price : null;
   return {
@@ -101,13 +101,16 @@ function getProductCards(html) {
     const u=new URL(url), path=u.pathname.split("/").filter(Boolean);
     // Product detail URLs on BIO KUTAK have a category + product slug.
     if(path.length<2 || path.length>5 || path.some(x=>EXCLUDED.has(x.toLowerCase()))) return;
-    let node=$(el), best=$(el).text().replace(/\s+/g," ").trim();
+    let node=$(el), cardNode=$(el), best=$(el).text().replace(/\s+/g," ").trim();
     for(let depth=0;depth<8 && node.length;depth++,node=node.parent()){
       const t=node.text().replace(/\s+/g," ").trim();
-      if(t.length<2200 && (/Šifra\s*:/i.test(t) || /\bRSD\b/i.test(t))){best=t;break;}
+      if(t.length<2200 && (/Šifra\s*:/i.test(t) || /\bRSD\b/i.test(t))){best=t;cardNode=node;break;}
     }
     if(/Šifra\s*:/i.test(best) || /\bRSD\b/i.test(best)){
-      found.set(url,{url,text:best.slice(0,1800)});
+      const img=cardNode.find("img").first();
+      const rawImage=img.attr("src") || img.attr("data-src") || img.attr("data-original") || "";
+      const name=$(el).attr("title") || img.attr("alt") || $(el).text().replace(/\s+/g," ").trim();
+      found.set(url,{url,text:best.slice(0,1800),name,imageUrl:rawImage ? localUrl(rawImage) || rawImage : null});
     }
   });
   return [...found.values()];
@@ -183,7 +186,7 @@ export async function syncCatalogV2(db) {
     const details=await mapLimit(toFetch,4,async item=>{
       try {
         const {body}=await getRetry(item.url,18000);
-        const p=productDataFromHtml(body,item.url,item.text,null);
+        const p=productDataFromHtml(body,item.url,item.text,null,item.name,item.imageUrl);
         if(!p) { failedDetails++; processedUrls.delete(item.url); return null; }
         await db.query(
           "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
@@ -192,6 +195,20 @@ export async function syncCatalogV2(db) {
         parsed++; saved++;
         return p.url;
       } catch(e) {
+        // If the source listing exposes a product whose detail URL is broken, keep it
+        // searchable using the card's title, SKU, price, and image instead of dropping it.
+        if (/HTTP (404|403)/.test(e.message || "")) {
+          const p=productDataFromHtml("",item.url,item.text,null,item.name,item.imageUrl);
+          if(p?.name) {
+            await db.query(
+              "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
+              [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
+            );
+            parsed++; saved++;
+            console.warn("CATALOG V2 listing-only fallback used",{url:item.url});
+            return p.url;
+          }
+        }
         failedDetails++;
         processedUrls.delete(item.url);
         console.warn("CATALOG V2 product detail failed",{url:item.url,error:e.stack || e.message});

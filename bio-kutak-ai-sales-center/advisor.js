@@ -185,6 +185,74 @@ const INTENTS = [
     terms: ["neven", "bademovo ulje", "krema za lice", "hidratantna krema"],
     intro: "Mogu da prikažem proizvode za negu kože iz ponude. Pre upotrebe proverite sastav i alergije; osip koji se brzo širi, otok lica ili otežano disanje zahtevaju hitnu pomoć."
   },
+
+  {
+    id: "urinary",
+    adviceOnly: true,
+    patterns: ["peckanje pri mokrenju", "pece me kad mokrim", "ucestalo mokrenje", "stalno mi se mokri", "bol pri mokrenju", "krv u mokraci", "infekcija urinarnog trakta", "upala besike", "cistitis"],
+    intro: "Peckanje, učestalo mokrenje i bol mogu imati više uzroka, uključujući infekciju. Potreban je savet lekara i po potrebi analiza urina; nemojte pokušavati da infekciju lečite samo čajevima ili suplementima. Krv u mokraći, temperatura, bol u slabinama, mučnina ili povraćanje zahtevaju brzu medicinsku procenu."
+  },
+  {
+    id: "blood-pressure",
+    adviceOnly: true,
+    patterns: ["visok pritisak", "povisen pritisak", "nizak pritisak", "skace mi pritisak", "pritisak mi je visok", "pritisak mi je nizak"],
+    intro: "Krvni pritisak treba pravilno izmeriti i pratiti, a terapiju ne treba prekidati niti menjati bez lekara. Suplementi i biljni preparati nisu zamena za terapiju i mogu da utiču na lekove. Ako je pritisak veoma visok uz bol u grudima, otežano disanje, jaku glavobolju, smetnje vida ili slabost, odmah potražite hitnu pomoć."
+  },
+  {
+    id: "blood-sugar",
+    adviceOnly: true,
+    patterns: ["povisen secer", "visok secer", "nizak secer", "dijabetes", "dijabeticar sam", "insulinska rezistencija", "insulin"],
+    intro: "Kod dijabetesa i promena šećera u krvi važno je pratiti vrednosti i držati se plana koji je odredio lekar. Nemojte menjati insulin ili lekove zbog suplementa ili biljnog preparata. Zbunjenost, gubitak svesti ili izrazita slabost mogu biti hitni znaci — pozovite hitnu pomoć."
+  },
+  {
+    id: "thyroid",
+    adviceOnly: true,
+    patterns: ["stitna zlezda", "stitnu zlezdu", "hipotireoza", "hipertireoza", "hashimoto", "hašimoto", "problemi sa hormonima stitne"],
+    intro: "Tegobe povezane sa štitnom žlezdom zahtevaju laboratorijsku i lekarsku procenu. Jod, alge i suplementi mogu biti neodgovarajući kod pojedinih oboljenja štitne žlezde i mogu uticati na terapiju. Nemojte ih uzimati za lečenje bez saveta endokrinologa ili farmaceuta."
+  },
+  {
+    id: "anemia",
+    adviceOnly: true,
+    patterns: ["anemija", "malokrvnost", "nisko gvozdje", "nizak hemoglobin", "manjak gvozdja", "nedostatak gvozdja"],
+    intro: "Umor, bledilo i vrtoglavica mogu biti povezani sa anemijom, ali uzrok treba potvrditi krvnom slikom i drugim analizama. Gvožđe ne treba uzimati naslepo — višak može biti štetan, a anemija nema uvek isti uzrok. Razgovarajte sa lekarom o nalazima i odgovarajućoj terapiji."
+  },
+  {
+    id: "kidney",
+    adviceOnly: true,
+    patterns: ["bubrezi", "bol u bubrezima", "problem sa bubrezima", "slabi bubrezi", "kamen u bubregu", "pesak u bubregu"],
+    intro: "Tegobe sa bubrezima zahtevaju oprez: neki biljni preparati, čajevi i suplementi nisu bezbedni kod smanjene funkcije bubrega. Nemojte koristiti preparate za 'čišćenje bubrega' bez saveta lekara. Jak bol u slabini, temperatura, povraćanje ili krv u mokraći zahtevaju brzu procenu."
+  },
+  {
+    id: "liver",
+    adviceOnly: true,
+    patterns: ["jetra", "masna jetra", "povisen ast alt", "povisen ggt", "enzimi jetre", "problem sa jetrom"],
+    intro: "Kod masne jetre ili povišenih jetrenih enzima važno je utvrditi uzrok sa lekarom. 'Detoks' preparati i biljni suplementi nisu dokazano čišćenje jetre, a neki mogu dodatno oštetiti jetru ili stupiti u interakciju sa lekovima. Žutilo kože ili očiju, taman urin ili jak bol zahtevaju hitnu medicinsku procenu."
+  },
+  {
+    id: "pregnancy",
+    adviceOnly: true,
+    patterns: ["trudna sam", "trudnoca", "u drugom sam stanju", "dojim", "dojenje", "za trudnice", "za dojilje"],
+    intro: "Tokom trudnoće i dojenja nemojte uzimati biljne preparate, eterična ulja ili suplemente bez provere sa ginekologom ili farmaceutom. I proizvodi koji su inače prirodni mogu biti neodgovarajući u ovom periodu. Mogu da proverim sastav konkretnog proizvoda, ali konačnu procenu treba da da zdravstveni stručnjak."
+  },
+  {
+    id: "prostate",
+    adviceOnly: true,
+    patterns: ["prostata", "uvećana prostata", "slab mlaz mokrace", "nocu ustajem da mokrim", "tesko mokrim"],
+    intro: "Promene mokrenja mogu biti povezane sa prostatom, ali zahtevaju pregled da bi se utvrdio uzrok. Nemojte odlagati pregled niti se oslanjati na suplemente. Ako ne možete da mokrite, imate temperaturu ili krv u mokraći, potražite hitnu medicinsku pomoć."
+  },
+  {
+    id: "stomach-pain",
+    adviceOnly: true,
+    patterns: ["jak bol u stomaku", "iznenadan bol u stomaku", "bol u donjem delu stomaka", "bol ispod desnog rebra", "bol ispod levog rebra"],
+    intro: "Bol u stomaku može imati mnogo uzroka i ne može se pouzdano proceniti preko poruke. Nemojte birati suplement kao terapiju. Jak, iznenadan ili sve jači bol, tvrd stomak, uporno povraćanje, krv u stolici ili moguća trudnoća zahtevaju hitnu medicinsku procenu."
+  },
+  {
+    id: "dizziness",
+    adviceOnly: true,
+    patterns: ["vrtoglavica", "vrti mi se u glavi", "gubim ravnotezu", "nesvestica", "osecam da cu se onesvestiti"],
+    intro: "Vrtoglavica može biti posledica različitih stanja, od dehidratacije do problema sa pritiskom ili unutrašnjim uhom. Sedite ili lezite dok ne prođe i nemojte voziti. Ako se javi iznenadna slabost jedne strane tela, smetnja govora ili vida, bol u grudima ili gubitak svesti, odmah pozovite hitnu pomoć."
+  },
+
 ];
 
 const URGENT = /bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
@@ -236,8 +304,11 @@ export async function adviseCustomer(db, message) {
       reply: "Razumem. Ne želim da nagađam niti da vam preporučim pogrešan proizvod. Opišite tegobu malo preciznije ili se obratite farmaceutu/lekaru. U našem katalogu trenutno nisam pouzdano povezao ovu tegobu sa odgovarajućim artiklom. Ako su simptomi jaki, nagli ili se pogoršavaju, potražite medicinsku pomoć."
     };
   }
-  const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
   const intro = intent.intro;
+  if (intent.adviceOnly) {
+    return { urgent: false, intent: intent.id, products: [], reply: intro };
+  }
+  const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
   if (!products.length) {
     return {
       urgent: false,

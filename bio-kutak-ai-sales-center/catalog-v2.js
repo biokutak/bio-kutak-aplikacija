@@ -57,7 +57,7 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
   const sourceText = body+" "+listingText;
   const slugTail = new URL(url).pathname.split("/").filter(Boolean).at(-1) || "";
-  const slugSku = slugTail.match(/-(\d{3,14})$/)?.[1] || null;
+  const slugSku = slugTail.match(/-(\d{3,16})$/)?.[1] || null;
   const rawSku = structured?.sku || structured?.mpn || structured?.gtin13 ||
     sourceText.match(/Šifra\s*:\s*([\w./-]+)/i)?.[1] || null;
   let sku = rawSku || slugSku;

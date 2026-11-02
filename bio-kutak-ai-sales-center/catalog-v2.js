@@ -39,6 +39,27 @@ async function getRetry(url, timeout = 35000) {
 function xmlLocations(xml) {
   return [...xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi)].map(m=>m[1].trim().replaceAll("&amp;","&"));
 }
+
+function extractProductSection($, patterns) {
+  let value = "";
+  $("h2,h3,h4,h5,h6,strong,b,dt").each((_, el) => {
+    if (value) return;
+    const heading = $(el).text().replace(/\s+/g," ").trim();
+    if (!patterns.some(pattern => pattern.test(heading))) return;
+    const chunks = [];
+    let node = $(el).next();
+    for (let i=0; i<5 && node.length; i++, node=node.next()) {
+      if (/^(H[1-6]|DT)$/i.test(node[0]?.tagName || "")) break;
+      const text = node.text().replace(/\s+/g," ").trim();
+      if (text) chunks.push(text);
+      if (chunks.join(" ").length > 1400) break;
+    }
+    const parentText = $(el).parent().text().replace(heading,"").replace(/\s+/g," ").trim();
+    value = (chunks.join(" ") || parentText).slice(0,1400);
+  });
+  return value || null;
+}
+
 function productDataFromHtml(html, url, listingText = "", categoryName = "", listingName = "", listingImage = "") {
   const $ = cheerio.load(html);
   let structured = null;
@@ -52,6 +73,10 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
   };
   $("script[type='application/ld+json']").each((_,el)=>{try{walk(JSON.parse($(el).contents().text()));}catch{}});
   const body = $("body").text().replace(/\u00a0/g," ").replace(/\s+/g," ").trim();
+  const description = String(structured?.description || $("meta[name='description']").attr("content") || "").replace(/\s+/g," ").trim().slice(0,2400) || null;
+  const ingredients = extractProductSection($, [/sastav/i,/deklaracija/i,/aktivni sastojci/i,/ingredients/i]);
+  const usage = extractProductSection($, [/nacin upotrebe/i,/upotreba/i,/preporucena upotreba/i,/doziranje/i,/uputstvo/i]);
+  const warnings = extractProductSection($, [/upozorenje/i,/mere opreza/i,/kontraindikacije/i,/napomena/i]);
   const name = $("h1").first().text().trim() || structured?.name || $("meta[property='og:title']").attr("content") || listingName || "";
   if (!name) return null;
   const offers = Array.isArray(structured?.offers) ? structured.offers[0] : structured?.offers;
@@ -116,7 +141,7 @@ function productDataFromHtml(html, url, listingText = "", categoryName = "", lis
   return {
     url, name:name.slice(0,240), sku:sku ? String(sku).slice(0,100) : null,
     category:categoryName || new URL(url).pathname.split("/").filter(Boolean)[0] || null,
-    priceRsd:cleanPrice, available, imageUrl
+    priceRsd:cleanPrice, available, imageUrl, description, ingredients, usage, warnings
   };
 }
 function getProductCards(html) {
@@ -215,8 +240,8 @@ export async function syncCatalogV2(db) {
         const p=productDataFromHtml(body,item.url,item.text,null,item.name,item.imageUrl);
         if(!p) { failedDetails++; processedUrls.delete(item.url); return null; }
         await db.query(
-          "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
-          [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
+          "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,description,ingredients,usage,warnings,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),description=COALESCE(EXCLUDED.description,products.description),ingredients=COALESCE(EXCLUDED.ingredients,products.ingredients),usage=COALESCE(EXCLUDED.usage,products.usage),warnings=COALESCE(EXCLUDED.warnings,products.warnings),synced_at=NOW()",
+          [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl,p.description,p.ingredients,p.usage,p.warnings]
         );
         parsed++; saved++;
         return p.url;
@@ -227,8 +252,8 @@ export async function syncCatalogV2(db) {
           const p=productDataFromHtml("",item.url,item.text,null,item.name,item.imageUrl);
           if(p?.name) {
             await db.query(
-              "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
-              [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
+              "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,description,ingredients,usage,warnings,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),description=COALESCE(EXCLUDED.description,products.description),ingredients=COALESCE(EXCLUDED.ingredients,products.ingredients),usage=COALESCE(EXCLUDED.usage,products.usage),warnings=COALESCE(EXCLUDED.warnings,products.warnings),synced_at=NOW()",
+              [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl,p.description,p.ingredients,p.usage,p.warnings]
             );
             parsed++; saved++;
             console.warn("CATALOG V2 listing-only fallback used",{url:item.url});

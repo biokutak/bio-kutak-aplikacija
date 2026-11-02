@@ -37,7 +37,7 @@ function productCandidates(html) {
   });
   return [...found.values()];
 }
-function paginationCandidates(html) {
+function paginationCandidates(html, currentUrl = SITE) {
   const $ = cheerio.load(html);
   const found = new Set();
   $("a[href]").each((_, el) => {
@@ -52,18 +52,36 @@ function paginationCandidates(html) {
     ].join(" ").toLowerCase();
     const hasPageParam = [...u.searchParams.keys()].some((key) => /^(page|paged|strana|p|offset|start|limit)$/i.test(key));
     const pageLabel = /^\d+$/.test(label) || /slede|prethod|next|prev|last|»|›|‹/i.test(label);
-    if (hasPageParam || (/(pagination|pager|stran|page)/i.test(classes) && pageLabel)) found.add(href);
+    const current = new URL(currentUrl);
+    const sameListingPath = u.pathname === current.pathname;
+    const numericPageLink = /^\d+$/.test(label) && sameListingPath && u.href !== current.href;
+    if (hasPageParam || numericPageLink || (/(pagination|pager|stran|page)/i.test(classes) && pageLabel)) found.add(href);
   });
   return [...found];
 }
 
+let fetchFailures = 0;
 async function fetchText(url) {
-  const response = await fetch(url, {
-    headers: { "user-agent": "BIO-KUTAK-AI-SalesCenter/0.1 (+https://biokutak.co.rs)" },
-    signal: AbortSignal.timeout(15000)
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-  return response.text();
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "user-agent": "Mozilla/5.0 (compatible; BIO-KUTAK-CatalogBot/1.0; +https://biokutak.co.rs)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "sr-RS,sr;q=0.9,en;q=0.7"
+        },
+        signal: AbortSignal.timeout(45000)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+      return await response.text();
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await sleep(attempt * 1500);
+    }
+  }
+  fetchFailures++;
+  throw lastError;
 }
 
 function findStructuredProduct($) {
@@ -146,8 +164,12 @@ async function mapLimit(items, limit, fn) {
 
 export async function syncCatalog(db) {
   const startUrls = [SITE + "/prodavnica", SITE + "/pretraga"];
-  const startHtml = await Promise.all(startUrls.map(url => fetchText(url)));
-  const listingHtml = startUrls.map((url,i) => ({url,html:startHtml[i]}));
+  fetchFailures = 0;
+  const startResults = await Promise.allSettled(startUrls.map(url => fetchText(url)));
+  const listingHtml = startResults.flatMap((result,i) =>
+    result.status === "fulfilled" ? [{url:startUrls[i],html:result.value}] : []
+  );
+  if (!listingHtml.length) throw new Error("BIO KUTAK listing pages could not be reached after 3 attempts");
   const excluded = new Set(["","prodavnica","pretraga","kontakt","o-nama","blog","naslovna","kako-kupovati","uslovi-koriscenja","politika-privatnosti","nacin-isporuke-i-placanja","korpa","podaci","potvrda"]);
   const categoryUrls = new Set();
   const seenSitemaps = new Set();
@@ -180,14 +202,14 @@ export async function syncCatalog(db) {
     for(const u of categoryUrls) if(!seenCategoryUrls.has(u)) categoryFrontier.add(u);
   }
   const seenListingUrls=new Set(listingHtml.map(p=>p.url));
-  let paginationFrontier=new Set(listingHtml.flatMap(p=>paginationCandidates(p.html)));
+  let paginationFrontier=new Set(listingHtml.flatMap(p=>paginationCandidates(p.html,p.url)));
   for(let round=0;round<16 && paginationFrontier.size;round++) {
     const batch=[...paginationFrontier].filter(u=>!seenListingUrls.has(u)).slice(0,600);
     paginationFrontier=new Set(); if(!batch.length) break;
     for(const u of batch) seenListingUrls.add(u);
     const pages=await mapLimit(batch,8,async url=>({url,html:await fetchText(url).catch(()=> "")}));
     listingHtml.push(...pages);
-    for(const page of pages) for(const u of paginationCandidates(page.html)) if(!seenListingUrls.has(u)) paginationFrontier.add(u);
+    for(const page of pages) for(const u of paginationCandidates(page.html,page.url)) if(!seenListingUrls.has(u)) paginationFrontier.add(u);
   }
   const allCandidates=new Map();
   for(const page of listingHtml) for(const item of productCandidates(page.html)) allCandidates.set(item.url,item);
@@ -199,7 +221,9 @@ export async function syncCatalog(db) {
       [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
     );
   }
-  return {listingPages:listingHtml.length,categories:seenCategoryUrls.size,found:candidates.length,saved:products.length};
+  const result = {listingPages:listingHtml.length,categories:seenCategoryUrls.size,found:candidates.length,saved:products.length,fetchFailures};
+  console.log("Catalog crawl summary:",result);
+  return result;
 }
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);

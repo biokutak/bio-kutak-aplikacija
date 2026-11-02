@@ -372,6 +372,7 @@ export async function adviseCustomer(db, message) {
     return {
       urgent: false,
       autoReply: true,
+      learningNeeded: true,
       intent: "unclassified-symptom",
       products: [],
       reply: "Razumem. Ne želim da nagađam niti da vam preporučim pogrešan proizvod. Opišite tegobu malo preciznije ili se obratite farmaceutu/lekaru. U našem katalogu trenutno nisam pouzdano povezao ovu tegobu sa odgovarajućim artiklom. Ako su simptomi jaki, nagli ili se pogoršavaju, potražite medicinsku pomoć."
@@ -386,6 +387,7 @@ export async function adviseCustomer(db, message) {
       return {
         urgent: false,
         autoReply: true,
+        learningNeeded: true,
         intent: "potency",
         products: [],
         reply: "Razumem. 🌿 Proverio sam BIO KUTAK katalog, ali trenutno nisam pronašao proizvod čiji opis ili sastav izričito navodi libido, potenciju ili seksualnu funkciju. Neću vam preporučiti nasumičan preparat niti tvrditi da suplement leči ove tegobe. Ako se problem ponavlja, razgovarajte sa lekarom ili urologom; posebno je važno proveriti moguće uzroke i interakcije sa lekovima."
@@ -406,9 +408,10 @@ export async function adviseCustomer(db, message) {
     return {
       urgent: false,
       autoReply: true,
+      learningNeeded: true,
       intent: intent.id,
       products: [],
-      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u našem katalogu. Neću nagađati niti preporučivati nepovezan artikal. Mogu da proverim sa kolegama da li postoji dodatna ponuda u prodavnici."
+      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u katalogu. Zabeležiću ovo pitanje da dopunimo bazu znanja i proverimo ponudu. Neću nagađati niti preporučivati nepovezan artikal."
     };
   }
   return {

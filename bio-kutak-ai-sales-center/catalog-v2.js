@@ -150,7 +150,7 @@ export async function syncCatalogV2(db) {
     if(visitedMaps.has(mapUrl)) continue;
     visitedMaps.add(mapUrl);
     try {
-      const {body}=await getRetry(mapUrl);
+      const {body}=await get(mapUrl,9000);
       for(const raw of xmlLocations(body)) {
         const u=localUrl(raw,mapUrl); if(!u) continue;
         if(/\.xml(?:\?|$)/i.test(u)) sitemapQueue.push(u);

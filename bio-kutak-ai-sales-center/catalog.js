@@ -70,13 +70,13 @@ function paginationCandidates(html, currentUrl = SITE) {
       if (u.href !== current.href) found.add(href);
     }
   });
-  // BIO KUTAK's main shop exposes 76 numbered pages (12 products per page).
-  // Its pager can be rendered without ordinary anchor hrefs, so explicitly enumerate
-  // the Joomla-style start offsets instead of relying only on scraped pager links.
+  // BIO KUTAK uses the explicit ?strana=N pagination parameter.
+  // Enumerate every numbered shop page because the pager may not expose hrefs.
   if (/^\/prodavnica\/?$/.test(current.pathname)) {
-    for (let start = 0; start <= 900; start += 12) {
+    for (let page = 2; page <= 76; page++) {
       const u = new URL(current.href);
-      u.searchParams.set("start", String(start));
+      u.searchParams.delete("start");
+      u.searchParams.set("strana", String(page));
       found.add(u.toString());
     }
   }

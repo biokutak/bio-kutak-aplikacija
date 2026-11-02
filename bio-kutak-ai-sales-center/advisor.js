@@ -318,6 +318,7 @@ export async function adviseCustomer(db, message) {
     if (!symptomLike) return null;
     return {
       urgent: false,
+      autoReply: true,
       intent: "unclassified-symptom",
       products: [],
       reply: "Razumem. Ne želim da nagađam niti da vam preporučim pogrešan proizvod. Opišite tegobu malo preciznije ili se obratite farmaceutu/lekaru. U našem katalogu trenutno nisam pouzdano povezao ovu tegobu sa odgovarajućim artiklom. Ako su simptomi jaki, nagli ili se pogoršavaju, potražite medicinsku pomoć."
@@ -325,7 +326,7 @@ export async function adviseCustomer(db, message) {
   }
   const intro = intent.intro;
   if (intent.adviceOnly) {
-    return { urgent: false, intent: intent.id, products: [], reply: intro };
+    return { urgent: false, autoReply: true, intent: intent.id, products: [], reply: intro };
   }
   const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
   if (!products.length) {

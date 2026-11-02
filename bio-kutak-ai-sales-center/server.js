@@ -207,6 +207,7 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
 }
 
 app.get("/", (_req,res) => res.sendFile(new URL("./public/test.html", import.meta.url).pathname));
+app.get("/pametnica", (_req,res) => res.sendFile(new URL("./public/pametnica.html", import.meta.url).pathname));
 
 app.get("/health", async (_req,res) => {
   try {

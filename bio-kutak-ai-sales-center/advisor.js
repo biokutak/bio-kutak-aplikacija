@@ -51,7 +51,8 @@ const INTENTS = [
   {
     id: "immunity",
     patterns: ["imunitet", "jacanje imuniteta", "slab imunitet", "otpornost organizma", "vitamini za imunitet"],
-    terms: ["vitamin c", "propolis", "cink", "ehi", "đumbir", "djumbir"],
+    terms: ["vitamin c", "c vitamin", "propolis", "cink", "ehinacea", "ehi", "đumbir", "djumbir", "amla"],
+    allowedCategories: ["osnovne-namirnice","dodaci-ishrani"],
     intro: "Evo proizvoda iz ponude koji se uklapaju u pretragu suplemenata i namirnica povezanih sa podrškom ishrani. Nijedan proizvod ne garantuje sprečavanje ili lečenje bolesti."
   },
   {
@@ -351,13 +352,14 @@ function productMatchScore(product, terms, exclude = []) {
   return score;
 }
 
-async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
+async function searchIntentProducts(db, terms, limit = 5, exclude = [], allowedCategories = []) {
   // The catalogue is small enough to rank locally. This deliberately avoids
   // SQL ILIKE substring matches such as "nana" inside "ananas" or "banana".
   const result = await db.query(
     "SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL"
   );
   return result.rows
+    .filter(product => !allowedCategories.length || allowedCategories.includes(product.category))
     .map(product => ({ product, score: productMatchScore(product, terms, exclude) }))
     .filter(item => item.score > 0)
     .sort((a,b) => (Number(b.product.available === true) - Number(a.product.available === true)) || (a.product.available === false ? 1 : 0) - (b.product.available === false ? 1 : 0) || b.score - a.score || String(a.product.name).localeCompare(String(b.product.name), "sr"))
@@ -411,10 +413,7 @@ export async function adviseCustomer(db, message) {
   if (intent.adviceOnly) {
     return { urgent: false, autoReply: true, intent: intent.id, products: [], reply: intro };
   }
-  let products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
-  if (intent.allowedCategories?.length) {
-    products = products.filter(p => intent.allowedCategories.includes(p.category));
-  }
+  const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || [], intent.allowedCategories || []);
   if (!products.length) {
     return {
       urgent: false,

@@ -11,7 +11,8 @@ const INTENTS = [
   {
     id: "back-care",
     patterns: ["bole me ledja", "bol u ledjima", "krsta", "ukocena ledja", "ukocio sam se", "boli me kicma", "bol u kicmi", "vrat me boli", "boli me vrat", "ramena me bole", "bol u misicima", "upala misica", "zglobovi me bole", "bol u zglobovima"],
-    terms: ["gavez", "magnezijum hlorid gel", "magnezijum sprej", "mast od gaveza", "ulje za telo"],
+    terms: ["gavez mast", "mast od gaveza", "magnezijum hlorid gel", "magnezijum sprej"],
+    exclude: ["čaj", "tinktura", "hemoroide", "čukljeve", "pčelinjim otrovom"],
     intro: "Razumem. U katalogu sam pronašao nekoliko proizvoda za spoljašnju negu tela koji bi mogli biti relevantni ako tražite preparat za masažu ili negu kože. To nisu lekovi i ne mogu da leče bol u leđima."
   },
   {
@@ -65,17 +66,19 @@ function detectIntent(message) {
   return INTENTS.find(intent => intent.patterns.some(pattern => text.includes(normalize(pattern)))) || null;
 }
 
-async function searchIntentProducts(db, terms, limit = 5) {
+async function searchIntentProducts(db, terms, limit = 5, exclude = []) {
   const normalizedTerms = [...new Set(terms.map(normalize).filter(Boolean))];
-  const clauses = normalizedTerms.map((_, i) => `name ILIKE $${i + 1} OR COALESCE(category,'') ILIKE $${i + 1}`);
+  const clauses = normalizedTerms.map((_, i) => `name ILIKE ${i + 1} OR COALESCE(category,'') ILIKE ${i + 1}`);
+  const exclusions = exclude.map((_, i) => `name NOT ILIKE ${normalizedTerms.length + i + 1}`).join(" AND ");
   const result = await db.query(
     `SELECT name,sku,category,price_rsd,available,image_url,url
      FROM products
      WHERE (length(url)-length(replace(url,'/',''))) >= 4
        AND (${clauses.join(" OR ")})
+       AND (${exclusions || "TRUE"})
      ORDER BY name
      LIMIT ${Math.max(1, Math.min(20, limit * 3))}`,
-    normalizedTerms.map(term => `%${term}%`)
+    [...normalizedTerms.map(term => `%${term}%`), ...exclude.map(term => `%${term}%`)]
   );
   const score = (product) => {
     const name = normalize(product.name);
@@ -94,7 +97,7 @@ export async function adviseCustomer(db, message) {
       reply: "Ovi simptomi mogu zahtevati hitnu medicinsku procenu. Nemojte se oslanjati na preparate iz prodavnice — odmah se obratite lekaru ili hitnoj službi."
     };
   }
-  const products = await searchIntentProducts(db, intent.terms, 5);
+  const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || []);
   const intro = intent.intro;
   if (!products.length) {
     return {

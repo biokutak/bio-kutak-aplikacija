@@ -268,8 +268,10 @@ export async function searchProducts(db, query, limit = 5) {
   const result = await db.query(
     `SELECT name,sku,category,price_rsd,available,image_url,url
      FROM products
-     WHERE name ILIKE $1 OR COALESCE(category,'') ILIKE $1 OR COALESCE(sku,'') ILIKE $1
+     WHERE (length(url)-length(replace(url,'/',''))) >= 4
+       AND (name ILIKE $1 OR COALESCE(category,'') ILIKE $1 OR COALESCE(sku,'') ILIKE $1
         OR (${terms.map((_,i)=>`name ILIKE $${i+2}`).join(" AND ") || "FALSE"})
+     )
      ORDER BY CASE WHEN name ILIKE $1 THEN 0 ELSE 1 END, name
      LIMIT ${Number(limit) || 5}`,
     [pattern, ...terms.map((t) => `%${t}%`)]

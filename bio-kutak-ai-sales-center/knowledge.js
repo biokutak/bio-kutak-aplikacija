@@ -146,7 +146,7 @@ export async function rebuildKnowledgeBase(db) {
        'product',
        name,
        concat_ws(' ',category,sku,name),
-       concat_ws(E'\\n',
+       concat_ws(E'\n',
          name,
          CASE WHEN category IS NOT NULL THEN 'Kategorija: ' || category END,
          CASE WHEN sku IS NOT NULL THEN 'Šifra: ' || sku END,
@@ -223,7 +223,7 @@ export async function answerProductFollowUp(db, recentRows, message) {
 
 export async function answerFromKnowledge(db, message) {
   const original = normalize(message);
-  const questionLike = /\\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je)\\b/.test(original);
+  const questionLike = /\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je)\b/.test(original);
   if (!questionLike) return null;
   const stop = new Set(["sta","znaci","cemu","sluzi","za","je","kako","se","koristi","zasto","koja","koji","koje","razlika","objasni","reci","mi","o","molim","vas","moze","li","imam","muci","me","problem","sa","preporucujete","preporucujes","radim","mogu","da"]);
   const terms = original.split(" ").filter(word => word.length>2 && !stop.has(word));
@@ -232,12 +232,12 @@ export async function answerFromKnowledge(db, message) {
   const best = entries.find(entry => entry.entry_type === "product") || entries.find(entry => entry.entry_type === "guide");
   if (!best) return null;
   if (best.entry_type === "product") {
-    return { type:"auto", text:"Prema podacima za **" + best.title + "** u BIO KUTAK katalogu: 🌿\\n\\n" + best.content.slice(0,2600) +
-      (best.product_url ? "\\n\\n" + best.product_url : "") +
-      "\\n\\nOpis proizvoda je informacija iz kataloga, a ne potvrda medicinskog dejstva. Za zdravstvene tegobe ili kombinovanje sa terapijom posavetujte se sa lekarom ili farmaceutom." };
+    return { type:"auto", text:"Prema podacima za **" + best.title + "** u BIO KUTAK katalogu: 🌿\n\n" + best.content.slice(0,2600) +
+      (best.product_url ? "\n\n" + best.product_url : "") +
+      "\n\nOpis proizvoda je informacija iz kataloga, a ne potvrda medicinskog dejstva. Za zdravstvene tegobe ili kombinovanje sa terapijom posavetujte se sa lekarom ili farmaceutom." };
   }
-  return { type:"auto", text:"**" + best.title + "**\\n\\n" + best.content +
-    "\\n\\nOvo su opšte informacije; za izbor konkretnog proizvoda proverite njegovu deklaraciju." };
+  return { type:"auto", text:"**" + best.title + "**\n\n" + best.content +
+    "\n\nOvo su opšte informacije; za izbor konkretnog proizvoda proverite njegovu deklaraciju." };
 }
 
 export async function searchKnowledge(db, query, limit=5) {

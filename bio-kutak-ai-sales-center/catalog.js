@@ -84,8 +84,10 @@ function paginationCandidates(html, currentUrl = SITE) {
 }
 
 let fetchFailures = 0;
-async function fetchText(url) {
+async function fetchText(url, diagnostics = false) {
   let lastError;
+  const startedAt = Date.now();
+  if (diagnostics) console.log("Catalog source fetch started:", url);
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await fetch(url, {
@@ -97,9 +99,12 @@ async function fetchText(url) {
         signal: AbortSignal.timeout(45000)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-      return await response.text();
+      const body = await response.text();
+      if (diagnostics) console.log("Catalog source fetch completed:", { url, status: response.status, bytes: body.length, elapsedMs: Date.now() - startedAt });
+      return body;
     } catch (error) {
       lastError = error;
+      if (diagnostics) console.warn("Catalog source fetch retry:", { url, attempt, error: error.message, elapsedMs: Date.now() - startedAt });
       if (attempt < 3) await sleep(attempt * 1500);
     }
   }
@@ -188,7 +193,9 @@ async function mapLimit(items, limit, fn) {
 export async function syncCatalog(db) {
   const startUrls = [SITE + "/prodavnica", SITE + "/pretraga"];
   fetchFailures = 0;
-  const startResults = await Promise.allSettled(startUrls.map(url => fetchText(url)));
+  console.log("Catalog sync starting:", { startUrls });
+  const startResults = await Promise.allSettled(startUrls.map(url => fetchText(url, true)));
+  console.log("Catalog start pages result:", startResults.map((r,i)=>({ url:startUrls[i], status:r.status, bytes:r.status==="fulfilled"?r.value.length:0, error:r.status==="rejected"?r.reason?.message:null })));
   const listingHtml = startResults.flatMap((result,i) =>
     result.status === "fulfilled" ? [{url:startUrls[i],html:result.value}] : []
   );

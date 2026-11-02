@@ -73,7 +73,7 @@ const INTENTS = [
   },
   {
     id: "cold-flu",
-    patterns: ["prehlada", "grip", "simptomi gripa", "curi mi nos", "zapusен nos", "zapusен mi je nos", "kijam", "kijavica", "temperatura i prehlada"],
+    patterns: ["prehlada", "grip", "simptomi gripa", "curi mi nos", "zapusen nos", "zapusen mi je nos", "kijam", "kijavica", "temperatura i prehlada"],
     terms: ["c vitamin", "propolis", "djumbir", "limun", "zova", "nana"],
     intro: "Mogu da pokažem čajeve, med i prehrambene proizvode iz ponude za tople napitke i podršku ishrani. To nisu lekovi i ne sprečavaju niti leče grip ili prehladu. Kod otežanog disanja, bola u grudima, konfuzije ili izrazito lošeg stanja obratite se hitno lekaru."
   },
@@ -187,7 +187,7 @@ const INTENTS = [
   },
 ];
 
-const URGENT = /trnjenje (nogu|ruku)|gubitak kontrole (nad|nad mokrenjem|nad stolicom)|ne mogu da mokrim|slabost nogu|iznenadan jak bol|bol u grudima|otezano disanje|otezano disanje|gubitak svesti|krv u stolici|visoka temperatura/i;
+const URGENT = /bol u grudima|pritisak u grudima|otezano disanje|ne mogu da disem|gubitak svesti|onesvestio|onesvestila|iznenadna slabost|oduzetost|iskrivljeno lice|otezan govor|iznenadna jaka glavobolja|najgora glavobolja|obilno krvarenje|krv u povracanju|crna stolica|krv u stolici|ne mogu da mokrim|gubitak kontrole nad (mokr(enjem|acom)|stolicom)|trnjenje (cele|jedne) strane|oticanje jezika|otok grla|anafilaksija|misli o samoubistvu/i;
 
 function detectIntent(message) {
   const text = normalize(message);

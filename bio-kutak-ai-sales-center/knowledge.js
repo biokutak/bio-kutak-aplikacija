@@ -254,7 +254,8 @@ export async function answerProductFollowUp(db, recentRows, message) {
 
 export async function answerFromKnowledge(db, message) {
   const original = normalize(message);
-  const questionLike = /\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je|preporuka|preporucite|za|oko|u vezi sa)\b/.test(original) || original.split(" ").filter(x => x.length > 3).length >= 2;
+  const teaTerm = /\b(kamilic|zalfij|salvi|nana|menta|pepermint|djumbir|ginger|lipa|tilia|majcina dusica|timijan|thymus|maticnjak|melisa|valerijan|odoljen|kopriv|urtica|komorac|fenel|sena|senna|uva ursi|medvedje grozdje|hibiskus|hibiscus|sipak|hajduck|malin|kantarion|hypericum|sladic|zov|bazga|maslacak|sikavic|biljni caj|caj za|cajevi)\b/.test(original);
+  const questionLike = teaTerm || /\b(sta je|sta znaci|cemu sluzi|za sta sluzi|kako deluje|kako se koristi|zasto|koja je razlika|objasni|reci mi o|sta preporucujete|sta preporucujes|sta da radim|imam|muci me|problem sa|kako da|da li mogu|da li je|preporuka|preporucite|za|oko|u vezi sa)\b/.test(original) || original.split(" ").filter(x => x.length > 3).length >= 2;
   if (!questionLike) return null;
   const stop = new Set(["sta","znaci","cemu","sluzi","za","je","kako","se","koristi","zasto","koja","koji","koje","razlika","objasni","reci","mi","o","molim","vas","moze","li","imam","muci","me","problem","sa","preporucujete","preporucujes","radim","mogu","da","kod","oko","u","vezi","moja","moj","moje","neki","neka","neko","treba","potrebno","zelim","hteo","htela","bih","imate","vam"]);
   const terms = original.split(" ").filter(word => word.length>2 && !stop.has(word));

@@ -197,7 +197,7 @@ export async function syncCatalogV2(db) {
     if(max>1) for(let n=2;n<=max;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n});
     else {
       // Some category templates omit numeric pager links. Probe forward until two empty pages.
-      for(let n=2;n<=12;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n,probe:true});
+      for(let n=2;n<=3;n++) paginationJobs.push({category:p.url,url:pageUrl(p.url,n),n,probe:true});
     }
   }
   const pageResults=await mapLimit(paginationJobs,5,async job=>{

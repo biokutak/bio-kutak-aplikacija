@@ -149,105 +149,71 @@ export async function syncCatalogV2(db) {
   syncInProgress = true;
   const started=Date.now();
   const processedUrls=new Set();
-  let parsed=0, saved=0, failedDetails=0, listingPages=0;
-  console.log("CATALOG V2 START: incremental category crawl");
-  try {
-    const seedUrls=new Set([SITE+"/",SITE+"/prodavnica"]);
-    const categoryQueue=new Set();
-    for(const u of seedUrls) {
+  const categorySeen=new Set();
+  let parsed=0, saved=0, failedDetails=0, pagesRead=0;
+  const root=SITE+"/prodavnica";
+  console.log("CATALOG V2 START: complete store pagination");
+
+  const saveListingPage=async (html,pageNumber) => {
+    const cards=getProductCards(html);
+    const fresh=cards.filter(x=>!categorySeen.has(x.url));
+    for(const item of cards) categorySeen.add(item.url);
+    const toFetch=fresh.filter(x=>!processedUrls.has(x.url));
+    for(const item of toFetch) processedUrls.add(item.url);
+    const details=await mapLimit(toFetch,4,async item=>{
       try {
-        const {body}=await getRetry(u,18000);
-        for(const c of discoverCategoryUrls(body,u)) categoryQueue.add(c);
-        console.log("CATALOG V2 SEED", {url:u,categoryLinks:categoryQueue.size,productCards:getProductCards(body).length});
-      } catch(e) { console.warn("CATALOG V2 seed failed",{url:u,error:e.message}); }
-    }
-
-    const categoryUrls=[...new Set([SITE+"/prodavnica",...categoryQueue])];
-    console.log("CATALOG V2 CATEGORY SEEDS", {count:categoryUrls.length, sample:categoryUrls.slice(0,20)});
-    const listingPages=new Map();
-    let frontier=new Set(categoryUrls);
-    for(let round=0;round<6 && frontier.size;round++) {
-      const batch=[...frontier].filter(url=>!listingPages.has(url)).slice(0,250);
-      frontier=new Set();
-      if(!batch.length) break;
-      const pages=await mapLimit(batch,4,async url=>{
-        try { const {body}=await getRetry(url,16000); return {url,html:body}; }
-        catch(e) { console.warn("CATALOG V2 category failed",{url,error:e.message}); return null; }
-      });
-      for(const p of pages) {
-        if(!p?.html) continue;
-        listingPages.set(p.url,p.html);
-        for(const child of discoverCategoryUrls(p.html,p.url)) if(!listingPages.has(child)) frontier.add(child);
+        const {body}=await getRetry(item.url,18000);
+        const p=productDataFromHtml(body,item.url,item.text,null);
+        if(!p) { failedDetails++; processedUrls.delete(item.url); return null; }
+        await db.query(
+          "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
+          [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
+        );
+        parsed++; saved++;
+        return p.url;
+      } catch(e) {
+        failedDetails++;
+        processedUrls.delete(item.url);
+        console.warn("CATALOG V2 product detail failed",{url:item.url,error:e.message});
+        return null;
       }
-      console.log("CATALOG V2 CATEGORY ROUND",{round:round+1,requested:batch.length,loaded:pages.filter(Boolean).length,totalCategories:listingPages.size,queuedChildren:frontier.size});
-    }
+    });
+    pagesRead++;
+    console.log("CATALOG V2 PAGE SAVED",{page:pageNumber,cards:cards.length,newCandidates:toFetch.length,saved:details.filter(Boolean).length,totalSaved:saved});
+    return {cards:cards.length,fresh:toFetch.length,saved:details.filter(Boolean).length};
+  };
 
-    const firstPages=[...listingPages].map(([url,html])=>({url,html}));
-    const categorySeen=new Map(firstPages.map(p=>[p.url,new Set()]));
-    const saveListingPage=async (page, html) => {
-      const cards=getProductCards(html);
-      const seen=categorySeen.get(page) || new Set();
-      categorySeen.set(page,seen);
-      const fresh=cards.filter(x=>!seen.has(x.url));
-      for(const item of cards) seen.add(item.url);
-      const toFetch=fresh.filter(x=>!processedUrls.has(x.url));
-      for(const item of toFetch) processedUrls.add(item.url);
-      if(!toFetch.length) return {cards:cards.length,fresh:0,saved:0};
-      const details=await mapLimit(toFetch,4,async item=>{
-        try {
-          const {body}=await getRetry(item.url,16000);
-          const categoryName=decodeURIComponent(new URL(page).pathname.split("/").filter(Boolean).at(-1)||"");
-          const p=productDataFromHtml(body,item.url,item.text,categoryName);
-          if(!p) { failedDetails++; processedUrls.delete(item.url); return null; }
-          await db.query(
-            "INSERT INTO products(url,name,sku,category,price_rsd,available,image_url,synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,NOW()) ON CONFLICT(url) DO UPDATE SET name=EXCLUDED.name,sku=COALESCE(EXCLUDED.sku,products.sku),category=COALESCE(EXCLUDED.category,products.category),price_rsd=COALESCE(EXCLUDED.price_rsd,products.price_rsd),available=COALESCE(EXCLUDED.available,products.available),image_url=COALESCE(EXCLUDED.image_url,products.image_url),synced_at=NOW()",
-            [p.url,p.name,p.sku,p.category,p.priceRsd,p.available,p.imageUrl]
-          );
-          parsed++; saved++;
-          return p.url;
-        } catch(e) {
-          failedDetails++;
-          processedUrls.delete(item.url);
-          console.warn("CATALOG V2 product detail failed",{url:item.url,error:e.message});
-          return null;
-        }
-      });
-      listingPages++;
-      console.log("CATALOG V2 PAGE SAVED",{page,cards:cards.length,newCandidates:toFetch.length,saved:details.filter(Boolean).length,totalSaved:saved});
-      return {cards:cards.length,fresh:toFetch.length,saved:details.filter(Boolean).length};
-    };
+  try {
+    const {body:firstHtml}=await getRetry(root,20000);
+    const knownMax=pageNumberMax(firstHtml);
+    console.log("CATALOG V2 STORE PAGINATION",{root,knownPages:knownMax,productsOnFirstPage:getProductCards(firstHtml).length});
+    await saveListingPage(firstHtml,1);
 
-    // Persist the first page of every discovered category before walking pagination.
-    await mapLimit(firstPages,3,async p=>saveListingPage(p.url,p.html));
-    // Pagination is processed and saved one page at a time. No giant HTML cache is retained,
-    // so a long catalogue cannot exhaust the Render instance before the database is updated.
-    const pagination=await mapLimit(firstPages,3,async p=>{
-      const knownMax=pageNumberMax(p.html);
-      const minProbe=Math.max(5,knownMax+2);
-      let emptyStreak=0, pagesRead=1;
-      for(let n=2;n<=100;n++) {
-        const url=pageUrl(p.url,n);
-        let body="";
-        try { ({body}=await get(url,14000)); }
-        catch(e) {
-          console.warn("CATALOG V2 pagination fetch failed",{category:p.url,page:n,error:e.message});
+    let emptyStreak=0;
+    const maxPage=knownMax>1 ? Math.min(100,knownMax+2) : 100;
+    for(let n=2;n<=maxPage;n++) {
+      const url=pageUrl(root,n);
+      let body="";
+      try {
+        ({body}=await get(url,18000));
+      } catch(firstError) {
+        try { ({body}=await get(url,18000)); }
+        catch(secondError) {
+          console.warn("CATALOG V2 page fetch failed",{page:n,error:secondError.message});
           emptyStreak++;
-          if(n>=minProbe && emptyStreak>=2) break;
+          if(knownMax>1 && n>=knownMax && emptyStreak>=2) break;
           continue;
         }
-        const result=await saveListingPage(p.url,body);
-        pagesRead++;
-        if(result.fresh===0) emptyStreak++; else emptyStreak=0;
-        if(n%10===0) console.log("CATALOG V2 pagination progress",{category:p.url,page:n,newProducts:result.fresh,uniqueInCategory:categorySeen.get(p.url)?.size||0,totalSaved:saved});
-        if(n>=minProbe && emptyStreak>=2) break;
-        if(result.cards===0 && n>=minProbe) break;
       }
-      console.log("CATALOG V2 category pagination complete",{category:p.url,pagesRead,uniqueProducts:categorySeen.get(p.url)?.size||0});
-      return pagesRead;
-    });
+      const result=await saveListingPage(body,n);
+      if(result.fresh===0) emptyStreak++; else emptyStreak=0;
+      if(n%10===0) console.log("CATALOG V2 STORE PROGRESS",{page:n,knownPages:knownMax,uniqueProducts:categorySeen.size,totalSaved:saved});
+      if(knownMax>1 && n>=knownMax && emptyStreak>=2) break;
+      if(result.cards===0 && n>=5) break;
+    }
 
     const count=await db.query("SELECT COUNT(*)::int AS total FROM products");
-    const result={engine:"catalog-v2",categories:firstPages.length,listingPages,parsed,saved,failedDetails,totalProducts:count.rows[0]?.total||0,paginationJobs:pagination.length,elapsedMs:Date.now()-started};
+    const result={engine:"catalog-v2",source:"/prodavnica",knownPages:knownMax,pagesRead,uniqueCandidates:categorySeen.size,parsed,saved,failedDetails,totalProducts:count.rows[0]?.total||0,elapsedMs:Date.now()-started};
     console.log("CATALOG V2 COMPLETE",result);
     return result;
   } finally {

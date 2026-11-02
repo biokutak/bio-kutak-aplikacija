@@ -185,6 +185,14 @@ async function classifyAndReply(conversation, message) {
     );
     const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
+    if (/\\b(oboje|oba|i jedno i drugo)\\b/i.test(lower) && /potencija|libido|erekcija/.test(recentContext)) {
+      const potencyAdvice = await adviseCustomer(pool, "potencija libido");
+      if (potencyAdvice?.products?.length) {
+        return { type: "auto", text: potencyAdvice.reply + "\\n\\n" + formatProducts(potencyAdvice.products) + "\\n\\nCene i dostupnost proverite na stranici proizvoda." };
+      }
+      if (potencyAdvice?.autoReply) return { type: "auto", text: potencyAdvice.reply };
+      return { type: "auto", text: "Razumem — mislite i na potenciju i na libido. 🌿 Proveriću katalog i prikazati samo proizvode čiji opis ili sastav izričito navodi ovu namenu." };
+    }
     const wantsComparison = /\b(razlika|razlikuju|uporedi|poredi|koji je bolji|koji da uzmem)\b/i.test(lower);
     const catalogue = await pool.query(
       "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL ORDER BY name"

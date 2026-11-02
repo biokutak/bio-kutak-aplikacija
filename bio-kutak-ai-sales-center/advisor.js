@@ -1,10 +1,10 @@
 const normalize = (value) => String(value || "")
   .toLocaleLowerCase("sr")
   .normalize("NFD")
-  .replace(/[\\u0300-\\u036f]/g, "")
+  .replace(/[\u0300-\u036f]/g, "")
   .replace(/đ/g, "dj")
-  .replace(/[^a-z0-9\\s]/g, " ")
-  .replace(/\\s+/g, " ")
+  .replace(/[^a-z0-9\s]/g, " ")
+  .replace(/\s+/g, " ")
   .trim();
 
 const INTENTS = [
@@ -58,7 +58,7 @@ const INTENTS = [
   }
 ];
 
-const URGENT = /trnjenje (nogu|ruku)|gubitak kontrole (nad|nad mokrenjem|nad stolicom)|ne mogu da mokrim|slabost nogu|iznenadan jak bol|bol u grudima|otezano disanje|otežano disanje|gubitak svesti|krv u stolici|visoka temperatura/i;
+const URGENT = /trnjenje (nogu|ruku)|gubitak kontrole (nad|nad mokrenjem|nad stolicom)|ne mogu da mokrim|slabost nogu|iznenadan jak bol|bol u grudima|otezano disanje|otezano disanje|gubitak svesti|krv u stolici|visoka temperatura/i;
 
 function detectIntent(message) {
   const text = normalize(message);

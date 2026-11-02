@@ -201,7 +201,7 @@ async function classifyAndReply(conversation, message) {
       const productName = normalizeText(product.name);
       return productName.length > 5 && recentContext.includes(productName);
     }).slice(0, 5);
-    if (!mentionedProducts.length && /\\b(shilajit|mumio)\\b/i.test(recentContext)) {
+    if (!mentionedProducts.length && (recentContext.includes("shilajit") || recentContext.includes("mumio"))) {
       const contextual = await pool.query(
         "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND concat_ws(' ',name,category) ILIKE ANY(ARRAY['%shilajit%','%mumio%']) ORDER BY price_rsd DESC NULLS LAST LIMIT 5"
       );

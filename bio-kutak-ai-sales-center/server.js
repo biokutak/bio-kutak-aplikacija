@@ -201,6 +201,12 @@ async function classifyAndReply(conversation, message) {
       const productName = normalizeText(product.name);
       return productName.length > 5 && recentContext.includes(productName);
     }).slice(0, 5);
+    if (!mentionedProducts.length && /\\b(shilajit|mumio)\\b/i.test(recentContext)) {
+      const contextual = await pool.query(
+        "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND concat_ws(' ',name,category) ILIKE ANY(ARRAY['%shilajit%','%mumio%']) ORDER BY price_rsd DESC NULLS LAST LIMIT 5"
+      );
+      mentionedProducts = contextual.rows;
+    }
 
     const asksPriceOrStock = /\b(cena|koliko kosta|koja je cena|na stanju|dostupan|dostupnost|link|gde mogu da kupim)\b/i.test(lower);
     const asksAlternatives = /\b(ima li jos|jos proizvoda|slicni proizvodi|povoljniji|jeftiniji|alternativ)\b/i.test(lower);
@@ -243,6 +249,9 @@ async function classifyAndReply(conversation, message) {
 
     if (mentionedProducts.length && /\b(cemu sluzi|za sta sluzi|za sta je|kakva je korist|sta radi|sastav|sta sadrzi|kako se koristi|nacin upotrebe|doziranje|koliko se uzima)\b/i.test(lower)) {
       const product = mentionedProducts[0];
+      if (/\\b(shilajit|mumio)\\b/i.test(recentContext)) {
+        return { type: "auto", text: "Shilajit (poznat i kao Mumio) je mineralna smolasta supstanca koja se prodaje kao dodatak ishrani. Tradicionalno se koristi za energiju i vitalnost, ali dokazi o zdravstvenim koristima su ograničeni. Nije lek i ne treba ga koristiti kao zamenu za terapiju. Važno je proveriti laboratorijsku čistoću proizvoda, posebno zbog mogućih teških metala i drugih zagađivača. Ako koristite lekove ili imate hronično oboljenje, posavetujte se sa lekarom ili farmaceutom. 🌿\\n\\nPitanje se odnosi na Shilajit/Mumio proizvode koje smo upravo prikazali. Mogu da navedem cenu, dostupnost, sastav ili način upotrebe prema deklaraciji." };
+      }
       const details = [
         product.description ? "Opis proizvoda na sajtu: " + product.description : "Opis namene nije naveden u katalogu.",
         product.ingredients ? "Sastav: " + product.ingredients : "Sastav nije naveden u trenutno dostupnim podacima.",

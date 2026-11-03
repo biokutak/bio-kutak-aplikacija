@@ -88,9 +88,9 @@ const INTENTS = [
 
   {
     id: "headache",
-    patterns: ["glavobolja", "boli me glava", "migrena", "migrene", "pritisak u glavi", "teska glava"],
-    terms: ["magnezijum", "caj nana", "caj kamilica"],
-    intro: "Mogu da prikažem proizvode iz ponude za opštu podršku ishrani i opuštanju. Čajevi i suplementi ne leče glavobolju niti migrenu. Ako je glavobolja iznenadna i veoma jaka, nova ili praćena smetnjama vida, govora, slabošću ili ukočenim vratom, odmah potražite medicinsku pomoć."
+    adviceOnly: true,
+    patterns: ["glavobolja", "glavobolju", "glavobolje", "boli me glava", "migrena", "migrene", "pritisak u glavi", "teska glava", "stalna glavobolja", "stalne glavobolje"],
+    intro: "Žao mi je što imate glavobolju. Pošto kažete da je stalna, nemojte pokušavati da je rešite kardamonom, čajem ili suplementom — oni nisu dokazano lečenje glavobolje. Zakažite pregled kod lekara, naročito ako je glavobolja nova, ponavlja se, traje ili se pogoršava. Odmah potražite hitnu pomoć ako je nastala naglo i veoma je jaka, ili je praćena slabošću/utrnulošću, smetnjama govora ili vida, konfuzijom, ukočenim vratom i temperaturom, povraćanjem, nesvesticom ili je počela posle povrede glave. Ako možete, zabeležite kada počinje, koliko traje, jačinu bola i prateće simptome. Da li je ova glavobolja nova ili je imate već duže vreme?"
   },
   {
     id: "cold-flu",

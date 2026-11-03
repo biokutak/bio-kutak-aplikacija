@@ -163,6 +163,45 @@ async function notifyAdmins(conversation, incoming, suggestion, { autoSent = fal
   }
 }
 
+function normalizeProductText(value) {
+  return String(value || "").toLocaleLowerCase("sr").normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+async function findSimilarProducts(db, message, limit = 5) {
+  const query = normalizeProductText(message);
+  const groups = [
+    { terms: ["vid","vidu","oci","oko","ociju","ocni vid"], matches: ["borovnica","lutein","lutein","zeaksantin","omega 3","vitamin a","beta karoten","retinol"] },
+    { terms: ["vitamin a","retinol"], matches: ["vitamin a","retinol","retinil","beta karoten"] },
+    { terms: ["imunitet","otpornost"], matches: ["vitamin c","cink","propolis","ehinacea","amla"] },
+    { terms: ["varenje","probava","digestija"], matches: ["psilijum","vlakna","probiotik","laneno seme","nana","komorac"] },
+    { terms: ["san","spavanje","nesanica"], matches: ["valerijana","melisa","maticnjak","kamilica","lavanda"] },
+    { terms: ["zglobovi","zglob","hrskavica"], matches: ["kolagen","glukozamin","hondroitin","kurkuma"] }
+  ];
+  const synonymGroup = groups.find(group => group.terms.some(term => query.includes(term)));
+  const stop = new Set(["imate","ima","li","nesto","nešto","za","vid","vidu","mi","treba","mi","trazim","zelim","kupim","molim","vas","da","li","postoji","li","ponudi","ponudu","proizvod","proizvoda","artikal","artikla","neki","neku","neko"]);
+  const queryTerms = query.split(" ").filter(word => word.length > 2 && !stop.has(word));
+  const terms = [...new Set([...(synonymGroup?.matches || []), ...queryTerms])].slice(0, 12);
+  if (!terms.length) return [];
+  const rows = (await db.query(
+    "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL"
+  )).rows;
+  const scored = rows.map(product => {
+    const haystack = normalizeProductText([product.name,product.category,product.description,product.ingredients].join(" "));
+    const matched = terms.filter(term => haystack.includes(normalizeProductText(term)));
+    let score = matched.reduce((total, term) => total + (synonymGroup?.matches.includes(term) ? 3 : 2), 0);
+    if (synonymGroup && matched.some(term => synonymGroup.matches.includes(term))) score += 4;
+    return { product, score, matched };
+  }).filter(item => item.score >= (synonymGroup ? 4 : 2));
+  return scored.sort((a,b) => b.score-a.score || Number(b.product.available===true)-Number(a.product.available===true) || String(a.product.name).localeCompare(String(b.product.name),"sr"))
+    .slice(0, Math.max(1,Math.min(10,limit))).map(item=>item.product);
+}
+
+function isProductRequest(message) {
+  return /\b(imate|imate li|da li imate|postoji li|trazim|treba mi|potreban mi|potrebna mi|zelim da kupim|u ponudi|nudite|prodajete)\b/i.test(normalizeProductText(message));
+}
+
 function formatProducts(products) {
   return products.slice(0,5).map((p) => {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
@@ -598,6 +637,25 @@ async function classifyAndReply(conversation, message) {
     };
   }
 
+  // A product request is not answered with an unrelated item from the educational knowledge base.
+  // First check the exact catalogue search, then a tightly related alternative search.
+  if (isProductRequest(message)) {
+    const exact = await searchProducts(pool, message, 5);
+    if (exact.length) {
+      return { type:"auto", text:"Evo artikala iz BIO KUTAK ponude koji odgovaraju vašem upitu: 🌿\n\n" + formatProducts(exact) + "\n\nAko ste tražili nešto drugo ili tačno određeni sastojak, napišite naziv pa ću precizirati pretragu." };
+    }
+    const similar = await findSimilarProducts(pool, message, 5);
+    if (similar.length) {
+      return { type:"auto", text:"Traženi artikal nemamo kao zaseban proizvod u katalogu. 🌿 Ipak, pronašla sam nekoliko srodnih proizvoda koji bi mogli biti relevantni:\n\n" + formatProducts(similar) + "\n\nOvo nisu isti proizvodi niti zamena jedan za jedan; proverite sastav i deklaraciju da biste videli da li odgovaraju onome što tražite." };
+    }
+    return {
+      type:"auto",
+      learningNeeded:true,
+      notifyTeam:true,
+      text:"Taj artikal trenutno nemamo u BIO KUTAK ponudi, a nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu, kako bi znali da kupci traže i ovakav proizvod. Hvala vam na predlogu! 🌿"
+    };
+  }
+
   const knowledgeAnswer = await answerFromKnowledge(pool, message);
   if (knowledgeAnswer) return knowledgeAnswer;
 
@@ -629,6 +687,10 @@ async function handleIncoming({ channel, externalUserId, customerName, message, 
   const result = await classifyAndReply(conversation, message);
   if (result.learningNeeded) {
     await recordUnansweredQuestion(conversation, message, result.text).catch(e => console.error("Could not save unanswered question:", e.message));
+  }
+  if (result.notifyTeam) {
+    await notifyAdmins(conversation, message, result.text, { autoSent: true })
+      .catch(e => console.error("Product-interest team notification failed:", e.message));
   }
   if (result.type === "auto") {
     await deliverToCustomer(conversation, result.text);

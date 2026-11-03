@@ -51,9 +51,11 @@ export async function searchWeb(query, { health = false, limit = 3 } = {}) {
     const host = parsed.hostname.startsWith("www.") ? parsed.hostname.slice(4) : parsed.hostname;
     if (health && !HEALTH_DOMAINS.some(domain => host === domain || host.endsWith("." + domain))) continue;
     // Never surface another retailer's product listing as a recommendation when Pametnica cannot answer.
-    const commercialPath = /\\/(product|products|shop|store|cart|checkout|kupovina|proizvod|proizvodi)(\\/|$)/i.test(parsed.pathname);
-    const salesLanguage = /buy now|add to cart|shop now|order now|kupi odmah|dodaj u korpu|poru[cč]i odmah|cena proizvoda|price:/i.test(title + " " + snippet);
-    const commerceHost = /(^|\\.)(amazon|ebay|aliexpress|temu|etsy|walmart|shopify)\\./i.test(host);
+    const pathSegments = parsed.pathname.toLowerCase().split("/").filter(Boolean);
+    const commercialPath = pathSegments.some(segment => ["product","products","shop","store","cart","checkout","kupovina","proizvod","proizvodi"].includes(segment));
+    const salesText = (title + " " + snippet).toLowerCase();
+    const salesLanguage = ["buy now","add to cart","shop now","order now","kupi odmah","dodaj u korpu","poruci odmah","cena proizvoda","price:"].some(term => salesText.includes(term));
+    const commerceHost = ["amazon.","ebay.","aliexpress.","temu.","etsy.","walmart.","shopify."].some(domain => host.includes(domain));
     if (!host.endsWith("biokutak.co.rs") && (commercialPath || salesLanguage || commerceHost)) continue;
     results.push({ title: title.slice(0, 180), snippet: snippet.slice(0, 320), url: parsed.href });
   }

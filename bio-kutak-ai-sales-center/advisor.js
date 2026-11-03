@@ -198,8 +198,8 @@ const INTENTS = [
   },
   {
     id: "eye-care",
-    patterns: ["suve oci", "peckanje ociju", "umorne oci", "naprezanje ociju"],
-    terms: ["omega 3", "borovnica"],
+    patterns: ["vid", "za vid", "oci", "oko", "suve oci", "peckanje ociju", "umorne oci", "naprezanje ociju"],
+    terms: ["borovnica", "omega 3", "lutein", "zeaksantin", "vitamin a", "beta karoten"],
     intro: "Mogu da proverim da li u katalogu postoje prehrambeni proizvodi povezani sa vašom pretragom. Suplementi ne leče očne bolesti. Iznenadan gubitak vida, jak bol ili povreda oka zahtevaju hitnu medicinsku procenu."
   },
   {
@@ -417,13 +417,17 @@ export async function adviseCustomer(db, message) {
   }
   const products = await searchIntentProducts(db, intent.terms, 5, intent.exclude || [], intent.allowedCategories || []);
   if (!products.length) {
+    const noProductReply = intent.id === "eye-care"
+      ? "Proverio sam BIO KUTAK katalog: trenutno nemamo poseban artikal namenjen podršci vidu, niti sam pronašao dovoljno sličan proizvod koji bih mogao odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu, kako bi znali da kupci traže ovakvu vrstu proizvoda. 🌿"
+      : intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u katalogu. Zabeležiću ovo pitanje da dopunimo bazu znanja i proverimo ponudu. Neću nagađati niti preporučivati nepovezan artikal.";
     return {
       urgent: false,
       autoReply: true,
       learningNeeded: true,
+      notifyTeam: intent.id === "eye-care",
       intent: intent.id,
       products: [],
-      reply: intro + "\n\nTrenutno nisam pronašao odgovarajući proizvod u katalogu. Zabeležiću ovo pitanje da dopunimo bazu znanja i proverimo ponudu. Neću nagađati niti preporučivati nepovezan artikal."
+      reply: noProductReply
     };
   }
   return {

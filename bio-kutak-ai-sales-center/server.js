@@ -535,26 +535,43 @@ async function classifyAndReply(conversation, message) {
     return { type: "auto", learningNeeded: Boolean(advice.learningNeeded), text: advice.reply || "Mogu da pomognem opštim informacijama. Recite mi malo preciznije šta vas zanima." };
   }
   // Use the knowledge base before the generic medical-topic handoff so known topics get an answer.
-  const knowledgeAnswer = await answerFromKnowledge(pool, message);
-  if (knowledgeAnswer) return knowledgeAnswer;
-
-  // If the customer asks a general factual question that the BIO KUTAK knowledge base
-  // cannot answer (taste, origin, ordinary use, definitions), search the public web
-  // instead of returning a product card as if it answered the question.
-  const factualQuestion = /\\b(kakav|kakvog|kakva|kakve|kako|sta je|od cega|zasto|kada|gde|koji je|koja je|koje je|razlika|ukus|miris|poreklo|znaci|znacenje|koristi se|kako se koristi)\\b/i.test(lower);
-  const healthLikeQuestion = /glavobolj|migren|boli me|bol u|temperatur|proliv|dijarej|povrac|dijabet|pritisak|trudn|dojen|terapij|lekov|simptom|infekcij|astm|alergij/i.test(lower);
-  if (factualQuestion && !healthLikeQuestion) {
+  // If Pametnica does not have a reliable answer, search the public web BEFORE
+  // the broad knowledge lookup. This prevents a loosely matched catalogue item
+  // from being presented as an answer to a factual question.
+  const factualQuestion = /(kakav|kakvog|kakva|kakve|kako|sta je|za sta je|cemu sluzi|od cega|zasto|kada|gde|koji je|koja je|koje je|razlika|ukus|ukusa|miris|poreklo|znaci|znacenje|koristi se|kako se koristi)/i.test(lower);
+  const healthLikeQuestion = /(glavobolj|migren|boli me|bol u|temperatur|proliv|dijarej|povrac|dijabet|pritisak|trudn|dojen|terapij|lekov|simptom|infekcij|astm|alergij)/i.test(lower);
+  if (factualQuestion || healthLikeQuestion) {
     try {
-      const webResults = await searchWeb(message, { limit: 3 });
+      let webQuery = message;
+      const tasteQuestion = /(ukus|ukusa|kakvog je ukusa|kakav ukus)/i.test(lower);
+      if (tasteQuestion) {
+        const contextRows = await pool.query(
+          "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 10",
+          [conversation.id]
+        );
+        const lastAssistantReply = contextRows.rows.find(row => row.direction === "out")?.body || "";
+        const normalizedReply = String(lastAssistantReply).toLocaleLowerCase("sr").normalize("NFD")
+          .replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
+        const catalogueNames = await pool.query("SELECT name FROM products WHERE url IS NOT NULL");
+        const mentioned = catalogueNames.rows
+          .filter(row => {
+            const name = String(row.name || "").toLocaleLowerCase("sr").normalize("NFD")
+              .replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
+            return name.length > 4 && normalizedReply.includes(name);
+          })
+          .sort((a,b) => String(b.name).length - String(a.name).length);
+        if (mentioned.length) webQuery = String(mentioned[0].name) + " taste flavour aroma culinary description";
+      }
+      const webResults = await searchWeb(webQuery, { health: healthLikeQuestion, limit: 3 });
       if (webResults.length) {
         const sourceLines = webResults.map((item, index) =>
           (index + 1) + ". " + item.title + "\\n" + item.snippet + "\\n" + item.url
         ).join("\\n\\n");
         return {
           type: "auto",
-          text: "Proverila sam i informacije izvan BIO KUTAK kataloga. Evo šta navode pronađeni izvori: 🌐\\n\\n" +
+          text: "Nisam pronašla dovoljno precizan odgovor u BIO KUTAK bazi, pa sam proverila javno dostupne izvore na internetu. 🌐\\n\\n" +
             sourceLines +
-            "\\n\\nOvo je opšta informacija, a ne tvrdnja da proizvod leči neku tegobu. Ako želite, mogu zatim da proverim da li u BIO KUTAK ponudi postoji baš taj artikal."
+            "\\n\\nOvo su informacije iz navedenih izvora. Kod zdravstvenih pitanja, odgovor ne zamenjuje pregled niti savet lekara."
         };
       }
     } catch (error) {
@@ -566,6 +583,9 @@ async function classifyAndReply(conversation, message) {
       text: "Nisam uspela da pronađem dovoljno pouzdane izvore za siguran odgovor, pa neću da nagađam niti da vam nudim proizvod umesto odgovora. Zabeležila sam pitanje da dopunimo znanje. 🌿"
     };
   }
+
+  const knowledgeAnswer = await answerFromKnowledge(pool, message);
+  if (knowledgeAnswer) return knowledgeAnswer;
 
   // When the knowledge base has no exact match, still answer helpfully instead of routing routine questions to staff.
   // Never diagnose or prescribe; explain the limit and ask one useful follow-up question.

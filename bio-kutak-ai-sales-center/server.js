@@ -264,7 +264,7 @@ async function classifyAndReply(conversation, message) {
     return { type:"auto", text:"Trudim se! 🌿 Najvažnije mi je da vam pronađem tačan artikal, cenu i dostupnost iz BIO KUTAK kataloga — bez nagađanja. Slobodno me testirajte." };
   }
   // A clear order intent continues the current product conversation and sends the customer to BIO KUTAK's own shop.
-  if (/\\b(naruci|narucim|naruciti|narucujemo|poruci|porucim|poruciti|kupujem|uzimam|zelim da kupim|hocu da kupim|da narucim)\\b/.test(lower)) {
+  if (/\b(naruci|narucim|naruciti|narucujemo|poruci|porucim|poruciti|kupujem|uzimam|zelim da kupim|hocu da kupim|da narucim)\b/.test(lower)) {
     const recentOrderContext = await pool.query(
       "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
       [conversation.id]
@@ -279,7 +279,7 @@ async function classifyAndReply(conversation, message) {
       text: (hasDiscussion
         ? "Naravno! Ako želite da naručite artikle o kojima smo upravo razgovarali, porudžbinu možete nastaviti u zvaničnoj BIO KUTAK prodavnici: "
         : "Naravno! Porudžbinu možete započeti u zvaničnoj BIO KUTAK prodavnici: ") +
-        "https://biokutak.co.rs/prodavnica\\n\\nTamo možete pregledati ponudu, izabrati artikle i nastaviti kupovinu. 🌿"
+        "https://biokutak.co.rs/prodavnica\n\nTamo možete pregledati ponudu, izabrati artikle i nastaviti kupovinu. 🌿"
     };
   }
   // Keep ordinary conversation natural; casual messages are not customer-service handoffs.

@@ -11,7 +11,7 @@
 body{margin:0;min-height:100vh;background:linear-gradient(145deg,#f2f7f0,#e8f1e8);font-family:Arial,Helvetica,sans-serif;color:var(--ink);display:flex;flex-direction:column}
 header{background:#fff;border-bottom:1px solid var(--line);padding:15px 22px}
 .brand{max-width:900px;margin:auto;display:flex;align-items:center;gap:12px}
-.logo{width:46px;height:46px;border-radius:50%;background:var(--pale);display:grid;place-items:center;font-size:25px}
+.logo{width:132px;height:76px;object-fit:contain;display:block;flex:0 0 auto}
 .brand strong{display:block;color:var(--deep);font-size:18px}.brand small{color:#66766a}
 main{width:min(900px,100%);margin:28px auto;padding:0 16px;flex:1;display:flex;flex-direction:column}
 .intro{text-align:center;margin:8px auto 20px;max-width:650px}
@@ -35,12 +35,12 @@ footer{text-align:center;color:#718075;font-size:12px;padding:16px}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="logo">🌿</div><div><strong>BIO KUTAK</strong><small>Priroda na vašoj strani</small></div></div></header>
+<header><div class="brand"><img class="logo" src="/biokutak-logo.png" alt="BIO KUTAK logo"><div><strong>BIO KUTAK</strong><small>Priroda na vašoj strani</small></div></div></header>
 <main>
 <section class="intro"><h1>Dobro došli kod Bio Kutak Pametnice</h1><p>Recite nam šta tražite ili postavite pitanje o proizvodima iz naše ponude. Tu smo da pomognemo.</p></section>
 <section class="chat" aria-label="Razgovor sa Bio Kutak Pametnicom">
-<div class="chathead"><strong>🌿 Bio Kutak Pametnica</strong><span class="online">● Dostupna za pitanja</span></div>
-<div class="log" id="log" aria-live="polite"><div class="msg bot">Zdravo! Dobro došli u BIO KUTAK. 🌿<br><br>Kako mogu da vam pomognem? Možete pitati za proizvod, sastav, cenu ili dostupnost.</div></div>
+<div class="chathead"><strong><img src="/biokutak-logo.png" alt="BIO KUTAK" style="width:72px;height:42px;object-fit:contain;vertical-align:middle;margin-right:9px">Pametnica</strong><span class="online">● Dostupna za pitanja</span></div>
+<div class="log" id="log" aria-live="polite"><div class="msg bot">Zdravo! Dobro došli u BIO KUTAK.<br><br>Kako mogu da vam pomognem? Možete pitati za proizvod, sastav, cenu ili dostupnost.</div></div>
 <form class="composer" id="form"><input id="message" maxlength="2000" placeholder="Napišite svoje pitanje..." autocomplete="off" required><button id="send" type="submit">Pošalji</button></form>
 <div class="note">Pametnica pruža informacije o proizvodima iz ponude i ne zamenjuje savet lekara ili farmaceuta. Za hitna zdravstvena stanja obratite se zdravstvenoj službi.</div>
 </section>

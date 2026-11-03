@@ -401,7 +401,20 @@ async function classifyAndReply(conversation, message) {
     const recentContext = normalizeText(recent.rows.map(row => row.body || "").join(" "));
     const lastBotReply = recent.rows.find(row => row.direction === "out")?.body || "";
     const lastBotContext = normalizeText(lastBotReply);
-    const asksAnyPrice = /\b(cena|koliko kosta|koja je cena)\b/i.test(lower);
+    const asksAnyPrice = /\b(cena|koliko kosta|koja je cena|koliko je|posto je|po kojoj ceni)\b/i.test(lower);
+    // Vitamin A follow-ups must search only explicit Vitamin A sources in product name/ingredients.
+    // Never let a broad full-text match (e.g. a food description) become a random product card.
+    if (asksAnyPrice && /\bvitamin a\b/.test(recentContext)) {
+      const rows = (await pool.query(
+        "SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND " +
+        "translate(lower(coalesce(name,'') || ' ' || coalesce(ingredients,'')),'čćžšđ','cczsd') LIKE ANY(ARRAY['%vitamin a%','%retinol%','%retinyl%','%beta caroten%']) " +
+        "ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST, name ASC"
+      )).rows;
+      if (rows.length) return { type:"auto", text:"Proizvodi u BIO KUTAK katalogu koji izričito navode vitamin A, retinol ili beta-karoten u nazivu/sastavu: 🌿\n\n" +
+        rows.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") +
+          " — " + (p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno" : "dostupnost nije potvrđena") + "\n" + p.url).join("\n\n") };
+      return { type:"auto", text:"Proverila sam BIO KUTAK katalog, ali trenutno nemam potvrđen proizvod koji u nazivu ili sastavu izričito sadrži vitamin A, retinol ili beta-karoten. Neću vam ponuditi suvu smokvu ili drugi nepovezan artikal kao zamenu. 🌿 Ako želite, mogu da proverim i proizvode koji sadrže beta-karoten kao provitamin A." };
+    }
     if (asksAnyPrice && /\bvitamin d\b/.test(recentContext)) {
       const rows = (await pool.query("SELECT name,price_rsd,available,url FROM products WHERE url IS NOT NULL AND translate(lower(name),'čćžšđ','cczsd') LIKE '%vitamin d%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, price_rsd ASC NULLS LAST")).rows;
       if (rows.length) return { type:"auto", text:"Cene proizvoda sa vitaminom D u BIO KUTAK katalogu: 🌿\n\n" + rows.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") + " — " + (p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno prema sajtu" : "dostupnost nije potvrđena") + "\n" + p.url).join("\n\n") };

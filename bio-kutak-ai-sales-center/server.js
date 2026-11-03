@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { searchProducts } from "./catalog.js";
 import { syncCatalogV2 } from "./catalog-v2.js";
 import { adviseCustomer } from "./advisor.js";
+import { searchWeb } from "./web-search.js";
 import { rebuildKnowledgeBase, ensureKnowledgeSchema, answerProductFollowUp, searchKnowledge, answerFromKnowledge } from "./knowledge.js";
 
 const { Pool } = pg;
@@ -536,6 +537,36 @@ async function classifyAndReply(conversation, message) {
   // Use the knowledge base before the generic medical-topic handoff so known topics get an answer.
   const knowledgeAnswer = await answerFromKnowledge(pool, message);
   if (knowledgeAnswer) return knowledgeAnswer;
+
+  // If the customer asks a general factual question that the BIO KUTAK knowledge base
+  // cannot answer (taste, origin, ordinary use, definitions), search the public web
+  // instead of returning a product card as if it answered the question.
+  const factualQuestion = /\\b(kakav|kakvog|kakva|kakve|kako|sta je|od cega|zasto|kada|gde|koji je|koja je|koje je|razlika|ukus|miris|poreklo|znaci|znacenje|koristi se|kako se koristi)\\b/i.test(lower);
+  const healthLikeQuestion = /glavobolj|migren|boli me|bol u|temperatur|proliv|dijarej|povrac|dijabet|pritisak|trudn|dojen|terapij|lekov|simptom|infekcij|astm|alergij/i.test(lower);
+  if (factualQuestion && !healthLikeQuestion) {
+    try {
+      const webResults = await searchWeb(message, { limit: 3 });
+      if (webResults.length) {
+        const sourceLines = webResults.map((item, index) =>
+          (index + 1) + ". " + item.title + "\\n" + item.snippet + "\\n" + item.url
+        ).join("\\n\\n");
+        return {
+          type: "auto",
+          text: "Proverila sam i informacije izvan BIO KUTAK kataloga. Evo šta navode pronađeni izvori: 🌐\\n\\n" +
+            sourceLines +
+            "\\n\\nOvo je opšta informacija, a ne tvrdnja da proizvod leči neku tegobu. Ako želite, mogu zatim da proverim da li u BIO KUTAK ponudi postoji baš taj artikal."
+        };
+      }
+    } catch (error) {
+      console.error("Pametnica web search failed:", error.message);
+    }
+    return {
+      type: "auto",
+      learningNeeded: true,
+      text: "Nisam uspela da pronađem dovoljno pouzdane izvore za siguran odgovor, pa neću da nagađam niti da vam nudim proizvod umesto odgovora. Zabeležila sam pitanje da dopunimo znanje. 🌿"
+    };
+  }
+
   // When the knowledge base has no exact match, still answer helpfully instead of routing routine questions to staff.
   // Never diagnose or prescribe; explain the limit and ask one useful follow-up question.
   if (/bolest|simptom|terapij|lekov|lekove|trudn|dojen|dijabet|pritisak|holesterol|tumor|rak|alergij|interakcij|nuspojav|dete|beba|lečenje|lecenje|izleči|izleci/.test(lower)) {

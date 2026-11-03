@@ -213,6 +213,23 @@ async function findVitaminAProducts(db) {
   )).rows;
 }
 
+function isHairLossRequest(message) {
+  const query = normalizeProductText(message);
+  return /\b(opadanje kose|opadanje kosa|gubljenje kose|gubljenje kosa|ispadanje kose|kosa opada|opada kosa|protiv opadanja kose|za opadanje kose)\b/.test(query);
+}
+
+async function findHairCareProducts(db) {
+  // Only explicit hair-care items and products named for hair nutrients are eligible.
+  // Do not use fuzzy description matches: they pull in unrelated foods and household items.
+  return (await db.query(
+    "SELECT name,category,price_rsd,available,url,ingredients,usage,warnings FROM products " +
+    "WHERE url IS NOT NULL AND translate(lower(coalesce(name,'')),'čćžšđ','cczsd') LIKE ANY(ARRAY[" +
+    "'%sampon za kosu%','%sapun za kosu%','%losion za kosu%','%ulje za kosu%','%nega kose%'," +
+    "'%hair%','%biotin%','%ricinusovo ulje%','%ruzmarinovo ulje%','%pantenol%']) " +
+    "ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, name"
+  )).rows;
+}
+
 function isProductRequest(message) {
   return /\b(imate|imate li|da li imate|postoji li|trazim|treba mi|potreban mi|potrebna mi|zelim da kupim|u ponudi|nudite|prodajete)\b/i.test(normalizeProductText(message));
 }
@@ -624,6 +641,23 @@ async function classifyAndReply(conversation, message) {
     const related = await findSimilarProducts(pool, "beta karoten vitamin A", 5);
     if (related.length) return { type:"auto", text:"Trenutno nemamo zaseban proizvod sa vitaminom A. Pronašla sam samo ove srodne artikle koji izričito navode beta-karoten: 🌿\n\n" + formatProducts(related) };
     return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Trenutno nemamo poseban proizvod sa vitaminom A u BIO KUTAK ponudi, niti sam pronašla odgovarajući srodan artikal. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. 🌿" };
+  }
+  if (isHairLossRequest(message)) {
+    const hairProducts = await findHairCareProducts(pool);
+    if (hairProducts.length) {
+      return {
+        type:"auto",
+        text:"Proverila sam BIO KUTAK katalog i izdvojila samo proizvode koji su jasno namenjeni nezi kose ili su izričito označeni kao proizvodi sa biotinom: 🌿\n\n" +
+          formatProducts(hairProducts) +
+          "\n\nVažno: ovo su proizvodi za negu ili suplementi iz kataloga, a ne potvrđena terapija protiv opadanja kose. Opadanje može imati različite uzroke. Ako je naglo, izraženo, u pečatima ili traje duže, najbolje je da se obratite dermatologu."
+      };
+    }
+    return {
+      type:"auto",
+      learningNeeded:true,
+      notifyTeam:true,
+      text:"Trenutno u BIO KUTAK katalogu nisam pronašla proizvod koji mogu pouzdano da izdvojim baš za negu kose ili kao proizvod sa biotinom. Neću vam nuditi nepovezane artikle kao zamenu. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. 🌿\n\nDa li ste tražili šampon/ulje za spoljašnju negu ili suplement?"
+    };
   }
   if (isProductRequest(message)) {
     const exact = await searchProducts(pool, message, 5);

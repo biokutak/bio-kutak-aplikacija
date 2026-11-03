@@ -194,7 +194,7 @@ async function findSimilarProducts(db, message, limit = 5) {
     if (synonymGroup && matched.some(term => synonymGroup.matches.includes(term))) score += 4;
     const irrelevantBlueberryForm = /aroma|caj|list|bar|kolac|torta|sladoled/.test(normalizeProductText(product.name)) && matched.some(term => term.includes("borovnica"));
     return { product, score: irrelevantBlueberryForm ? 0 : score, matched };
-  }).filter(item => item.score >= (synonymGroup ? 4 : 2));
+  }).filter(item => item.score >= 4);
   return scored.sort((a,b) => b.score-a.score || Number(b.product.available===true)-Number(a.product.available===true) || String(a.product.name).localeCompare(String(b.product.name),"sr"))
     .slice(0, Math.max(1,Math.min(10,limit))).map(item=>item.product);
 }
@@ -273,7 +273,7 @@ async function classifyAndReply(conversation, message) {
       .filter(row => row.direction === "out")
       .map(row => String(row.body || ""))
       .join(" ");
-    const hasDiscussion = discussedProducts.length > 0;
+    const hasDiscussion = /https?:\\/\\/biokutak\\.co\\.rs\\//i.test(discussedProducts) || /artikal|proizvod|cena|sastav|ponuda|katalog/i.test(discussedProducts);
     return {
       type: "auto",
       text: (hasDiscussion
@@ -687,7 +687,7 @@ async function classifyAndReply(conversation, message) {
     const similar = await findSimilarProducts(pool, message, 20);
     if (similar.length) return { type:"auto", text:"Traženi artikal nemamo kao zaseban proizvod u katalogu. Ipak, pronašla sam ove srodne proizvode koji bi mogli biti relevantni: 🌿\n\n" + formatProducts(similar) +
       "\n\nOvo nisu isti proizvodi niti zamena jedan za jedan; proverite sastav i deklaraciju." };
-    return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Taj artikal trenutno nemamo u BIO KUTAK ponudi, a nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. Hvala vam na predlogu! 🌿" };
+    return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Taj artikal nisam pronašla u online BIO KUTAK katalogu, pa ne mogu pouzdano da potvrdim da li je dostupan u prodavnici. Nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu da proveri. Hvala vam na predlogu! 🌿" };
   }
 
   const advice = await adviseCustomer(pool, message);

@@ -550,13 +550,14 @@ async function classifyAndReply(conversation, message) {
           [conversation.id]
         );
         const lastAssistantReply = contextRows.rows.find(row => row.direction === "out")?.body || "";
-        const normalizedReply = String(lastAssistantReply).toLocaleLowerCase("sr").normalize("NFD")
-          .replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
+        const normalizeContext = value => String(value || "").toLocaleLowerCase("sr")
+          .replace(/[čćžšđ]/g, character => ({č:"c",ć:"c",ž:"z",š:"s",đ:"dj"}[character]))
+          .replace(/[^a-z0-9]+/g, " ").trim();
+        const normalizedReply = normalizeContext(lastAssistantReply);
         const catalogueNames = await pool.query("SELECT name FROM products WHERE url IS NOT NULL");
         const mentioned = catalogueNames.rows
           .filter(row => {
-            const name = String(row.name || "").toLocaleLowerCase("sr").normalize("NFD")
-              .replace(/[\\u0300-\\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
+            const name = normalizeContext(row.name);
             return name.length > 4 && normalizedReply.includes(name);
           })
           .sort((a,b) => String(b.name).length - String(a.name).length);
@@ -565,13 +566,13 @@ async function classifyAndReply(conversation, message) {
       const webResults = await searchWeb(webQuery, { health: healthLikeQuestion, limit: 3 });
       if (webResults.length) {
         const sourceLines = webResults.map((item, index) =>
-          (index + 1) + ". " + item.title + "\\n" + item.snippet + "\\n" + item.url
-        ).join("\\n\\n");
+          (index + 1) + ". " + item.title + "\n" + item.snippet + "\n" + item.url
+        ).join("\n\n");
         return {
           type: "auto",
-          text: "Nisam pronašla dovoljno precizan odgovor u BIO KUTAK bazi, pa sam proverila javno dostupne izvore na internetu. 🌐\\n\\n" +
+          text: "Nisam pronašla dovoljno precizan odgovor u BIO KUTAK bazi, pa sam proverila javno dostupne izvore na internetu. 🌐\n\n" +
             sourceLines +
-            "\\n\\nOvo su informacije iz navedenih izvora. Kod zdravstvenih pitanja, odgovor ne zamenjuje pregled niti savet lekara."
+            "\n\nOvo su informacije iz navedenih izvora. Kod zdravstvenih pitanja, odgovor ne zamenjuje pregled niti savet lekara."
         };
       }
     } catch (error) {

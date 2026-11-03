@@ -235,7 +235,7 @@ function isProductRequest(message) {
 }
 
 function formatProducts(products) {
-  return products.slice(0,5).map((p) => {
+  const shown = products.slice(0,5).map((p) => {
     const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
     const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
     const claimText = [p.description, p.usage].filter(Boolean).join(" ");
@@ -248,26 +248,12 @@ function formatProducts(products) {
     ].filter(Boolean).join("\n");
     const claimNote = containsUnverifiedHealthClaims ? "\nNapomena: opis sadrži zdravstvene tvrdnje koje nisu potvrda medicinskog dejstva; ne prikazujem ih kao preporuku." : "";
     return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\n" + details.slice(0,900) : "") + claimNote + "\n" + p.url;
-  }).join("\n\n");
+  });
   const moreNote = products.length > 5
-    ? "\\n\\nNavela sam nekoliko artikala, ali u BIO KUTAK ponudi ima još proizvoda koji odgovaraju ovoj pretrazi. Ako želite, mogu da prikažem još."
+    ? "\n\nNavela sam nekoliko artikala, ali u BIO KUTAK ponudi ima još proizvoda koji odgovaraju ovoj pretrazi. Ako želite, mogu da prikažem još."
     : "";
-  return products.slice(0,5).map((p) => {
-    const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
-    const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
-    const claimText = [p.description, p.usage].filter(Boolean).join(" ");
-    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|preporu[cč]uje se.*zbog|povoljno deluje|antioksidativn.*svojstv|preventivn.*dejstv|smanjuje rizik|smanjuje zgr[u]?savanje|protiv (raka|tumora|dijabet|astme|depresij|aritmij)|napredovanje raka|sr[cč]anog udara/i.test(claimText);
-    const details = [
-      !containsUnverifiedHealthClaims && p.description ? p.description : "",
-      p.ingredients ? "Sastav: " + p.ingredients : "",
-      !containsUnverifiedHealthClaims && p.usage ? "Način upotrebe: " + p.usage : "",
-      p.warnings ? "Upozorenje: " + p.warnings : ""
-    ].filter(Boolean).join("\\n");
-    const claimNote = containsUnverifiedHealthClaims ? "\\nNapomena: opis sadrži zdravstvene tvrdnje koje nisu potvrda medicinskog dejstva; ne prikazujem ih kao preporuku." : "";
-    return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\\n" + details.slice(0,900) : "") + claimNote + "\\n" + p.url;
-  }).join("\\n\\n") + moreNote;
+  return shown.join("\n\n") + moreNote;
 }
-
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");

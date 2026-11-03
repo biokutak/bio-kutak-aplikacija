@@ -1,5 +1,3 @@
-import * as cheerio from "cheerio";
-
 const HEALTH_DOMAINS = [
   "medlineplus.gov", "nhs.uk", "mayoclinic.org",
   "clevelandclinic.org", "nccih.nih.gov", "ema.europa.eu",
@@ -22,26 +20,37 @@ export async function searchWeb(query, { health = false, limit = 3 } = {}) {
   });
   if (!response.ok) throw new Error("Web pretraga nije dostupna: HTTP " + response.status);
   const html = await response.text();
-  const $ = cheerio.load(html);
   const results = [];
-  $(".result").each((_, element) => {
-    if (results.length >= limit) return;
-    const item = $(element);
-    const anchor = item.find(".result__a").first();
-    const title = anchor.text().trim();
-    let href = anchor.attr("href") || "";
+  const blocks = html.split('class="result ');
+  for (const block of blocks.slice(1)) {
+    if (results.length >= limit) break;
+    const linkMatch = block.match(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/div>/i);
+    if (!linkMatch || !snippetMatch) continue;
+    const decode = value => String(value || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;|&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\s+/g, " ")
+      .trim();
+    const title = decode(linkMatch[2]);
+    const snippet = decode(snippetMatch[1]);
+    let href = linkMatch[1].replace(/&amp;/g, "&");
     if (href.startsWith("//")) href = "https:" + href;
     try {
       const parsed = new URL(href);
       const redirected = parsed.searchParams.get("uddg");
-      if (redirected) href = decodeURIComponent(redirected);
-    } catch {}
-    const snippet = item.find(".result__snippet").first().text().replace(/\\s+/g, " ").trim();
-    if (!title || !snippet || !/^https?:\\/\\//i.test(href)) return;
-    let host = "";
-    try { host = new URL(href).hostname.replace(/^www\\./, ""); } catch { return; }
-    if (health && !HEALTH_DOMAINS.some(domain => host === domain || host.endsWith("." + domain))) return;
-    results.push({ title: title.slice(0, 180), snippet: snippet.slice(0, 260), url: href });
-  });
+      if (redirected) href = redirected;
+    } catch { continue; }
+    let parsed;
+    try { parsed = new URL(href); } catch { continue; }
+    if (!["http:", "https:"].includes(parsed.protocol) || !title || !snippet) continue;
+    const host = parsed.hostname.startsWith("www.") ? parsed.hostname.slice(4) : parsed.hostname;
+    if (health && !HEALTH_DOMAINS.some(domain => host === domain || host.endsWith("." + domain))) continue;
+    results.push({ title: title.slice(0, 180), snippet: snippet.slice(0, 320), url: parsed.href });
+  }
   return results;
 }

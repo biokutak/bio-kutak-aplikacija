@@ -2,7 +2,7 @@ name: Keep BIO KUTAK Pametnica awake
 
 on:
   schedule:
-    - cron: '*/14 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Ping Pametnica on Render
         run: |
-          curl --fail --silent --show-error --location --max-time 30 \
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 5 --max-time 30 \
             --output /dev/null \
             --write-out 'BIO KUTAK Pametnica: HTTP %{http_code}, response %{time_total}s\n' \
             https://bio-kutak-ai-sales-center.onrender.com/pametnica

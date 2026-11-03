@@ -450,7 +450,7 @@ async function classifyAndReply(conversation, message) {
       }
     }
     const asksVitaminAPrice = /\b(cena|koliko kosta|koja je cena|koliko je|po kojoj ceni)\b/i.test(lower)
-      && (/\bvitamin a\b|\ba vitamin\b/.test(normalizeText(recent.rows.map(row => row.body || "").join(" "))));
+      && (/\bvitamin a\b|\ba vitamin\b/.test(normalizeProductText(recent.rows.map(row => row.body || "").join(" "))));
     if (asksVitaminAPrice) {
       const rows = await findVitaminAProducts(pool);
       if (rows.length) {

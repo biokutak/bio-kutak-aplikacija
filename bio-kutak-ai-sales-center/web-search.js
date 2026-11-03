@@ -50,6 +50,11 @@ export async function searchWeb(query, { health = false, limit = 3 } = {}) {
     if (!["http:", "https:"].includes(parsed.protocol) || !title || !snippet) continue;
     const host = parsed.hostname.startsWith("www.") ? parsed.hostname.slice(4) : parsed.hostname;
     if (health && !HEALTH_DOMAINS.some(domain => host === domain || host.endsWith("." + domain))) continue;
+    // Never surface another retailer's product listing as a recommendation when Pametnica cannot answer.
+    const commercialPath = /\\/(product|products|shop|store|cart|checkout|kupovina|proizvod|proizvodi)(\\/|$)/i.test(parsed.pathname);
+    const salesLanguage = /buy now|add to cart|shop now|order now|kupi odmah|dodaj u korpu|poru[cč]i odmah|cena proizvoda|price:/i.test(title + " " + snippet);
+    const commerceHost = /(^|\\.)(amazon|ebay|aliexpress|temu|etsy|walmart|shopify)\\./i.test(host);
+    if (!host.endsWith("biokutak.co.rs") && (commercialPath || salesLanguage || commerceHost)) continue;
     results.push({ title: title.slice(0, 180), snippet: snippet.slice(0, 320), url: parsed.href });
   }
   return results;

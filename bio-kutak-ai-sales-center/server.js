@@ -249,6 +249,23 @@ function formatProducts(products) {
     const claimNote = containsUnverifiedHealthClaims ? "\nNapomena: opis sadrži zdravstvene tvrdnje koje nisu potvrda medicinskog dejstva; ne prikazujem ih kao preporuku." : "";
     return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\n" + details.slice(0,900) : "") + claimNote + "\n" + p.url;
   }).join("\n\n");
+  const moreNote = products.length > 5
+    ? "\\n\\nNavela sam nekoliko artikala, ali u BIO KUTAK ponudi ima još proizvoda koji odgovaraju ovoj pretrazi. Ako želite, mogu da prikažem još."
+    : "";
+  return products.slice(0,5).map((p) => {
+    const price = p.price_rsd == null ? "Cena nije prikazana na sajtu" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
+    const availability = p.available === false ? "Trenutno nedostupan" : p.available === true ? "Dostupnost prikazana na sajtu" : "Proveriti dostupnost";
+    const claimText = [p.description, p.usage].filter(Boolean).join(" ");
+    const containsUnverifiedHealthClaims = /le[cč]i|izle[cč]|terapij|antiparazit|antibakter|antivirus|antifungal|antimikrob|antisept|protivgljiv|kandida|parazit|holesterol|triglicerid|hipertenz|krvni pritisak|reguli[sš]e hormone|hormonalni balans|hormonski disbalans|fitoestrogen|estrogen|valunz|menopauz|menstrualn|poma[zž]e kod|ubla[zž]ava|sni[zž]ava|normalizuje nivo|preporu[cč]uje se.*zbog|povoljno deluje|antioksidativn.*svojstv|preventivn.*dejstv|smanjuje rizik|smanjuje zgr[u]?savanje|protiv (raka|tumora|dijabet|astme|depresij|aritmij)|napredovanje raka|sr[cč]anog udara/i.test(claimText);
+    const details = [
+      !containsUnverifiedHealthClaims && p.description ? p.description : "",
+      p.ingredients ? "Sastav: " + p.ingredients : "",
+      !containsUnverifiedHealthClaims && p.usage ? "Način upotrebe: " + p.usage : "",
+      p.warnings ? "Upozorenje: " + p.warnings : ""
+    ].filter(Boolean).join("\\n");
+    const claimNote = containsUnverifiedHealthClaims ? "\\nNapomena: opis sadrži zdravstvene tvrdnje koje nisu potvrda medicinskog dejstva; ne prikazujem ih kao preporuku." : "";
+    return "• " + p.name + " – " + price + " (" + availability + ")" + (details ? "\\n" + details.slice(0,900) : "") + claimNote + "\\n" + p.url;
+  }).join("\\n\\n") + moreNote;
 }
 
 async function classifyAndReply(conversation, message) {
@@ -259,6 +276,25 @@ async function classifyAndReply(conversation, message) {
   }
   if (/\bpametna pametnic(a|e)\b|\bpametna si pametnic(a|e)\b/.test(lower)) {
     return { type:"auto", text:"Trudim se! 🌿 Najvažnije mi je da vam pronađem tačan artikal, cenu i dostupnost iz BIO KUTAK kataloga — bez nagađanja. Slobodno me testirajte." };
+  }
+  // A clear order intent continues the current product conversation and sends the customer to BIO KUTAK's own shop.
+  if (/\\b(naruci|narucim|naruciti|narucujemo|poruci|porucim|poruciti|kupujem|uzimam|zelim da kupim|hocu da kupim|da narucim)\\b/.test(lower)) {
+    const recentOrderContext = await pool.query(
+      "SELECT direction,body FROM messages WHERE conversation_id=$1 ORDER BY id DESC LIMIT 8",
+      [conversation.id]
+    );
+    const discussedProducts = recentOrderContext.rows
+      .filter(row => row.direction === "out")
+      .map(row => String(row.body || ""))
+      .join(" ");
+    const hasDiscussion = discussedProducts.length > 0;
+    return {
+      type: "auto",
+      text: (hasDiscussion
+        ? "Naravno! Ako želite da naručite artikle o kojima smo upravo razgovarali, porudžbinu možete nastaviti u zvaničnoj BIO KUTAK prodavnici: "
+        : "Naravno! Porudžbinu možete započeti u zvaničnoj BIO KUTAK prodavnici: ") +
+        "https://biokutak.co.rs/prodavnica\\n\\nTamo možete pregledati ponudu, izabrati artikle i nastaviti kupovinu. 🌿"
+    };
   }
   // Keep ordinary conversation natural; casual messages are not customer-service handoffs.
   const casual = lower.trim().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
@@ -660,9 +696,9 @@ async function classifyAndReply(conversation, message) {
     };
   }
   if (isProductRequest(message)) {
-    const exact = await searchProducts(pool, message, 5);
+    const exact = await searchProducts(pool, message, 20);
     if (exact.length) return { type:"auto", text:"Evo artikala iz BIO KUTAK ponude koji odgovaraju vašem upitu: 🌿\n\n" + formatProducts(exact) };
-    const similar = await findSimilarProducts(pool, message, 5);
+    const similar = await findSimilarProducts(pool, message, 20);
     if (similar.length) return { type:"auto", text:"Traženi artikal nemamo kao zaseban proizvod u katalogu. Ipak, pronašla sam ove srodne proizvode koji bi mogli biti relevantni: 🌿\n\n" + formatProducts(similar) +
       "\n\nOvo nisu isti proizvodi niti zamena jedan za jedan; proverite sastav i deklaraciju." };
     return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Taj artikal trenutno nemamo u BIO KUTAK ponudi, a nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. Hvala vam na predlogu! 🌿" };

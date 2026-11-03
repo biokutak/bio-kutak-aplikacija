@@ -1,0 +1,25 @@
+name: Keep BIO KUTAK Pametnica awake
+
+on:
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-bio-kutak-render-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Pametnica on Render
+        run: |
+          curl --fail --silent --show-error --location --max-time 30 \
+            --output /dev/null \
+            --write-out 'BIO KUTAK Pametnica: HTTP %{http_code}, response %{time_total}s\n' \
+            https://bio-kutak-ai-sales-center.onrender.com/pametnica

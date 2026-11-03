@@ -188,14 +188,29 @@ async function findSimilarProducts(db, message, limit = 5) {
     "SELECT name,category,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL"
   )).rows;
   const scored = rows.map(product => {
-    const haystack = normalizeProductText([product.name,product.category,product.description,product.ingredients].join(" "));
+    const haystack = normalizeProductText([product.name,product.ingredients].join(" "));
     const matched = terms.filter(term => haystack.includes(normalizeProductText(term)));
     let score = matched.reduce((total, term) => total + (synonymGroup?.matches.includes(term) ? 3 : 2), 0);
     if (synonymGroup && matched.some(term => synonymGroup.matches.includes(term))) score += 4;
-    return { product, score, matched };
+    const irrelevantBlueberryForm = /aroma|caj|list|bar|kolac|torta|sladoled/.test(normalizeProductText(product.name)) && matched.some(term => term.includes("borovnica"));
+    return { product, score: irrelevantBlueberryForm ? 0 : score, matched };
   }).filter(item => item.score >= (synonymGroup ? 4 : 2));
   return scored.sort((a,b) => b.score-a.score || Number(b.product.available===true)-Number(a.product.available===true) || String(a.product.name).localeCompare(String(b.product.name),"sr"))
     .slice(0, Math.max(1,Math.min(10,limit))).map(item=>item.product);
+}
+
+function isVitaminARequest(message) {
+  const query = normalizeProductText(message);
+  return /\bvitamin a\b|\ba vitamin\b|\bvitaminom a\b|\bretinol\b|\bbeta karoten\b/.test(query);
+}
+
+async function findVitaminAProducts(db) {
+  return (await db.query(
+    "SELECT name,category,price_rsd,available,url,ingredients,usage,warnings FROM products " +
+    "WHERE url IS NOT NULL AND translate(lower(coalesce(name,'') || ' ' || coalesce(ingredients,'')),'čćžšđ','cczsd') " +
+    "LIKE ANY(ARRAY['%vitamin a%','%retinol%','%retinyl%','%beta caroten%']) " +
+    "ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, name"
+  )).rows;
 }
 
 function isProductRequest(message) {
@@ -434,6 +449,18 @@ async function classifyAndReply(conversation, message) {
           "\\n\\nPratite uputstvo na konkretnom pakovanju. Prekinite upotrebu ako nastane jaka iritacija; ne nanositi na oštećenu kožu ili sluzokožu." };
       }
     }
+    const asksVitaminAPrice = /\b(cena|koliko kosta|koja je cena|koliko je|po kojoj ceni)\b/i.test(lower)
+      && (/\bvitamin a\b|\ba vitamin\b/.test(normalizeText(recent.rows.map(row => row.body || "").join(" "))));
+    if (asksVitaminAPrice) {
+      const rows = await findVitaminAProducts(pool);
+      if (rows.length) {
+        const lines = rows.map(p => "• " + p.name + " — " + (p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD") +
+          " — " + (p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno" : "dostupnost nije potvrđena") +
+          (/kozmetik|mast|krema|balzam|nega/.test(normalizeText(p.category + " " + p.name)) ? "\nNapomena: proizvod je za spoljašnju upotrebu, nije oralni vitamin A suplement." : "") + "\n" + p.url);
+        return { type:"auto", text:"Cene artikala koji izričito navode vitamin A u BIO KUTAK katalogu: 🌿\n\n" + lines.join("\n\n") };
+      }
+      return { type:"auto", text:"Trenutno nemamo artikal sa vitaminom A u BIO KUTAK katalogu, pa nemam ni cenu koju bih mogla pouzdano da navedem." };
+    }
     const knowledgeReply = await answerProductFollowUp(pool, recent.rows, message);
     if (knowledgeReply) return knowledgeReply;
     const normalizeText = (value) => String(value || "").toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj").replace(/[^a-z0-9]+/g, " ").trim();
@@ -579,6 +606,34 @@ async function classifyAndReply(conversation, message) {
     return { type:"auto", text:"Razumem — pitate za antiparazitni program. 🌿 U katalogu sam pronašla sledeće proizvode koji se opisuju u vezi sa ovom temom:" + (lines.length ? "\n\n" + lines.join("\n\n") : "\nTrenutno nemam potvrđen poseban antiparazitni program kao komplet u katalogu.") + "\n\nVažno: biljni preparati i suplementi nisu dokazano lečenje crevnih parazita i ne treba ih koristiti umesto dijagnostike i terapije. Ako sumnjate na parazite, lekar može odrediti odgovarajuću analizu stolice i lečenje prema uzročniku. Neću sastavljati režim niti doziranje kombinovanjem tinktura. Poseban oprez je potreban u trudnoći i dojenju, kod dece, epilepsije i uz lekove." };
   }
   // First let the product adviser handle supported everyday complaints with safe, catalog-grounded replies.
+  // Specific Vitamin A lookup: never mix it with Vitamin C or unrelated fortified foods.
+  if (isVitaminARequest(message) && isProductRequest(message)) {
+    const rows = await findVitaminAProducts(pool);
+    if (rows.length) {
+      const lines = rows.map(p => {
+        const price = p.price_rsd == null ? "cena nije potvrđena" : Number(p.price_rsd).toLocaleString("sr-RS") + " RSD";
+        const stock = p.available === true ? "dostupno prema sajtu" : p.available === false ? "trenutno nedostupno" : "dostupnost nije potvrđena";
+        const external = /kozmetik|mast|krema|balzam|nega/.test(normalizeProductText(p.category + " " + p.name));
+        return "• " + p.name + " — " + price + " (" + stock + ")" +
+          (external ? "\nNapomena: proizvod je za spoljašnju upotrebu, nije oralni vitamin A suplement." : "") +
+          (p.ingredients ? "\nSastav: " + p.ingredients : "") + "\n" + p.url;
+      });
+      return { type:"auto", text:"Proverila sam BIO KUTAK katalog za vitamin A. Ovo su artikli koji ga izričito navode u nazivu ili sastavu: 🌿\n\n" + lines.join("\n\n") +
+        "\n\nAko tražite vitamin A u tabletama ili kapsulama za oralnu upotrebu, naglasite to — mast za spoljašnju upotrebu nije zamena za suplement." };
+    }
+    const related = await findSimilarProducts(pool, "beta karoten vitamin A", 5);
+    if (related.length) return { type:"auto", text:"Trenutno nemamo zaseban proizvod sa vitaminom A. Pronašla sam samo ove srodne artikle koji izričito navode beta-karoten: 🌿\n\n" + formatProducts(related) };
+    return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Trenutno nemamo poseban proizvod sa vitaminom A u BIO KUTAK ponudi, niti sam pronašla odgovarajući srodan artikal. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. 🌿" };
+  }
+  if (isProductRequest(message)) {
+    const exact = await searchProducts(pool, message, 5);
+    if (exact.length) return { type:"auto", text:"Evo artikala iz BIO KUTAK ponude koji odgovaraju vašem upitu: 🌿\n\n" + formatProducts(exact) };
+    const similar = await findSimilarProducts(pool, message, 5);
+    if (similar.length) return { type:"auto", text:"Traženi artikal nemamo kao zaseban proizvod u katalogu. Ipak, pronašla sam ove srodne proizvode koji bi mogli biti relevantni: 🌿\n\n" + formatProducts(similar) +
+      "\n\nOvo nisu isti proizvodi niti zamena jedan za jedan; proverite sastav i deklaraciju." };
+    return { type:"auto", learningNeeded:true, notifyTeam:true, text:"Taj artikal trenutno nemamo u BIO KUTAK ponudi, a nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu. Hvala vam na predlogu! 🌿" };
+  }
+
   const advice = await adviseCustomer(pool, message);
   if (advice) {
     if (advice.urgent) return { type: "auto", text: advice.reply };
@@ -634,25 +689,6 @@ async function classifyAndReply(conversation, message) {
       type: "auto",
       learningNeeded: true,
       text: "Nisam uspela da pronađem dovoljno pouzdane izvore za siguran odgovor, pa neću da nagađam niti da vam nudim proizvod umesto odgovora. Zabeležila sam pitanje da dopunimo znanje. 🌿"
-    };
-  }
-
-  // A product request is not answered with an unrelated item from the educational knowledge base.
-  // First check the exact catalogue search, then a tightly related alternative search.
-  if (isProductRequest(message)) {
-    const exact = await searchProducts(pool, message, 5);
-    if (exact.length) {
-      return { type:"auto", text:"Evo artikala iz BIO KUTAK ponude koji odgovaraju vašem upitu: 🌿\n\n" + formatProducts(exact) + "\n\nAko ste tražili nešto drugo ili tačno određeni sastojak, napišite naziv pa ću precizirati pretragu." };
-    }
-    const similar = await findSimilarProducts(pool, message, 5);
-    if (similar.length) {
-      return { type:"auto", text:"Traženi artikal nemamo kao zaseban proizvod u katalogu. 🌿 Ipak, pronašla sam nekoliko srodnih proizvoda koji bi mogli biti relevantni:\n\n" + formatProducts(similar) + "\n\nOvo nisu isti proizvodi niti zamena jedan za jedan; proverite sastav i deklaraciju da biste videli da li odgovaraju onome što tražite." };
-    }
-    return {
-      type:"auto",
-      learningNeeded:true,
-      notifyTeam:true,
-      text:"Taj artikal trenutno nemamo u BIO KUTAK ponudi, a nisam pronašla ni dovoljno sličan proizvod koji bih mogla odgovorno da preporučim. Zabeležiću vaše interesovanje i proslediti ga BIO KUTAK timu, kako bi znali da kupci traže i ovakav proizvod. Hvala vam na predlogu! 🌿"
     };
   }
 

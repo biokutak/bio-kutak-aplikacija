@@ -273,7 +273,7 @@ async function classifyAndReply(conversation, message) {
       .filter(row => row.direction === "out")
       .map(row => String(row.body || ""))
       .join(" ");
-    const hasDiscussion = /https?:\\/\\/biokutak\\.co\\.rs\\//i.test(discussedProducts) || /artikal|proizvod|cena|sastav|ponuda|katalog/i.test(discussedProducts);
+    const hasDiscussion = discussedProducts.includes("biokutak.co.rs/") || /artikal|proizvod|cena|sastav|ponuda|katalog/i.test(discussedProducts);
     return {
       type: "auto",
       text: (hasDiscussion

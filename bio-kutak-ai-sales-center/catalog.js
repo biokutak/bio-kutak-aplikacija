@@ -262,8 +262,9 @@ export async function syncCatalog(db) {
 export async function searchProducts(db, query, limit = 5) {
   const clean = String(query || "").trim().slice(0, 120);
   if (!clean) return [];
-  const stopWords = new Set(["imate","ima","li","mi","moze","može","molim","vas","za","sa","u","na","od","do","je","su","da","koji","koja","koje","koliko","košta","kosta","tražim","trazim","kupim","kupiti","cena","cijena","proizvod","proizvoda","treba","zelim","želim","neki","neku"]);
-  const terms = clean.toLocaleLowerCase("sr").split(/\s+/).map(x => x.replace(/[^\p{L}\p{N}.-]/gu,"")).filter((x) => x.length > 2 && !stopWords.has(x)).slice(0, 5);
+  const stopWords = new Set(["imate","ima","li","mi","moze","može","molim","vas","za","sa","u","na","od","do","je","su","da","koji","koja","koje","koliko","košta","kosta","tražim","trazim","kupim","kupiti","kupujem","naručim","narucim","naručiti","naruciti","poručim","porucim","želim","zelim","hoću","hocu","bih","neki","neku","neko","jedan","jednu","ponudi","ponudu","artikl","artikal","proizvod","proizvoda","cena","cijena"]);
+  const normalized = clean.toLocaleLowerCase("sr").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/đ/g,"dj");
+  const terms = normalized.split(/\\s+/).map(x => x.replace(/[^a-z0-9.-]/g,"")).filter((x) => x.length > 2 && !stopWords.has(x)).slice(0, 6);
   const pattern = `%${clean}%`;
   const result = await db.query(
     `SELECT name,sku,category,price_rsd,available,image_url,url,description,ingredients,usage,warnings

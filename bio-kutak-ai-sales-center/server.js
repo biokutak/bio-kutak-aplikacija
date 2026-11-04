@@ -257,6 +257,30 @@ function formatProducts(products) {
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
+  // Safety and exact catalogue intent rules run BEFORE the general advisor to prevent irrelevant product recommendations.
+  if (/(ote[cć]en|otekl|oticanj).*(ruk|nog|stopal|lice)|((ruk|nog|stopal|lice).*(ote[cć]en|otekl|oticanj))/.test(lower)) {
+    return { type:"auto", text:"Oticanje ruku ili nogu ne treba automatski pripisivati zadržavanju vode. Ne bih preporučila čaj, diuretik ili suplement bez utvrđivanja uzroka. Javite se lekaru radi procene, naročito ako se otok ponavlja ili traje. Ako je otok nagao i jednostran, ili se jave gušenje, bol u grudima ili otok lica/jezika, odmah potražite hitnu pomoć." };
+  }
+  if (/cist(e|i|ama)|miom|fibrom/.test(lower) && /(imam|imam[e]?|imam dijagnoz|imam cist|imam miom|sta preporuc|sta da uzmem|sta koristim)/.test(lower)) {
+    return { type:"auto", text:"Razumem. Ciste i miomi zahtevaju procenu ginekologa; ne postoji dodatak ishrani, maca, vitamin ili čaj za koji mogu odgovorno da tvrdim da ih uklanja ili leči. Nemojte odlagati kontrole niti menjati terapiju zbog preparata. Ako imate jak iznenadan bol, obilno krvarenje, vrtoglavicu ili nesvesticu, potražite hitnu medicinsku pomoć." };
+  }
+  if (/(sniz|smanj|regul).*(secer|glukoz)|secer.*(krv|visok|sniz)|dijabet/.test(lower)) {
+    return { type:"auto", text:"Kod povišenog šećera važno je pratiti glikemiju i plan lečenja koji je odredio lekar. Ne preporučujem cimet, čajeve ili suplemente kao zamenu za terapiju i nemojte samostalno menjati lekove ili insulin. Da li već imate dijagnostikovan dijabetes ili ste izmerili povišen šećer? Ako uz veoma visok šećer imate povraćanje, bol u stomaku, ubrzano/duboko disanje, izrazitu pospanost ili konfuziju, odmah potražite hitnu pomoć." };
+  }
+  if (/(visok|povisen|povišen|sniz|smanj).*(krvni )?pritisak|pritisak.*(visok|povisen|povišen)/.test(lower)) {
+    return { type:"auto", text:"Za povišen krvni pritisak ne bih preporučila biljni preparat ili suplement kao terapiju. Merite pritisak pravilno i razgovarajte sa lekarom; propisanu terapiju nemojte prekidati ili menjati samostalno. Ako izmerite 180/120 mmHg ili više, ponovite merenje nakon kratkog mirovanja. Uz bol u grudima, gušenje, slabost jedne strane tela, smetnje vida ili govora odmah pozovite hitnu pomoć." };
+  }
+  if (/(podoc|podo[cč]|tamni krugovi|krugovi oko ociju|krugovi oko o[cč]iju)/.test(lower)) {
+    const eye = (await pool.query("SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND translate(lower(name),'čćžšđ','cczsd') LIKE '%antirid cold%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END LIMIT 3")).rows;
+    return { type:"auto", text: eye.length ? "U BIO KUTAK katalogu sam pronašla kozmetičku kremu za predeo oko očiju. 🌿\\n\\n" + formatProducts(eye) + "\\n\\nMože se predstaviti kao nega predela oko očiju, ali ne obećavati uklanjanje podočnjaka niti lečenje otoka." : "Trenutno nisam pronašla odgovarajući proizvod za predeo oko očiju u online katalogu. Mogu da proverim sa prodavnicom." };
+  }
+  if (/koje? (zacine|za[cč]ine)|koje zacine|koje začine|imate.*zacine|imate.*za[cč]ine|spisak zacina|spisak za[cč]ina/.test(lower)) {
+    const spices = (await pool.query("SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND category IN ('osnovne-namirnice','organski-proizvodi') AND translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%biber%','%bosiljak%','%cimet%','%kajenska paprika%','%kim %','%kim mleveni%','%kumin%','%kurkuma%','%origano%','%djumbir%','%ruzmarin%','%majoran%','%korijander%']) ORDER BY name LIMIT 30")).rows;
+    return { type:"auto", text: spices.length ? "Evo primera začina iz BIO KUTAK kataloga (ovo nije nužno kompletan spisak): 🌿\\n\\n" + formatProducts(spices) + "\\n\\nAko tražite određeni začin, napišite naziv pa ću proveriti baš taj artikal." : "Nisam pronašla pouzdan spisak začina u online katalogu. Mogu da proverim sa prodavnicom." };
+  }
+  if (/imate.*krem|kremu za kozu|krema za kozu|krema za lice|krema za ruke/.test(lower)) {
+    return { type:"auto", text:"Imamo više krema u BIO KUTAK katalogu, ali da ne bih ponudila pogrešnu, recite mi da li tražite kremu za lice, ruke ili telo — i da li je koža suva, masna ili osetljiva?" };
+  }
   if (/zdravo|dobar dan|dobro jutro|dobro veče|cao|ćao/.test(lower) && message.trim().split(/\s+/).length < 7) {
     return { type: "auto", text: "Zdravo i dobro došli u BIO KUTAK! 🌿 Napišite koji proizvod tražite ili šta vas zanima, pa ću pokušati da pomognem." };
   }

@@ -270,7 +270,7 @@ async function classifyAndReply(conversation, message) {
   if (/rozace|rosacea|kuperoza/.test(lower)) {
     return { type:"auto", text:"Kod rozacee je najbolje izbegavati nasumično nanošenje eteričnih ulja, parfemisanih seruma i agresivnih pilinga — mogu dodatno nadražiti kožu. Obično se preporučuju blaga nega bez mirisa, hidratacija i svakodnevna zaštita od sunca; odgovarajuću terapiju određuje dermatolog. Ne bih preporučila ulje ruže ili anti-age serum kao lečenje rozacee. Ako želite, mogu posebno proveriti blage proizvode za osetljivu kožu iz BIO KUTAK kataloga, ali samo prema sastavu." };
   }
-  if (/(gljivic|gljivice|fung|onihomik|nokt(a|i|ima)|nokti)/.test(lower) && /(nok|gljivic|fung|onihomik)/.test(lower)) {
+  if (/(gljivic|fung|onihomik)/.test(lower)) {
     return { type:"auto", text:"Gljivice na noktima treba potvrditi, jer promene mogu imati i druge uzroke. Ulje origana i druga eterična ulja nisu pouzdana zamena za dokazanu terapiju i mogu nadražiti kožu. Lekar ili farmaceut može preporučiti odgovarajući antimikotik; terapija noktiju često traje više meseci. Ako imate dijabetes, slabu cirkulaciju ili bol/crvenilo oko nokta, javite se lekaru." };
   }
   if (/(alergij|polen|ambrozij|cvetanj|kijav|curi nos|svrab ociju|svrab nosa)/.test(lower)) {

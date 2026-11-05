@@ -257,6 +257,28 @@ function formatProducts(products) {
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
+  // Medical-intent guardrails: do not turn symptom/diagnosis questions into fuzzy product recommendations.
+  if (/(krvna slika|krvnu sliku|hemoglobin|hemoglobina|anemij|malokrv|gvozdj|feritin|nedostatak gvozdja)/.test(lower)) {
+    return { type:"auto", text:"Za „jačanje krvne slike“ prvo treba znati šta je tačno sniženo. Uzrok može biti manjak gvožđa, vitamina B12 ili folata, ali i nešto drugo. Potrebni su krvna slika i, prema proceni lekara, feritin/gvožđe, B12 i folati. Nemojte uzimati gvožđe ili nasumične suplemente bez nalaza — višak može biti štetan. Ako imate izraženu slabost, gušenje, bol u grudima, nesvesticu ili krvarenje, potražite hitnu procenu." };
+  }
+  if (/(osteoporoz|osteopen|jacanje kost|jacanje kosti|za kosti|zdravlje kostiju)/.test(lower)) {
+    return { type:"auto", text:"Kod osteoporoze ili sumnje na nju, suplementi ne mogu zameniti dijagnostiku i terapiju. Lekar procenjuje rizik i po potrebi traži denzitometriju (DXA) i laboratorijske analize. Kalcijum i vitamin D imaju smisla kada unos ili status nisu dovoljni, ali dozu treba prilagoditi ishrani, nalazima i zdravstvenom stanju. Ne bih preporučila kelp, alge ili lucerku kao terapiju za osteoporozu. Da li već imate potvrđenu osteoporozu ili samo želite opštu podršku kostima?" };
+  }
+  if (/(reum|reumatoid|artrit|giht|upal(a|e) zglob|bolovi u zglob)/.test(lower)) {
+    return { type:"auto", text:"Reuma je širok naziv za različita oboljenja zglobova i vezivnog tkiva. Ulje crnog kumina, čajevi i suplementi nisu dokazano lečenje reumatske bolesti i ne treba da zamene pregled ili propisanu terapiju. Važno je utvrditi tačan uzrok kod lekara/reumatologa. Ako je zglob naglo otečen, crven i vruć, naročito uz temperaturu, potreban je hitan pregled. Da li imate postavljenu dijagnozu (npr. reumatoidni artritis ili giht)?" };
+  }
+  if (/rozace|rosacea|kuperoza/.test(lower)) {
+    return { type:"auto", text:"Kod rozacee je najbolje izbegavati nasumično nanošenje eteričnih ulja, parfemisanih seruma i agresivnih pilinga — mogu dodatno nadražiti kožu. Obično se preporučuju blaga nega bez mirisa, hidratacija i svakodnevna zaštita od sunca; odgovarajuću terapiju određuje dermatolog. Ne bih preporučila ulje ruže ili anti-age serum kao lečenje rozacee. Ako želite, mogu posebno proveriti blage proizvode za osetljivu kožu iz BIO KUTAK kataloga, ali samo prema sastavu." };
+  }
+  if (/(gljivic|gljivice|fung|onihomik|nokt(a|i|ima)|nokti)/.test(lower) && /(nok|gljivic|fung|onihomik)/.test(lower)) {
+    return { type:"auto", text:"Gljivice na noktima treba potvrditi, jer promene mogu imati i druge uzroke. Ulje origana i druga eterična ulja nisu pouzdana zamena za dokazanu terapiju i mogu nadražiti kožu. Lekar ili farmaceut može preporučiti odgovarajući antimikotik; terapija noktiju često traje više meseci. Ako imate dijabetes, slabu cirkulaciju ili bol/crvenilo oko nokta, javite se lekaru." };
+  }
+  if (/(alergij|polen|ambrozij|cvetanj|kijav|curi nos|svrab ociju|svrab nosa)/.test(lower)) {
+    return { type:"auto", text:"Kod alergije na polen ili ambroziju čajevi, propolis i suplementi nisu zamena za terapiju alergije. Pomaže praćenje polena, tuširanje i promena odeće nakon boravka napolju, a o odgovarajućem antihistaminiku ili spreju razgovarajte sa farmaceutom/lekarom. Ako se jave otok jezika/grla ili otežano disanje, odmah pozovite hitnu pomoć. Da li su glavni simptomi kijanje i curenje nosa, svrab očiju ili otežano disanje?" };
+  }
+  if (/(hrskavic|glukozamin|hondroitin)/.test(lower)) {
+    return { type:"auto", text:"Kod tegoba sa hrskavicom prvo je važno utvrditi uzrok bola i stanje zgloba. Kolagen, glukozamin i hondroitin imaju neujednačene dokaze i ne mogu da obnove hrskavicu niti da zamene terapiju. Riblji kolagen koji imamo u katalogu mogu da prikažem kao proizvod i navedem sastav, ali ne kao dokazano lečenje ili „obnavljanje hrskavice“. Ako imate otok, crvenilo, povredu ili jak bol, javite se lekaru." };
+  }
   // Safety and exact catalogue intent rules run BEFORE the general advisor to prevent irrelevant product recommendations.
   if (/(ote[cć]en|otekl|oticanj).*(ruk|nog|stopal|lice)|((ruk|nog|stopal|lice).*(ote[cć]en|otekl|oticanj))/.test(lower)) {
     return { type:"auto", text:"Oticanje ruku ili nogu ne treba automatski pripisivati zadržavanju vode. Ne bih preporučila čaj, diuretik ili suplement bez utvrđivanja uzroka. Javite se lekaru radi procene, naročito ako se otok ponavlja ili traje. Ako je otok nagao i jednostran, ili se jave gušenje, bol u grudima ili otok lica/jezika, odmah potražite hitnu pomoć." };

@@ -258,13 +258,13 @@ async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
   // Additional common health questions found in live customer conversations.
-  if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera)/.test(lower)) {
+  if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera)/.test(lower) && !/(zamena za secer|zamenu za secer|umesto secera|zasladjivac|zaslađivač)/.test(lower)) {
     return { type:"auto", text:"Ako mislite na šećer u krvi, važno je znati da li imate dijagnostikovan dijabetes ili samo jedno povišeno merenje. Nijedan čaj, cimet ili suplement iz prodavnice nije zamena za terapiju i ne treba samostalno menjati lekove ili insulin. Ponovljene povišene vrednosti proverite sa lekarom; on može preporučiti glukozu natašte i HbA1c. Ako imate izrazitu žeđ i mokrenje, javite se lekaru, a uz povraćanje, bol u stomaku, ubrzano/duboko disanje ili konfuziju odmah potražite hitnu pomoć. Da li imate dijabetes ili ste tek izmerili povišen šećer?" };
   }
   if (/(za bubrege|bubrezi|bubrega|bubrezima|pesak u bubregu|kamen u bubregu|kreatinin|urin|mokracn)/.test(lower)) {
     return { type:"auto", text:"Kod bubrega ne postoji jedan univerzalan čaj ili suplement koji je bezbedan za svakoga. Izbor zavisi od uzroka tegoba i funkcije bubrega; neki biljni preparati, minerali i veće doze suplemenata mogu biti štetni, naročito kod smanjene funkcije bubrega. Ne preporučujem preparat za „čišćenje bubrega“ niti zamenu za terapiju. Ako imate temperaturu uz bol u slabinama, krv u mokraći, povraćanje, otežano mokrenje ili ste trudni, javite se lekaru bez odlaganja. Da li pitate preventivno ili imate nalaz/pesak/kamen/infekciju?" };
   }
-  if (/(grcevi|grc u|grceve|grcevima|grceva)/.test(lower) && /(nog|misic|list|stopal|ruka|noc|spava)/.test(lower)) {
+  if (/(grcevi|grc u|grceve|grcevima|grceva)/.test(lower)) {
     return { type:"auto", text:"Grčevi u nogama mogu imati više uzroka: napor, položaj, dehidratacija, lekovi ili poremećaj minerala — ne znače automatski manjak magnezijuma. Nemojte uzimati velike doze magnezijuma ili kalijuma bez provere, posebno ako imate bolest bubrega ili koristite terapiju. Kod povremenog grča može pomoći nežno istezanje mišića. Ako se grčevi često ponavljaju, bude vas noću ili su praćeni slabošću/utrnulošću, javite se lekaru. Nagli bol i otok jedne noge zahtevaju hitnu procenu. Da li su grčevi u listovima, stopalima ili rukama i koliko često se javljaju?" };
   }
   // Anti-wrinkle requests are cosmetics shopping intent: only search the cosmetics category and explicitly relevant names.
@@ -281,6 +281,27 @@ async function classifyAndReply(conversation, message) {
     return { type:"auto", text: cosmeticRows.length
       ? "Za negu kože i izgled finih linija mogu da prikažem ove kozmetičke proizvode iz BIO KUTAK ponude. 🌿\n\n" + formatProducts(cosmeticRows) + "\n\nOvo su kozmetički proizvodi za negu; ne mogu garantovati uklanjanje bora niti zaustavljanje starenja. Izbor zavisi od tipa i osetljivosti kože. Ako imate osetljivu kožu ili rozaceu, proverite sastav i prvo se posavetujte sa dermatologom."
       : "Trenutno nisam pronašla jasno odgovarajući proizvod protiv bora u kozmetičkom delu kataloga. Neću nuditi jestiva ulja ili tinkture kao zamenu za kozmetiku. Mogu da proverim sa prodavnicom." };
+  }
+  if (/(helicobacter|helicobakter|helikobakter|h pylori|h\. pylori)/.test(lower)) {
+    return { type:"auto", text:"Helikobakter (H. pylori) je bakterija koja može biti povezana sa gastritisom i čirom, ali nalaz treba tumačiti sa lekarom. Kada je infekcija potvrđena, lečenje obično uključuje kombinaciju lekova koju određuje lekar; čajevi, probiotici i suplementi nisu zamena za eradikacionu terapiju. Nemojte samostalno uzimati antibiotike. Crna stolica, povraćanje krvi, jak bol ili nesvestica zahtevaju hitnu pomoć. Da li imate pozitivan test ili samo tegobe sa želucem?" };
+  }
+  if (/(prostat|prostate|prostatit|uve[cć]ana prostata|uve[cć]anje prostate)/.test(lower)) {
+    return { type:"auto", text:"Tegobe sa prostatom mogu imati različite uzroke i ne treba ih lečiti nasumičnim čajevima ili suplementima. Ako imate slab mlaz, učestalo/noćno mokrenje ili osećaj nepotpunog pražnjenja, zakažite pregled kod lekara/urologa. Ako ne možete da mokrite, imate temperaturu i bol ili krv u mokraći, potrebna je hitna procena. Da li pitate preventivno ili imate konkretne simptome/dijagnozu?" };
+  }
+  if (/(bolne menstruacij|menstrualn.*bol|bolovi tokom menstruacij|menstrualni grcevi|menstrualni grčevi)/.test(lower)) {
+    return { type:"auto", text:"Bolne menstruacije mogu imati više uzroka. Toplota na donjem delu stomaka i odmor nekima olakšavaju blaže grčeve, ali jak, nov ili sve jači bol ne treba pripisivati samo menstruaciji. Ako bol remeti svakodnevni život ili se pogoršava, razgovarajte sa ginekologom. Iznenadan jak bol, nesvestica, obilno krvarenje ili moguća trudnoća zahtevaju hitnu procenu. Ne bih nudila čaj ili suplement kao dokazano lečenje." };
+  }
+  if (/(bol u ledjima|bolovi u ledjima|krsta|lumbal|kicm|kičm|ukocenost ledja)/.test(lower)) {
+    return { type:"auto", text:"Bol u leđima može nastati iz više razloga. Ako nema upozoravajućih simptoma, blago kretanje i izbegavanje dugog ležanja često su bolji od potpunog mirovanja. Ne preporučujem tinkture ili suplemente kao lečenje uzroka. Hitno potražite pomoć ako se jave slabost nogu, utrnulost u predelu prepona/sedla, gubitak kontrole mokrenja ili stolice, temperatura uz bol, ozbiljna povreda ili naglo pogoršanje. Koliko dugo traje bol i gde je najjači?" };
+  }
+  if (/(kasalj|kašalj|kaslj|iskašlj|iskaslj|suv kasalj|suvi kasalj)/.test(lower)) {
+    return { type:"auto", text:"Kod kašlja je važno znati uzrok i trajanje. Topao napitak može umiriti grlo, ali biljni čaj ne leči uzrok kašlja. Med se ne daje deci mlađoj od 12 meseci. Ako kašalj traje duže od 3 nedelje, pogoršava se ili je praćen temperaturom, javite se lekaru; otežano disanje, bol u grudima ili iskašljavanje krvi zahtevaju hitnu procenu. Koliko dugo kašljete i da li je kašalj suv ili sa sekretom?" };
+  }
+  if (/(problem sa spavanjem|ne mogu da spavam|ne spavam|nesanic|tesko zaspim|teško zaspim|budim se nocu|budim se noću)/.test(lower)) {
+    return { type:"auto", text:"Problemi sa snom mogu biti povezani sa stresom, kofeinom, ritmom spavanja, lekovima ili zdravstvenim stanjem. Pomaže redovno vreme odlaska na spavanje i buđenja, manje kofeina kasnije tokom dana i mirna, tamna soba. Melatonin i biljni preparati nisu rešenje za svaki uzrok i mogu imati interakcije ili izazvati pospanost. Ako problem traje, remeti dan ili je praćen glasnim hrkanjem/prekidima disanja, razgovarajte sa lekarom. Koliko dugo imate problem — sa uspavljivanjem ili buđenjem tokom noći?" };
+  }
+  if (/(protiv bolov|za bolove|imam bolove|bol u stomaku|bol u zelucu|bol u mi[sš]i[cć]|bol u glavi|glavobolj)/.test(lower)) {
+    return { type:"auto", text:"Da bih odgovorila bez nagađanja, važno je gde se bol javlja, koliko traje i koliko je jak. Čaj ili suplement ne treba predstavljati kao lek protiv bolova. Jak ili iznenadan bol, bol u grudima, otežano disanje, nesvestica, ukočen vrat sa temperaturom, povraćanje krvi ili crna stolica zahtevaju hitnu procenu. Gde tačno osećate bol i koliko dugo traje?" };
   }
   // Medical-intent guardrails: do not turn symptom/diagnosis questions into fuzzy product recommendations.
   if (/(krvna slika|krvnu sliku|hemoglobin|hemoglobina|anemij|malokrv|gvozdj|feritin|nedostatak gvozdja)/.test(lower)) {

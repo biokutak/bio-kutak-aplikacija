@@ -257,6 +257,31 @@ function formatProducts(products) {
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
+  // Additional common health questions found in live customer conversations.
+  if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera)/.test(lower)) {
+    return { type:"auto", text:"Ako mislite na šećer u krvi, važno je znati da li imate dijagnostikovan dijabetes ili samo jedno povišeno merenje. Nijedan čaj, cimet ili suplement iz prodavnice nije zamena za terapiju i ne treba samostalno menjati lekove ili insulin. Ponovljene povišene vrednosti proverite sa lekarom; on može preporučiti glukozu natašte i HbA1c. Ako imate izrazitu žeđ i mokrenje, javite se lekaru, a uz povraćanje, bol u stomaku, ubrzano/duboko disanje ili konfuziju odmah potražite hitnu pomoć. Da li imate dijabetes ili ste tek izmerili povišen šećer?" };
+  }
+  if (/(za bubrege|bubrezi|bubrega|bubrezima|pesak u bubregu|kamen u bubregu|kreatinin|urin|mokracn)/.test(lower)) {
+    return { type:"auto", text:"Kod bubrega ne postoji jedan univerzalan čaj ili suplement koji je bezbedan za svakoga. Izbor zavisi od uzroka tegoba i funkcije bubrega; neki biljni preparati, minerali i veće doze suplemenata mogu biti štetni, naročito kod smanjene funkcije bubrega. Ne preporučujem preparat za „čišćenje bubrega“ niti zamenu za terapiju. Ako imate temperaturu uz bol u slabinama, krv u mokraći, povraćanje, otežano mokrenje ili ste trudni, javite se lekaru bez odlaganja. Da li pitate preventivno ili imate nalaz/pesak/kamen/infekciju?" };
+  }
+  if (/(grcevi|grc u|grceve|grcevima|grceva)/.test(lower) && /(nog|misic|list|stopal|ruka|noc|spava)/.test(lower)) {
+    return { type:"auto", text:"Grčevi u nogama mogu imati više uzroka: napor, položaj, dehidratacija, lekovi ili poremećaj minerala — ne znače automatski manjak magnezijuma. Nemojte uzimati velike doze magnezijuma ili kalijuma bez provere, posebno ako imate bolest bubrega ili koristite terapiju. Kod povremenog grča može pomoći nežno istezanje mišića. Ako se grčevi često ponavljaju, bude vas noću ili su praćeni slabošću/utrnulošću, javite se lekaru. Nagli bol i otok jedne noge zahtevaju hitnu procenu. Da li su grčevi u listovima, stopalima ili rukama i koliko često se javljaju?" };
+  }
+  // Anti-wrinkle requests are cosmetics shopping intent: only search the cosmetics category and explicitly relevant names.
+  if (/(protiv bora|bore|anti age|anti-age|antiage|ulje za bore|ulje protiv bora|krema protiv bora|serum protiv bora)/.test(lower)) {
+    const wantsOil = /ulje/.test(lower);
+    const cosmeticRows = (await pool.query(
+      "SELECT name,price_rsd,available,url,description,ingredients,usage,warnings FROM products " +
+      "WHERE url IS NOT NULL AND category='prirodna-kozmetika' AND (" +
+      (wantsOil
+        ? "translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%ulje argana%','%serum anti age%'])"
+        : "translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%anti age%','%anti-age%','%serum anti age%','%krema za lice%','%nocna krema%','%antioksidativni serum%'])") +
+      ") ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END, name LIMIT 8"
+    )).rows;
+    return { type:"auto", text: cosmeticRows.length
+      ? "Za negu kože i izgled finih linija mogu da prikažem ove kozmetičke proizvode iz BIO KUTAK ponude. 🌿\n\n" + formatProducts(cosmeticRows) + "\n\nOvo su kozmetički proizvodi za negu; ne mogu garantovati uklanjanje bora niti zaustavljanje starenja. Izbor zavisi od tipa i osetljivosti kože. Ako imate osetljivu kožu ili rozaceu, proverite sastav i prvo se posavetujte sa dermatologom."
+      : "Trenutno nisam pronašla jasno odgovarajući proizvod protiv bora u kozmetičkom delu kataloga. Neću nuditi jestiva ulja ili tinkture kao zamenu za kozmetiku. Mogu da proverim sa prodavnicom." };
+  }
   // Medical-intent guardrails: do not turn symptom/diagnosis questions into fuzzy product recommendations.
   if (/(krvna slika|krvnu sliku|hemoglobin|hemoglobina|anemij|malokrv|gvozdj|feritin|nedostatak gvozdja)/.test(lower)) {
     return { type:"auto", text:"Za „jačanje krvne slike“ prvo treba znati šta je tačno sniženo. Uzrok može biti manjak gvožđa, vitamina B12 ili folata, ali i nešto drugo. Potrebni su krvna slika i, prema proceni lekara, feritin/gvožđe, B12 i folati. Nemojte uzimati gvožđe ili nasumične suplemente bez nalaza — višak može biti štetan. Ako imate izraženu slabost, gušenje, bol u grudima, nesvesticu ili krvarenje, potražite hitnu procenu." };

@@ -306,7 +306,7 @@ async function classifyAndReply(conversation, message) {
   if (/(problem sa spavanjem|ne mogu da spavam|ne spavam|nesanic|tesko zaspim|teško zaspim|budim se nocu|budim se noću)/.test(lower)) {
     return { type:"auto", text:"Problemi sa snom mogu biti povezani sa stresom, kofeinom, ritmom spavanja, lekovima ili zdravstvenim stanjem. Pomaže redovno vreme odlaska na spavanje i buđenja, manje kofeina kasnije tokom dana i mirna, tamna soba. Melatonin i biljni preparati nisu rešenje za svaki uzrok i mogu imati interakcije ili izazvati pospanost. Ako problem traje, remeti dan ili je praćen glasnim hrkanjem/prekidima disanja, razgovarajte sa lekarom. Koliko dugo imate problem — sa uspavljivanjem ili buđenjem tokom noći?" };
   }
-  if (/(protiv bolov|za bolove|imam bolove|bol u stomaku|bol u zelucu|bol u mi[sš]i[cć]|bol u glavi|glavobolj)/.test(lower)) {
+  if (/(bolov|protiv bol|za bol|imam bol|bol u stomaku|bol u zelucu|bol u mi[sš]i[cć]|bol u glavi|glavobolj)/.test(lower)) {
     return { type:"auto", text:"Da bih odgovorila bez nagađanja, važno je gde se bol javlja, koliko traje i koliko je jak. Čaj ili suplement ne treba predstavljati kao lek protiv bolova. Jak ili iznenadan bol, bol u grudima, otežano disanje, nesvestica, ukočen vrat sa temperaturom, povraćanje krvi ili crna stolica zahtevaju hitnu procenu. Gde tačno osećate bol i koliko dugo traje?" };
   }
   // Medical-intent guardrails: do not turn symptom/diagnosis questions into fuzzy product recommendations.

@@ -258,7 +258,7 @@ async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
   // Additional common health questions found in live customer conversations.
-  if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera)/.test(lower) && !/(zamena za secer|zamenu za secer|umesto secera|zasladjivac|zaslađivač)/.test(lower)) {
+  if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera|secerna bolest|šećerna bolest)/.test(lower) && !/(zamena za secer|zamenu za secer|umesto secera|zasladjivac|zaslađivač)/.test(lower)) {
     return { type:"auto", text:"Ako mislite na šećer u krvi, važno je znati da li imate dijagnostikovan dijabetes ili samo jedno povišeno merenje. Nijedan čaj, cimet ili suplement iz prodavnice nije zamena za terapiju i ne treba samostalno menjati lekove ili insulin. Ponovljene povišene vrednosti proverite sa lekarom; on može preporučiti glukozu natašte i HbA1c. Ako imate izrazitu žeđ i mokrenje, javite se lekaru, a uz povraćanje, bol u stomaku, ubrzano/duboko disanje ili konfuziju odmah potražite hitnu pomoć. Da li imate dijabetes ili ste tek izmerili povišen šećer?" };
   }
   if (/(za bubrege|bubrezi|bubrega|bubrezima|pesak u bubregu|kamen u bubregu|kreatinin|urin|mokracn)/.test(lower)) {
@@ -281,6 +281,12 @@ async function classifyAndReply(conversation, message) {
     return { type:"auto", text: cosmeticRows.length
       ? "Za negu kože i izgled finih linija mogu da prikažem ove kozmetičke proizvode iz BIO KUTAK ponude. 🌿\n\n" + formatProducts(cosmeticRows) + "\n\nOvo su kozmetički proizvodi za negu; ne mogu garantovati uklanjanje bora niti zaustavljanje starenja. Izbor zavisi od tipa i osetljivosti kože. Ako imate osetljivu kožu ili rozaceu, proverite sastav i prvo se posavetujte sa dermatologom."
       : "Trenutno nisam pronašla jasno odgovarajući proizvod protiv bora u kozmetičkom delu kataloga. Neću nuditi jestiva ulja ili tinkture kao zamenu za kozmetiku. Mogu da proverim sa prodavnicom." };
+  }
+  if (/(povrac|povra[cć]anje|povracam|ne mogu da zadrzim tecnost|ne mogu da zadržim tečnost)/.test(lower)) {
+    return { type:"auto", text:"Uporno povraćanje može brzo dovesti do dehidratacije i ne treba ga rešavati čajevima ili suplementima. Uzimajte male gutljaje tečnosti ako možete, ali potražite medicinsku procenu, naročito ako ne možete da zadržite tečnost, mokrite vrlo malo, imate jak bol, temperaturu, krv ili ste izrazito malaksali. Kod konfuzije, nesvestice ili jakog iznenadnog bola odmah potražite hitnu pomoć. Koliko dugo traje povraćanje?" };
+  }
+  if (/(erektil|erekcij|potencij|ne dize mi se|ne diže mi se|problem sa potencijom|slaba potencija)/.test(lower)) {
+    return { type:"auto", text:"Problemi sa erekcijom su česti i mogu biti povezani sa stresom, krvnim sudovima, šećerom, hormonima, lekovima ili drugim zdravstvenim faktorima. Ne bih preporučila shilajit ili biljni preparat kao sigurno rešenje niti obećavala dejstvo. Ako se problem ponavlja, razgovarajte sa lekarom/urologom; ponekad je to važan znak kardiovaskularnog ili metaboličkog problema. Nemojte uzimati preparate za potenciju nepoznatog sastava, posebno uz lekove za srce ili nitrate." };
   }
   if (/(helicobacter|helicobakter|helikobakter|h pylori|h\. pylori)/.test(lower)) {
     return { type:"auto", text:"Helikobakter (H. pylori) je bakterija koja može biti povezana sa gastritisom i čirom, ali nalaz treba tumačiti sa lekarom. Kada je infekcija potvrđena, lečenje obično uključuje kombinaciju lekova koju određuje lekar; čajevi, probiotici i suplementi nisu zamena za eradikacionu terapiju. Nemojte samostalno uzimati antibiotike. Crna stolica, povraćanje krvi, jak bol ili nesvestica zahtevaju hitnu pomoć. Da li imate pozitivan test ili samo tegobe sa želucem?" };

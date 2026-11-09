@@ -257,6 +257,48 @@ function formatProducts(products) {
 async function classifyAndReply(conversation, message) {
   if (botPaused) return { type: "auto", text: "Pametnica trenutno ne može da obradi novi upit. 🌿 Pokušajte ponovo za koji trenutak ili napišite naziv proizvoda koji tražite." };
   const lower = message.toLocaleLowerCase("sr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "dj");
+  // Conversational intent and exact product-purpose overrides from reviewed customer transcripts.
+  // These run before health/catalogue fuzzy matching to prevent casual and shopping queries being misrouted.
+  if (/^(gde si pametnice|gde si pametnica|gde si|sta ima pametnice|jesi tu pametnice)$/.test(lower.trim())) {
+    return { type:"auto", text:"Tu sam! 😊🌿 Spremna sam da pomognem oko BIO KUTAK proizvoda, cena, sastava ili da zajedno pronađemo ono što tražite. Šta danas istražujemo?" };
+  }
+  if (/(cokolad).*(bez secera)|(bez secera).*(cokolad)/.test(lower)) {
+    const rows = (await pool.query(
+      "SELECT name,price_rsd,available,url,ingredients,description FROM products WHERE url IS NOT NULL AND translate(lower(coalesce(name,'')),'čćžšđ','cczsd') LIKE '%cokolad%' AND translate(lower(concat_ws(' ',name,ingredients,description)),'čćžšđ','cczsd') LIKE ANY(ARRAY['%bez secera%','%bez dodatog secera%','%bez dodatka secera%','%eritritol%','%stevia%']) ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END,name LIMIT 10"
+    )).rows;
+    return { type:"auto", text: rows.length
+      ? "Proverila sam katalog i izdvojila čokolade koje su označene kao bez šećera ili imaju zaslađivač naveden u deklaraciji. „Bez dodatog šećera“ nije isto što i bez svih šećera. 🌿\n\n" + formatProducts(rows)
+      : "Proverila sam BIO KUTAK katalog, ali trenutno nemam pouzdano potvrđenu čokoladu bez šećera. Neću vam ponuditi običnu čokoladu kao zamenu. Mogu da proverim sa prodavnicom." };
+  }
+  if (/(caj za zivce|caj za smirenje|za smirenje|da se smirim|nervoz|napetost|umirenje)/.test(lower)) {
+    const rows = (await pool.query(
+      "SELECT name,price_rsd,available,url,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND category IN ('osnovne-namirnice','dodaci-ishrani','organski-proizvodi') AND translate(lower(name),'čćžšđ','cczsd') LIKE ANY(ARRAY['%valerijana%','%melisa%','%maticnjak%','%kamilica%','%lavanda%','%pasiflora%']) ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END,name LIMIT 8"
+    )).rows;
+    return { type:"auto", text:"Ako tražite čaj za opuštanje, mogu da prikažem čajeve čiji naziv jasno odgovara toj nameni. Biljni čajevi nisu terapija za anksioznost ili dugotrajnu nesanicu; proverite upozorenja, posebno uz lekove, u trudnoći i tokom dojenja. 🌿\n\n" +
+      (rows.length ? formatProducts(rows) : "Trenutno nisam pronašla dovoljno pouzdano označene čajeve za smirenje u online katalogu. Mogu da proverim sa prodavnicom.") +
+      "\n\nDa li želite čaj za povremeno opuštanje ili imate dugotrajan problem sa snom/anksioznošću?" };
+  }
+  if (/(magnezijum gel|magnezijum hlorid gel|magnezijum hlorid|gel magnezijum)/.test(lower) && /(kako se koristi|upotreba|kako naneti|kako nanositi|kako da koristim|za sta sluzi|cemu sluzi)/.test(lower)) {
+    const rows = (await pool.query(
+      "SELECT name,price_rsd,available,url,ingredients,usage,warnings FROM products WHERE url IS NOT NULL AND category='prirodna-kozmetika' AND translate(lower(name),'čćžšđ','cczsd') LIKE '%magnezijum%gel%' ORDER BY CASE WHEN available IS TRUE THEN 0 WHEN available IS NULL THEN 1 ELSE 2 END,name LIMIT 8"
+    )).rows;
+    return { type:"auto", text: rows.length
+      ? "Magnezijum hlorid gel je proizvod za spoljašnju upotrebu — ne pije se. Način nanošenja i upozorenja prate se prema deklaraciji konkretnog pakovanja. Evo gelova iz BIO KUTAK ponude:\n\n" + formatProducts(rows) + "\n\nNe nanositi na oči, sluzokožu ili oštećenu/iziritiranu kožu; prekinite upotrebu ako izazove jaču iritaciju. Ako pošaljete fotografiju deklaracije, mogu da pročitam tačno uputstvo."
+      : "Gel sa magnezijumom je namenjen spoljašnjoj upotrebi, ne pije se. Trenutno nemam pouzdano uputstvo za konkretno pakovanje. Pošaljite naziv ili fotografiju deklaracije pa ću proveriti." };
+  }
+  if (/^(varenje|za varenje|probava|za probavu|digestija|med za varenje|med za probavu)$/.test(lower.trim())) {
+    return { type:"auto", text:"Rado ću pomoći, ali „problemi sa varenjem“ mogu značiti nadutost, gasove, gorušicu, zatvor, proliv ili bol. Neću nasumično nuditi arome ili slatkiše kao preparat za varenje. Šta vas tačno muči? Ako imate jak ili iznenadan bol, krv u stolici ili uporno povraćanje, javite se lekaru." };
+  }
+  if (/\\b(alternativa|neka alternativa|nesto drugo|druga opcija|a drugi proizvod|sta drugo)\\b/.test(lower)) {
+    const recent = await pool.query("SELECT body FROM messages WHERE conversation_id=$1 AND direction='in' ORDER BY id DESC LIMIT 6",[conversation.id]);
+    const recentText = recent.rows.map(r=>normalizeProductText(r.body)).join(" ");
+    if (/(pritisak|hipertenz)/.test(recentText)) {
+      return { type:"auto", text:"Ako mislite na alternativu za povišen krvni pritisak: ne postoji bezbedan biljni preparat koji treba da zameni propisanu terapiju. Nemojte prekidati lekove. Mogu da pomognem sa opštim merama — manje soli, pravilno merenje, kretanje i dogovor sa lekarom o terapiji. Mogu proveriti konkretan BIO KUTAK proizvod po sastavu, ali ne kao lek za pritisak." };
+    }
+    if (/(secer|dijabet)/.test(recentText)) {
+      return { type:"auto", text:"Ako mislite na alternativu zbog šećera u krvi, ne preporučujem čajeve ili suplemente umesto terapije. Mogu da pronađem namirnice bez dodatog šećera ili zaslađivače, ali to nije lečenje dijabetesa. Da li tražite zamenu za šećer u ishrani ili pitate za kontrolu glikemije?" };
+    }
+  }
   // Additional common health questions found in live customer conversations.
   if (/(za secer|za šećer|secer u krvi|šećer u krvi|povisen secer|povišen šećer|visok secer|visok šećer|regulacija secera|regulacija šećera|secerna bolest|šećerna bolest)/.test(lower) && !/(zamena za secer|zamenu za secer|umesto secera|zasladjivac|zaslađivač)/.test(lower)) {
     return { type:"auto", text:"Ako mislite na šećer u krvi, važno je znati da li imate dijagnostikovan dijabetes ili samo jedno povišeno merenje. Nijedan čaj, cimet ili suplement iz prodavnice nije zamena za terapiju i ne treba samostalno menjati lekove ili insulin. Ponovljene povišene vrednosti proverite sa lekarom; on može preporučiti glukozu natašte i HbA1c. Ako imate izrazitu žeđ i mokrenje, javite se lekaru, a uz povraćanje, bol u stomaku, ubrzano/duboko disanje ili konfuziju odmah potražite hitnu pomoć. Da li imate dijabetes ili ste tek izmerili povišen šećer?" };

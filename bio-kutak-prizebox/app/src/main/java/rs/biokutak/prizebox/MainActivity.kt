@@ -51,12 +51,12 @@ class MainActivity:Activity(){
             if(progress>0){val lp=Paint(3);lp.color=gold;c.save();c.rotate(-progress*85,gx+bw*.5f,gy+bh*.25f);c.drawRoundRect(gx-bw*.06f,gy+bh*.12f-progress*bh*.55f,gx+bw*1.06f,gy+bh*.35f-progress*bh*.55f,8f,8f,lp);c.restore()}
             text(c,"PAKET %02d".format(selected+1),gx+bw/2,gy+bh*1.17f,cream,h*.024f,true,Paint.Align.CENTER)
             if(revealed!=null){text(c,"ČESTITAMO!",w*.73f,h*.76f,cream,h*.027f,true,Paint.Align.CENTER);text(c,revealed!!,w*.73f,h*.81f,gold,h*.023f,true,Paint.Align.CENTER);button(c,"SLEDEĆI KUPAC",w*.65f,h*.86f,w*.82f,h*.94f)}
-            else if(opening){text(c,"OTVARANJE POKLONA…",w*.73f,h*.78f,cream,h*.022f,true,Paint.Align.CENTER)}
+            else if(opening){text(c,"OTVARANJE POKLONA…",w*.73f,h*.78f,cream,height.toFloat()*.022f,true,Paint.Align.CENTER)}
             else {button(c,"OTVORI POKLON",w*.65f,h*.78f,w*.82f,h*.88f);text(c,"IZABERI PAKET, PA OTVORI POKLON",w*.73f,h*.93f,gold,h*.012f,true,Paint.Align.CENTER)}
             text(c,"ADMIN  ⚙",w*.96f,h*.07f,gold,h*.017f,true,Paint.Align.RIGHT)
         }
         private fun text(c:Canvas,s:String,x:Float,y:Float,color:Int,size:Float,bold:Boolean,align:Paint.Align=Paint.Align.LEFT){paint.shader=null;paint.color=color;paint.textSize=size;paint.typeface=if(bold)Typeface.create("sans-serif",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL);paint.textAlign=align;c.drawText(s,x,y,paint)}
-        private fun button(c:Canvas,s:String,l:Float,t:Float,r:Float,b:Float){val p=Paint(3);p.shader=LinearGradient(l,t,r,b,0xffe5bd70.toInt(),0xff8c4a26.toInt(),Shader.TileMode.CLAMP);c.drawRoundRect(l,t,r,b,12f,12f,p);text(c,s,(l+r)/2,(t+b)/2+h*.008f,0xff2b1017.toInt(),h*.022f,true,Paint.Align.CENTER)}
+        private fun button(c:Canvas,s:String,l:Float,t:Float,r:Float,b:Float){val p=Paint(3);p.shader=LinearGradient(l,t,r,b,0xffe5bd70.toInt(),0xff8c4a26.toInt(),Shader.TileMode.CLAMP);c.drawRoundRect(l,t,r,b,12f,12f,p);text(c,s,(l+r)/2,(t+b)/2+height.toFloat()*.008f,0xff2b1017.toInt(),height.toFloat()*.022f,true,Paint.Align.CENTER)}
         override fun onTouchEvent(e:MotionEvent):Boolean{if(e.action!=MotionEvent.ACTION_UP)return true;val w=width.toFloat();val h=height.toFloat();val x=e.x;val y=e.y
             if(x>w*.88f&&y<h*.13f){admin();return true}
             if(revealed!=null){if(x>w*.62f&&y>h*.84f)next();invalidate();return true}

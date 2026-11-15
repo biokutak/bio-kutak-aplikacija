@@ -33,7 +33,7 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
  List<PrizePack> emptyPacks()=>List.generate(15,(i)=>PrizePack(i,<Prize>[]));
  @override void initState(){super.initState();packs=emptyPacks();anim=AnimationController(vsync:this,duration:const Duration(milliseconds:1050));turn=CurvedAnimation(parent:anim,curve:Curves.easeInOutCubic);_load();}
  @override void dispose(){anim.dispose();remote.dispose();super.dispose();}
- Future<void> _load() async {final p=await SharedPreferences.getInstance();try{final s=p.getString('bk_prize_packs_v2');if(s!=null){final d=(jsonDecode(s) as List).map((e)=>PrizePack.fromJson(Map<String,dynamic>.from(e))).toList();if(d.length==15) packs=d;}}catch(_){}history=p.getStringList('bk_prize_history_v2')??[];if(mounted)setState(()=>loaded=true);}
+ Future<void> _load() async {final prefs=await SharedPreferences.getInstance();try{final saved=prefs.getString('bk_prize_packs_v2');if(saved!=null){final decoded=(jsonDecode(saved) as List).map((e)=>PrizePack.fromJson(Map<String,dynamic>.from(e))).toList();if(decoded.length==15){packs=decoded;}}}catch(_){}history=prefs.getStringList('bk_prize_history_v2')??[];for(final pack in packs){pack.winner=null;}selected=0;reveal=null;await _save();if(mounted)setState(()=>loaded=true);}
  Future<void> _save() async {final p=await SharedPreferences.getInstance();await p.setString('bk_prize_packs_v2',jsonEncode(packs.map((p)=>p.toJson()).toList()));await p.setStringList('bk_prize_history_v2',history);}
  void _select(int i){setState(() { selected=i; reveal=packs[i].winner; });}
  KeyEventResult _remoteKey(FocusNode n,KeyEvent e){if(e is! KeyDownEvent)return KeyEventResult.ignored;final k=e.logicalKey;if(k==LogicalKeyboardKey.arrowLeft){_select((selected-1).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowRight){_select((selected+1).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowUp){_select((selected-5).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowDown){_select((selected+5).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.enter||k==LogicalKeyboardKey.select||k==LogicalKeyboardKey.space){_draw();return KeyEventResult.handled;}return KeyEventResult.ignored;}
@@ -89,7 +89,9 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
         final grid = GridView.builder(
          padding: const EdgeInsets.all(2),
          itemCount: 15,
-         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: landscape ? 3 : 5, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: landscape ? 1.5 : 1.2),
+         physics: const NeverScrollableScrollPhysics(),
+         padding: EdgeInsets.zero,
+         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, mainAxisSpacing: compact ? 5 : 8, crossAxisSpacing: compact ? 5 : 8, childAspectRatio: 1.2),
          itemBuilder: (context, i) => _tile(i),
         );
         return Padding(

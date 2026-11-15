@@ -134,4 +134,3 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
   );
  }
 }
-}

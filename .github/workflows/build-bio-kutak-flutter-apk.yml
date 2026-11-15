@@ -1,0 +1,38 @@
+name: Build BIO KUTAK Prize APK
+on:
+  push:
+    paths:
+      - 'bio-kutak-prizebox-flutter/**'
+      - '.github/workflows/build-bio-kutak-flutter-apk.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bio-kutak-prizebox-flutter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project files
+        run: flutter create --platforms=android --org rs.biokutak --project-name bio_kutak_prizebox .
+      - name: Install packages
+        run: flutter pub get
+      - name: Build release APK
+        run: flutter build apk --release
+      - name: Rename app label
+        run: sed -i 's#android:label="bio_kutak_prizebox"#android:label="BIO KUTAK – 15 godina"#' android/app/src/main/AndroidManifest.xml
+      - name: Rebuild with final app label
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BIO-KUTAK-15-GODINA-APK
+          path: bio-kutak-prizebox-flutter/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

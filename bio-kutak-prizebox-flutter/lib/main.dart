@@ -84,6 +84,8 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
          const Spacer(),
          if (landscape) const Text('POKLONI ZA NAŠE KUPCE', style: TextStyle(color: muted, letterSpacing: 2, fontSize: 10)),
          const Spacer(),
+         if (landscape) OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFFD9B86B)))),
+         const SizedBox(width: 8),
          IconButton(onPressed: _login, icon: const Icon(Icons.settings_outlined, color: cream)),
         ]);
         final grid = GridView.builder(
@@ -110,7 +112,7 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
                 ]),
                )),
                const SizedBox(width: 14),
-               Expanded(flex: 4, child: _drawPanel(compact)),
+               Expanded(flex: 4, child: SingleChildScrollView(child: _drawPanel(true))),
               ])
             : Column(children: [
                SizedBox(height: box.maxHeight * .38, child: grid),
@@ -121,9 +123,9 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
           SizedBox(height: compact ? 6 : 10),
           Row(children: [
            Expanded(child: Text('DOSTUPNO PAKETA: ' + packs.where((p) => p.available && p.winner == null).length.toString() + ' / 15', style: const TextStyle(color: muted, fontSize: 10, letterSpacing: 1))),
-           OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFF795466)))),
-           const SizedBox(width: 7),
-           IconButton(onPressed: _login, icon: const Icon(Icons.admin_panel_settings_outlined, color: muted)),
+           if (!landscape) OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFFD9B86B)))),
+           if (!landscape) const SizedBox(width: 7),
+           if (!landscape) IconButton(onPressed: _login, icon: const Icon(Icons.admin_panel_settings_outlined, color: muted)),
           ]),
          ]),
         );

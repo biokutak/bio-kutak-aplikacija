@@ -126,90 +126,65 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
     );
     if(mounted)setState((){});
   }
-  Widget _tile(int i){final p=packs[i],active=selected==i,opened=p.winner!=null,empty=!prizePool.any((x)=>x.drawable)&&!opened;return InkWell(onTap:()=>_select(i),borderRadius:BorderRadius.circular(13),child:AnimatedContainer(duration:const Duration(milliseconds:180),decoration:BoxDecoration(color:active?const Color(0xFF462432):panel,borderRadius:BorderRadius.circular(13),border:Border.all(color:active?rose:const Color(0xFF3A2D34),width:active?2:1),boxShadow:active?[BoxShadow(color:rose.withOpacity(.18),blurRadius:16)]:[]),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(opened?Icons.check_circle:empty?Icons.lock_outline:Icons.card_giftcard,color:empty?muted:active?cream:rose,size:24),const SizedBox(height:4),Text('PAKET ${i+1}',style:const TextStyle(color:cream,fontWeight:FontWeight.w800,fontSize:13)),Text(opened?'OTVOREN':empty?'PRAZAN':'DOSTUPAN',style:const TextStyle(color:muted,fontSize:9,letterSpacing:1))])));}
- Widget _drawPanel(bool compact){final p=packs[selected];final count=prizePool.where((x)=>x.drawable).length;return Container(padding:EdgeInsets.all(compact?14:20),decoration:BoxDecoration(color:panel,borderRadius:BorderRadius.circular(20),border:Border.all(color:const Color(0xFF3A2D34))),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
- const Text('IZABRANI PAKET',style:TextStyle(color:muted,letterSpacing:2,fontSize:10,fontWeight:FontWeight.bold)),const SizedBox(height:4),Text('BROJ ${selected+1}',style:const TextStyle(color:cream,fontSize:21,fontWeight:FontWeight.w900,letterSpacing:2)),const SizedBox(height:12),
- GestureDetector(onTap:_draw,child:AnimatedBuilder(animation:turn,builder:(c,child){final a=turn.value*pi;return Transform(alignment:Alignment.center,transform:Matrix4.identity()..setEntry(3,2,.001)..rotateY(a),child:Container(height:compact?112:165,width:compact?155:205,decoration:BoxDecoration(gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF703047),Color(0xFF321923)]),borderRadius:BorderRadius.circular(19),border:Border.all(color:const Color(0xFF9B687A),width:1.5),boxShadow:[BoxShadow(color:rose.withOpacity(.14),blurRadius:22)]),child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..rotateY(a>pi/2?pi:0),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(reveal==null?Icons.card_giftcard:Icons.workspace_premium,size:compact?40:56,color:const Color(0xFFE7C7D1)),const SizedBox(height:7),Padding(padding:const EdgeInsets.symmetric(horizontal:8),child:Text(reveal??'BIO KUTAK',textAlign:TextAlign.center,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(color:cream,fontWeight:FontWeight.w900,fontSize:compact?13:17))),if(reveal==null)const Text('POKLON IZNENAĐENJA',style:TextStyle(color:muted,fontSize:9,letterSpacing:1))]))));})),
- const SizedBox(height:10),if(reveal!=null)Text('ČESTITAMO!  $reveal',textAlign:TextAlign.center,style:const TextStyle(color:Color(0xFFE9B9C9),fontSize:16,fontWeight:FontWeight.w900))else Text(count==0?'NEMA DOSTUPNIH NAGRADA':'$count VRSTA NAGRADA DOSTUPNO',style:const TextStyle(color:muted,fontSize:10,letterSpacing:1)),
- const SizedBox(height:12),SizedBox(width:double.infinity,height:44,child:FilledButton.icon(onPressed:busy||!prizePool.any((x)=>x.drawable)||p.winner!=null?null:_draw,icon:busy?const SizedBox(width:17,height:17,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.redeem),label:Text(busy?'OTVARANJE…':p.winner!=null?'PAKET JE OTVOREN':'OTVORI POKLON'),style:FilledButton.styleFrom(backgroundColor:rose,foregroundColor:Colors.white,disabledBackgroundColor:const Color(0xFF40363B),textStyle:const TextStyle(fontWeight:FontWeight.w800,letterSpacing:1)))),
- const SizedBox(height:7),Text('PREOSTALO NAGRADA U FONDU: ${prizePool.fold<int>(0,(sum,x)=>sum+x.stock)}',style:const TextStyle(color:muted,fontSize:10))
- ]));}
- @override
- Widget build(BuildContext context) {
-  return Focus(
-   autofocus: true,
-   focusNode: remote,
-   onKeyEvent: _remoteKey,
-   child: Scaffold(
-    body: Container(
-     decoration: const BoxDecoration(
-      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF21151C), bg, Color(0xFF160E13)]),
-     ),
-     child: SafeArea(
-      child: LayoutBuilder(
-       builder: (context, box) {
-        final landscape = box.maxWidth >= box.maxHeight;
-        final compact = box.maxHeight < 520;
-        final header = Row(children: [
-         Container(width: 40, height: 40, decoration: BoxDecoration(color: rose.withOpacity(.16), borderRadius: BorderRadius.circular(11), border: Border.all(color: rose.withOpacity(.5))), child: const Icon(Icons.auto_awesome, color: Color(0xFFE7C7D1))),
-         const SizedBox(width: 10),
-         const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('BIO KUTAK', style: TextStyle(color: cream, fontWeight: FontWeight.w900, fontSize: 19, letterSpacing: 2)),
-          Text('15 GODINA ZAJEDNO', style: TextStyle(color: Color(0xFFE0A8BB), fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)),
-         ]),
-         const Spacer(),
-         if (landscape) const Text('POKLONI ZA NAŠE KUPCE', style: TextStyle(color: muted, letterSpacing: 2, fontSize: 10)),
-         const Spacer(),
-         if (landscape) OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFFD9B86B)))),
-         const SizedBox(width: 8),
-         IconButton(onPressed: _login, icon: const Icon(Icons.settings_outlined, color: cream)),
-        ]);
-        final grid = GridView.builder(
-         padding: EdgeInsets.zero,
-         itemCount: 15,
-         physics: const NeverScrollableScrollPhysics(),
-         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, mainAxisSpacing: compact ? 5 : 8, crossAxisSpacing: compact ? 5 : 8, childAspectRatio: landscape ? 1.5 : 2.0),
-         itemBuilder: (context, i) => _tile(i),
-        );
-        return Padding(
-         padding: EdgeInsets.fromLTRB(compact ? 12 : 20, compact ? 6 : 12, compact ? 12 : 20, compact ? 6 : 12),
-         child: Column(children: [
-          header,
-          SizedBox(height: compact ? 7 : 14),
-          Expanded(
-           child: landscape
-            ? Row(children: [
-               Expanded(flex: 5, child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: panel.withOpacity(.7), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFF342832))),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                 const Padding(padding: EdgeInsets.fromLTRB(4, 2, 4, 8), child: Text('IZABERI JEDAN OD 15 PAKETA', style: TextStyle(color: muted, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.3))),
-                 Expanded(child: grid),
-                ]),
-               )),
-               const SizedBox(width: 14),
-               Expanded(flex: 4, child: SingleChildScrollView(child: _drawPanel(true))),
-              ])
-            : Column(children: [
-               SizedBox(height: box.maxHeight * .38, child: grid),
-               const SizedBox(height: 8),
-               Expanded(child: SingleChildScrollView(child: _drawPanel(true))),
-              ]),
-          ),
-          SizedBox(height: compact ? 6 : 10),
-          Row(children: [
-           Expanded(child: Text('DOSTUPNO PAKETA: ' + packs.where((p) => prizePool.any((x)=>x.drawable) && p.winner == null).length.toString() + ' / 15', style: const TextStyle(color: muted, fontSize: 10, letterSpacing: 1))),
-           if (!landscape) OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFFD9B86B)))),
-           if (!landscape) const SizedBox(width: 7),
-           if (!landscape) IconButton(onPressed: _login, icon: const Icon(Icons.admin_panel_settings_outlined, color: muted)),
-          ]),
-         ]),
-        );
-       },
-      ),
-     ),
-    ),
-   ),
-  );
+  Widget _giftTile(int i,double width){
+ final pack=packs[i],opened=pack.winner!=null,active=selected==i,available=prizePool.any((p)=>p.drawable);
+ return GestureDetector(onTap:()=>_select(i),child:AnimatedScale(scale:active?1.055:1,duration:const Duration(milliseconds:220),child:Container(
+  decoration:BoxDecoration(gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:active?[const Color(0xFFFFE7A0),const Color(0xFFD98A19),const Color(0xFF8B101B)]:[const Color(0xFFFFF4DC),const Color(0xFFE8C68B),const Color(0xFFB87524)]),borderRadius:BorderRadius.circular(13),border:Border.all(color:active?Colors.white:const Color(0xFFFFD76A),width:active?3:1.5),boxShadow:[BoxShadow(color:Colors.amber.withOpacity(active?.55:.25),blurRadius:active?18:8,spreadRadius:active?2:0)]),
+  child:Stack(alignment:Alignment.center,children:[
+   Positioned.fill(child:Padding(padding:EdgeInsets.symmetric(horizontal:width*.12),child:Container(decoration:BoxDecoration(color:const Color(0xFFB20F20),border:Border.symmetric(vertical:BorderSide(color:const Color(0xFFFFD76A).withOpacity(.9),width:2)))))),
+   Positioned(top:0,left:0,right:0,height:width*.15,child:Container(decoration:BoxDecoration(color:const Color(0xFFFFF0D0),borderRadius:const BorderRadius.vertical(top:Radius.circular(11)),border:Border.all(color:const Color(0xFFFFD76A))))),
+   Positioned(top:width*.10,child:Icon(Icons.card_giftcard,color:const Color(0xFFFFE7A0),size:width*.28,shadows:const [Shadow(color:Colors.black54,blurRadius:5)])),
+   Positioned(bottom:width*.06,child:Container(width:width*.54,height:width*.54,alignment:Alignment.center,decoration:BoxDecoration(shape:BoxShape.circle,gradient:const LinearGradient(colors:[Color(0xFFFFF2B4),Color(0xFFE7A52C)]),border:Border.all(color:const Color(0xFF9B4C12),width:2),boxShadow:const [BoxShadow(color:Colors.black45,blurRadius:5)]),child:Text('${i+1}',style:TextStyle(color:const Color(0xFF7C0A17),fontSize:width*.32,fontWeight:FontWeight.w900)))),
+   if(opened)Positioned.fill(child:Container(decoration:BoxDecoration(color:Colors.black.withOpacity(.48),borderRadius:BorderRadius.circular(13)),child:const Icon(Icons.check_circle,color:Color(0xFFFFE39A),size:28))),
+   if(!available&&!opened)Positioned.fill(child:Container(decoration:BoxDecoration(color:Colors.black.withOpacity(.45),borderRadius:BorderRadius.circular(13)),child:const Icon(Icons.lock_outline,color:Colors.white70,size:25))),
+  ]),
+ )));
+}
+Widget _newPremiumHome(BoxConstraints box){
+ final landscape=box.maxWidth>=box.maxHeight;
+ final headline=landscape?box.maxHeight*.105:box.maxHeight*.10;
+ return Stack(fit:StackFit.expand,children:[
+  const DecoratedBox(decoration:BoxDecoration(gradient:RadialGradient(center:Alignment(0,-.15),radius:1.15,colors:[Color(0xFF7A210D),Color(0xFF26070B),Color(0xFF080405)]))),
+  Positioned.fill(child:CustomPaint(painter:AnniversarySparkPainter())),
+  SafeArea(child:Padding(padding:EdgeInsets.fromLTRB(landscape?22:12,landscape?8:8,landscape?22:12,landscape?12:8),child:Column(children:[
+   Row(mainAxisAlignment:MainAxisAlignment.center,children:[
+    Text('15',style:TextStyle(fontSize:headline*1.18,fontWeight:FontWeight.w900,letterSpacing:-4,color:const Color(0xFFFFD65C),shadows:const [Shadow(color:Color(0xFFFF9D00),blurRadius:24),Shadow(color:Colors.white,blurRadius:4)])),
+    const SizedBox(width:12),
+    Flexible(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text('GODINA',style:TextStyle(fontSize:headline*.56,fontWeight:FontWeight.w900,letterSpacing:2,color:const Color(0xFFFFE8A2),shadows:const [Shadow(color:Colors.black87,blurRadius:5)])),
+     Text('SA BIO KUTAK',style:TextStyle(fontSize:headline*.34,fontWeight:FontWeight.w900,letterSpacing:2,color:Colors.white)),
+    ])),
+    const Spacer(),
+    IconButton(onPressed:_login,icon:Icon(Icons.settings,color:const Color(0xFFFFD76A),size:landscape?30:24)),
+   ]),
+   SizedBox(height:landscape?5:2),
+   Text('IZABERI SVOJ POKLON',style:TextStyle(color:const Color(0xFFFFE9B0),fontWeight:FontWeight.w900,letterSpacing:landscape?4:2,fontSize:landscape?14:11,shadows:const [Shadow(color:Colors.black,blurRadius:8)])),
+   const SizedBox(height:7),
+   Expanded(child:LayoutBuilder(builder:(context,gridBox){
+    final tileW=(gridBox.maxWidth-4*(landscape?14:7))/5;
+    final tileH=(gridBox.maxHeight-2*(landscape?12:6))/3;
+    final tileSize=min(tileW,tileH*1.2);
+    return Center(child:ConstrainedBox(constraints:BoxConstraints(maxWidth:tileSize*5+4*(landscape?14:7)),child:GridView.builder(physics:const NeverScrollableScrollPhysics(),padding:EdgeInsets.zero,itemCount:15,gridDelegate:SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:5,crossAxisSpacing:landscape?14:7,mainAxisSpacing:landscape?12:6,childAspectRatio:landscape?1.04:.88),itemBuilder:(context,i)=>_giftTile(i,tileSize))));
+   })),
+   Row(children:[
+    Expanded(child:Text('DOSTUPNO PAKETA: ${packs.where((p)=>p.winner==null&&prizePool.any((x)=>x.drawable)).length}/15',style:TextStyle(color:const Color(0xFFFFE9B0),fontWeight:FontWeight.bold,fontSize:landscape?13:10,letterSpacing:1))),
+    OutlinedButton.icon(onPressed:_newCustomer,icon:const Icon(Icons.person_add_alt_1,size:18),label:const Text('NOVI KUPAC'),style:OutlinedButton.styleFrom(foregroundColor:const Color(0xFFFFE6A0),side:const BorderSide(color:Color(0xFFFFD76A),width:1.5),backgroundColor:Colors.black26)),
+    const SizedBox(width:6),
+    FilledButton.icon(onPressed:busy||packs[selected].winner!=null||!prizePool.any((p)=>p.drawable)?null:_draw,icon:const Icon(Icons.redeem),label:const Text('OTVORI'),style:FilledButton.styleFrom(backgroundColor:const Color(0xFFB20F20),foregroundColor:Colors.white)),
+   ]),
+  ]))),
+ ]);
+}
+@override Widget build(BuildContext context){
+ return Focus(autofocus:true,focusNode:remote,onKeyEvent:_remoteKey,child:Scaffold(body:LayoutBuilder(builder:(context,box)=>_newPremiumHome(box))));
+}
+}
+
+class AnniversarySparkPainter extends CustomPainter{
+ @override void paint(Canvas canvas,Size size){
+  final p=Paint()..style=PaintingStyle.fill;final rnd=Random(15);
+  for(var i=0;i<125;i++){final x=rnd.nextDouble()*size.width;final y=rnd.nextDouble()*size.height;final r=1+rnd.nextDouble()*2.4;p.color=const Color(0xFFFFD36A).withOpacity(.18+rnd.nextDouble()*.55);canvas.drawCircle(Offset(x,y),r,p);}
+  final glow=Paint()..shader=RadialGradient(colors:[const Color(0xFFFFC247).withOpacity(.22),Colors.transparent]).createShader(Rect.fromCircle(center:Offset(size.width*.5,size.height*.55),radius:size.width*.55));canvas.drawRect(Offset.zero&size,glow);
  }
+ @override bool shouldRepaint(covariant CustomPainter oldDelegate)=>false;
 }

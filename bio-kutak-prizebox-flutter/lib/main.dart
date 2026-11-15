@@ -87,11 +87,10 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
          IconButton(onPressed: _login, icon: const Icon(Icons.settings_outlined, color: cream)),
         ]);
         final grid = GridView.builder(
-         padding: const EdgeInsets.all(2),
+         padding: EdgeInsets.zero,
          itemCount: 15,
          physics: const NeverScrollableScrollPhysics(),
-         padding: EdgeInsets.zero,
-         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, mainAxisSpacing: compact ? 5 : 8, crossAxisSpacing: compact ? 5 : 8, childAspectRatio: 1.2),
+         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, mainAxisSpacing: compact ? 5 : 8, crossAxisSpacing: compact ? 5 : 8, childAspectRatio: landscape ? 1.5 : 2.0),
          itemBuilder: (context, i) => _tile(i),
         );
         return Padding(

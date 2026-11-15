@@ -37,19 +37,96 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
  Future<void> _save() async {final p=await SharedPreferences.getInstance();await p.setString('bk_prize_packs_v2',jsonEncode(packs.map((p)=>p.toJson()).toList()));await p.setString('bk_prize_pool_v1',jsonEncode(prizePool.map((p)=>p.toJson()).toList()));await p.setStringList('bk_prize_history_v2',history);}
  void _select(int i){setState(() { selected=i; reveal=packs[i].winner; });}
  KeyEventResult _remoteKey(FocusNode n,KeyEvent e){if(e is! KeyDownEvent)return KeyEventResult.ignored;final k=e.logicalKey;if(k==LogicalKeyboardKey.arrowLeft){_select((selected-1).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowRight){_select((selected+1).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowUp){_select((selected-5).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.arrowDown){_select((selected+5).clamp(0,14));return KeyEventResult.handled;}if(k==LogicalKeyboardKey.enter||k==LogicalKeyboardKey.select||k==LogicalKeyboardKey.space){_draw();return KeyEventResult.handled;}return KeyEventResult.ignored;}
- Future<void> _draw() async {if(!loaded||busy)return;final pack=packs[selected];if(pack.winner!=null||!prizePool.any((p)=>p.drawable))return;setState(()=>busy=true);await anim.forward(from:0);final list=prizePool.where((p)=>p.drawable).toList();if(list.isEmpty){if(mounted)setState(()=>busy=false);return;}final total=list.fold<int>(0,(sum,p)=>sum+p.weight);var r=Random.secure().nextInt(total);var win=list.first;for(final p in list){r-=p.weight;if(r<0){win=p;break;}}win.stock--;pack.winner=win.name;if(win.stock==0)win.active=false;history.insert(0,'${DateTime.now().toString().substring(0,16)} • PAKET ${selected+1} • ${win.name}');await _save();if(mounted)setState(() { reveal=win.name; busy=false; });}
- Future<void> _newCustomer() async {if(busy)return;final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(backgroundColor:panel,title:const Text('NOVI KUPAC'),content:const Text('Otključati svih 15 paketa za sledećeg kupca? Zalihe nagrada ostaju sačuvane.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('ODUSTANI')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('NOVI KUPAC'))]));if(yes!=true)return;for(final p in packs){p.winner=null;}selected=0;reveal=null;await anim.reverse();await _save();if(mounted)setState((){});}
+ Future<void> _draw() async {if(!loaded||busy)return;final pack=packs[selected];if(pack.winner!=null||!prizePool.any((p)=>p.drawable))return;setState(()=>busy=true);await anim.forward(from:0);final list=prizePool.where((p)=>p.drawable).toList();if(list.isEmpty){if(mounted)setState(()=>busy=false);return;}final total=list.fold<int>(0,(sum,p)=>sum+p.weight);var r=Random.secure().nextInt(total);var win=list.first;for(final p in list){r-=p.weight;if(r<0){win=p;break;}}win.stock--;pack.winner=win.name;if(win.stock==0)win.active=false;history.insert(0,'${DateTime.now().toString().substring(0,16)} • PAKET ${selected+1} • ${win.name}');await _save();if(mounted){setState(() { reveal=win.name; busy=false; });await _showPrizeReveal(selected,win.name);}}
+ Future<void> _showPrizeReveal(int packageNumber,String prizeName) async {
+    await showGeneralDialog<void>(
+      context:context, barrierDismissible:true, barrierLabel:'Zatvori poklon',
+      barrierColor:Colors.black.withOpacity(.9), transitionDuration:const Duration(milliseconds:650),
+      pageBuilder:(context,animation,secondary)=>Center(child:Material(color:Colors.transparent,child:Container(
+        margin:const EdgeInsets.all(24),padding:const EdgeInsets.all(28),constraints:const BoxConstraints(maxWidth:620),
+        decoration:BoxDecoration(
+          gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF4B0712),Color(0xFF9D1026),Color(0xFF3A0610)]),
+          borderRadius:BorderRadius.circular(30),border:Border.all(color:const Color(0xFFFFD978),width:3),
+          boxShadow:[BoxShadow(color:const Color(0xFFFFC247).withOpacity(.55),blurRadius:55,spreadRadius:8)],
+        ),
+        child:Column(mainAxisSize:MainAxisSize.min,children:[
+          const Text('15 GODINA SA BIO KUTAK',textAlign:TextAlign.center,style:TextStyle(color:Color(0xFFFFE6A0),fontSize:18,fontWeight:FontWeight.w900,letterSpacing:2)),
+          const SizedBox(height:22),
+          ScaleTransition(scale:CurvedAnimation(parent:animation,curve:Curves.elasticOut),child:Container(
+            width:190,height:170,decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFFFE7A0),Color(0xFFFFB52E),Color(0xFFB20D25)]),borderRadius:BorderRadius.circular(24),border:Border.all(color:Colors.white,width:2),boxShadow:[BoxShadow(color:Colors.amber.withOpacity(.5),blurRadius:28)]),
+            child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.card_giftcard,size:76,color:Color(0xFF7B0718)),Text('POKLON',style:TextStyle(color:Color(0xFF7B0718),fontSize:18,fontWeight:FontWeight.w900,letterSpacing:3))]),
+          )),
+          const SizedBox(height:24),
+          const Text('ČESTITAMO!',style:TextStyle(color:Color(0xFFFFD978),fontSize:30,fontWeight:FontWeight.w900,letterSpacing:2)),
+          const SizedBox(height:8),
+          Text('PAKET ${packageNumber+1}',style:const TextStyle(color:Colors.white70,fontSize:16,fontWeight:FontWeight.bold,letterSpacing:2)),
+          const SizedBox(height:10),
+          Text(prizeName,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontSize:32,fontWeight:FontWeight.w900)),
+          const SizedBox(height:22),
+          FilledButton(style:FilledButton.styleFrom(backgroundColor:const Color(0xFFFFD978),foregroundColor:const Color(0xFF5B0715),padding:const EdgeInsets.symmetric(horizontal:36,vertical:16)),onPressed:()=>Navigator.pop(context),child:const Text('ZATVORI',style:TextStyle(fontWeight:FontWeight.w900,letterSpacing:1))),
+        ]),
+      ))),
+      transitionBuilder:(context,animation,secondary,child)=>FadeTransition(opacity:animation,child:ScaleTransition(scale:CurvedAnimation(parent:animation,curve:Curves.easeOutBack),child:child)),
+    );
+  }
+  Future<void> _newCustomer() async {if(busy)return;final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(backgroundColor:panel,title:const Text('NOVI KUPAC'),content:const Text('Otključati svih 15 paketa za sledećeg kupca? Zalihe nagrada ostaju sačuvane.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('ODUSTANI')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('NOVI KUPAC'))]));if(yes!=true)return;for(final p in packs){p.winner=null;}selected=0;reveal=null;await anim.reverse();await _save();if(mounted)setState((){});}
  Future<void> _login() async {final ctl=TextEditingController();final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(backgroundColor:panel,title:const Text('ADMINISTRACIJA'),content:TextField(controller:ctl,obscureText:true,autofocus:true,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Administratorski PIN'),onSubmitted:(_)=>Navigator.pop(c,ctl.text=='1515')),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('ODUSTANI')),FilledButton(onPressed:()=>Navigator.pop(c,ctl.text=='1515'),child:const Text('ULAZ'))]));ctl.dispose();if(ok==true&&mounted)await _admin();}
  Future<Prize?> _editPrize(Prize? old) async {final n=TextEditingController(text:old?.name??'');final s=TextEditingController(text:(old?.stock??1).toString());final w=TextEditingController(text:(old?.weight??10).toString());bool active=old?.active??true;final result=await showDialog<Prize>(context:context,builder:(c)=>StatefulBuilder(builder:(c,refresh)=>AlertDialog(backgroundColor:panel,title:Text(old==null?'DODAJ NAGRADU':'IZMENI NAGRADU'),content:SizedBox(width:420,child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:n,decoration:const InputDecoration(labelText:'Naziv nagrade')),TextField(controller:s,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Količina na stanju')),TextField(controller:w,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Verovatnoća / težina')),SwitchListTile(value:active,activeColor:rose,title:const Text('Nagrada je aktivna'),subtitle:const Text('Neaktivne nagrade se ne izvlače'),onChanged:(v)=>refresh(()=>active=v))]))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('OTKAŽI')),FilledButton(onPressed:(){final qty=int.tryParse(s.text),weight=int.tryParse(w.text);if(n.text.trim().isEmpty||qty==null||qty<0||weight==null||weight<0)return;Navigator.pop(c,Prize(n.text.trim(),qty,weight,active:active&&qty>0));},child:const Text('SAČUVAJ'))])));n.dispose();s.dispose();w.dispose();return result;}
- Future<void> _admin() async {await showDialog<void>(context:context,barrierDismissible:false,builder:(c)=>StatefulBuilder(builder:(c,refresh)=>Dialog(backgroundColor:panel,insetPadding:const EdgeInsets.all(18),child:SizedBox(width:760,height:620,child:Column(children:[
-  Padding(padding:const EdgeInsets.fromLTRB(22,16,12,12),child:Row(children:[const Icon(Icons.tune,color:rose,size:26),const SizedBox(width:12),const Expanded(child:Text('ZAJEDNIČKI FOND NAGRADA',style:TextStyle(fontWeight:FontWeight.w900,fontSize:18,letterSpacing:1))),IconButton(onPressed:()=>Navigator.pop(c),icon:const Icon(Icons.close))])),
-  const Divider(height:1),
-  Padding(padding:const EdgeInsets.fromLTRB(20,12,20,10),child:Row(children:[Expanded(child:Text('${prizePool.length} VRSTA NAGRADA • ${prizePool.fold<int>(0,(sum,p)=>sum+p.stock)} UKUPNO KOMADA',style:const TextStyle(color:muted,fontSize:12,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:()async{final prize=await _editPrize(null);if(prize!=null){setState(()=>prizePool.add(prize));await _save();refresh((){});}},icon:const Icon(Icons.add),label:const Text('DODAJ NAGRADU'))])),
-  const Divider(height:1),
-  Expanded(child:prizePool.isEmpty?const Center(child:Text('Zajednički fond je prazan. Dodaj nagrade ovde — važe za svih 15 paketa.',textAlign:TextAlign.center,style:TextStyle(color:muted))):ListView.builder(padding:const EdgeInsets.all(12),itemCount:prizePool.length,itemBuilder:(c,i){final p=prizePool[i];return Card(color:panel2,child:ListTile(leading:CircleAvatar(backgroundColor:p.drawable?rose.withOpacity(.2):Colors.white10,child:Icon(p.drawable?Icons.card_giftcard:Icons.block,color:p.drawable?rose:muted)),title:Text(p.name,style:const TextStyle(fontWeight:FontWeight.bold)),subtitle:Text('Zaliha: ${p.stock} • Težina: ${p.weight} • ${p.active?"Aktivna":"Neaktivna"}',style:const TextStyle(color:muted)),trailing:Wrap(children:[IconButton(onPressed:()async{final v=await _editPrize(p);if(v!=null){setState(()=>prizePool[i]=v);await _save();refresh((){});}},icon:const Icon(Icons.edit_outlined)),IconButton(onPressed:()async{final yes=await showDialog<bool>(context:c,builder:(cc)=>AlertDialog(backgroundColor:panel,title:const Text('Obrisati nagradu?'),content:Text(p.name),actions:[TextButton(onPressed:()=>Navigator.pop(cc,false),child:const Text('NE')),FilledButton(onPressed:()=>Navigator.pop(cc,true),child:const Text('OBRIŠI'))]));if(yes==true){setState(()=>prizePool.removeAt(i));await _save();refresh((){});}},icon:const Icon(Icons.delete_outline,color:Colors.redAccent))])));})),
-  Padding(padding:const EdgeInsets.all(14),child:Row(children:[Expanded(child:Text('Istorija izvlačenja: ${history.length}',style:const TextStyle(color:muted))),FilledButton(onPressed:()async{await _save();if(c.mounted)Navigator.pop(c);},child:const Text('SAČUVAJ I ZATVORI'))]))
- ]))));if(mounted)setState((){});}
- Widget _tile(int i){final p=packs[i],active=selected==i,opened=p.winner!=null,empty=!prizePool.any((x)=>x.drawable)&&!opened;return InkWell(onTap:()=>_select(i),borderRadius:BorderRadius.circular(13),child:AnimatedContainer(duration:const Duration(milliseconds:180),decoration:BoxDecoration(color:active?const Color(0xFF462432):panel,borderRadius:BorderRadius.circular(13),border:Border.all(color:active?rose:const Color(0xFF3A2D34),width:active?2:1),boxShadow:active?[BoxShadow(color:rose.withOpacity(.18),blurRadius:16)]:[]),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(opened?Icons.check_circle:empty?Icons.lock_outline:Icons.card_giftcard,color:empty?muted:active?cream:rose,size:24),const SizedBox(height:4),Text('PAKET ${i+1}',style:const TextStyle(color:cream,fontWeight:FontWeight.w800,fontSize:13)),Text(opened?'OTVOREN':empty?'PRAZAN':'DOSTUPAN',style:const TextStyle(color:muted,fontSize:9,letterSpacing:1))])));}
+ Future<void> _admin() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, refresh) => Dialog(
+          backgroundColor: panel,
+          insetPadding: const EdgeInsets.all(18),
+          child: SizedBox(
+            width: 760, height: 620,
+            child: Column(children: [
+              Padding(padding: const EdgeInsets.fromLTRB(22,16,12,12), child: Row(children: [
+                const Icon(Icons.tune,color:rose,size:26), const SizedBox(width:12),
+                const Expanded(child: Text('ZAJEDNIČKI FOND NAGRADA',style:TextStyle(fontWeight:FontWeight.w900,fontSize:18,letterSpacing:1))),
+                IconButton(onPressed:()=>Navigator.pop(dialogContext),icon:const Icon(Icons.close)),
+              ])),
+              const Divider(height:1),
+              Padding(padding:const EdgeInsets.fromLTRB(20,12,20,10),child:Row(children:[
+                Expanded(child:Text('${prizePool.length} VRSTA NAGRADA • ${prizePool.fold<int>(0,(sum,p)=>sum+p.stock)} UKUPNO KOMADA',style:const TextStyle(color:muted,fontSize:12,fontWeight:FontWeight.bold))),
+                FilledButton.icon(onPressed:()async{final prize=await _editPrize(null);if(prize!=null){setState(()=>prizePool.add(prize));await _save();refresh((){});}},icon:const Icon(Icons.add),label:const Text('DODAJ NAGRADU')),
+              ])),
+              const Divider(height:1),
+              Expanded(child:prizePool.isEmpty
+                ? const Center(child:Text('Zajednički fond je prazan. Dodaj nagrade ovde — važe za svih 15 paketa.',textAlign:TextAlign.center,style:TextStyle(color:muted)))
+                : ListView.builder(padding:const EdgeInsets.all(12),itemCount:prizePool.length,itemBuilder:(context,index){
+                    final prize=prizePool[index];
+                    return Card(color:panel2,child:ListTile(
+                      leading:CircleAvatar(backgroundColor:prize.drawable?rose.withOpacity(.2):Colors.white10,child:Icon(prize.drawable?Icons.card_giftcard:Icons.block,color:prize.drawable?rose:muted)),
+                      title:Text(prize.name,style:const TextStyle(fontWeight:FontWeight.bold)),
+                      subtitle:Text('Zaliha: ${prize.stock} • Težina: ${prize.weight} • ${prize.active?"Aktivna":"Neaktivna"}',style:const TextStyle(color:muted)),
+                      trailing:Wrap(children:[
+                        IconButton(onPressed:()async{final value=await _editPrize(prize);if(value!=null){setState(()=>prizePool[index]=value);await _save();refresh((){});}},icon:const Icon(Icons.edit_outlined)),
+                        IconButton(onPressed:()async{
+                          final yes=await showDialog<bool>(context:dialogContext,builder:(ctx)=>AlertDialog(backgroundColor:panel,title:const Text('Obrisati nagradu?'),content:Text(prize.name),actions:[
+                            TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('NE')),
+                            FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('OBRIŠI')),
+                          ]));
+                          if(yes==true){setState(()=>prizePool.removeAt(index));await _save();refresh((){});}
+                        },icon:const Icon(Icons.delete_outline,color:Colors.redAccent)),
+                      ]),
+                    ));
+                  }),
+              ),
+              Padding(padding:const EdgeInsets.all(14),child:Row(children:[
+                Expanded(child:Text('Istorija izvlačenja: ${history.length}',style:const TextStyle(color:muted))),
+                FilledButton(onPressed:()async{await _save();if(dialogContext.mounted)Navigator.pop(dialogContext);},child:const Text('SAČUVAJ I ZATVORI')),
+              ])),
+            ]),
+          ),
+        ),
+      ),
+    );
+    if(mounted)setState((){});
+  }
+  Widget _tile(int i){final p=packs[i],active=selected==i,opened=p.winner!=null,empty=!prizePool.any((x)=>x.drawable)&&!opened;return InkWell(onTap:()=>_select(i),borderRadius:BorderRadius.circular(13),child:AnimatedContainer(duration:const Duration(milliseconds:180),decoration:BoxDecoration(color:active?const Color(0xFF462432):panel,borderRadius:BorderRadius.circular(13),border:Border.all(color:active?rose:const Color(0xFF3A2D34),width:active?2:1),boxShadow:active?[BoxShadow(color:rose.withOpacity(.18),blurRadius:16)]:[]),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(opened?Icons.check_circle:empty?Icons.lock_outline:Icons.card_giftcard,color:empty?muted:active?cream:rose,size:24),const SizedBox(height:4),Text('PAKET ${i+1}',style:const TextStyle(color:cream,fontWeight:FontWeight.w800,fontSize:13)),Text(opened?'OTVOREN':empty?'PRAZAN':'DOSTUPAN',style:const TextStyle(color:muted,fontSize:9,letterSpacing:1))])));}
  Widget _drawPanel(bool compact){final p=packs[selected];final count=prizePool.where((x)=>x.drawable).length;return Container(padding:EdgeInsets.all(compact?14:20),decoration:BoxDecoration(color:panel,borderRadius:BorderRadius.circular(20),border:Border.all(color:const Color(0xFF3A2D34))),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
  const Text('IZABRANI PAKET',style:TextStyle(color:muted,letterSpacing:2,fontSize:10,fontWeight:FontWeight.bold)),const SizedBox(height:4),Text('BROJ ${selected+1}',style:const TextStyle(color:cream,fontSize:21,fontWeight:FontWeight.w900,letterSpacing:2)),const SizedBox(height:12),
  GestureDetector(onTap:_draw,child:AnimatedBuilder(animation:turn,builder:(c,child){final a=turn.value*pi;return Transform(alignment:Alignment.center,transform:Matrix4.identity()..setEntry(3,2,.001)..rotateY(a),child:Container(height:compact?112:165,width:compact?155:205,decoration:BoxDecoration(gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF703047),Color(0xFF321923)]),borderRadius:BorderRadius.circular(19),border:Border.all(color:const Color(0xFF9B687A),width:1.5),boxShadow:[BoxShadow(color:rose.withOpacity(.14),blurRadius:22)]),child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..rotateY(a>pi/2?pi:0),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(reveal==null?Icons.card_giftcard:Icons.workspace_premium,size:compact?40:56,color:const Color(0xFFE7C7D1)),const SizedBox(height:7),Padding(padding:const EdgeInsets.symmetric(horizontal:8),child:Text(reveal??'BIO KUTAK',textAlign:TextAlign.center,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(color:cream,fontWeight:FontWeight.w900,fontSize:compact?13:17))),if(reveal==null)const Text('POKLON IZNENAĐENJA',style:TextStyle(color:muted,fontSize:9,letterSpacing:1))]))));})),

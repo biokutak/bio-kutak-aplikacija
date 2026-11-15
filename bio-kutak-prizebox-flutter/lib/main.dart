@@ -54,9 +54,84 @@ class _PrizeHomeState extends State<PrizeHome> with SingleTickerProviderStateMix
  Widget _drawPanel(bool compact){final p=packs[selected];final count=p.prizes.where((x)=>x.drawable).length;return Container(padding:EdgeInsets.all(compact?14:20),decoration:BoxDecoration(color:panel,borderRadius:BorderRadius.circular(20),border:Border.all(color:const Color(0xFF3A2D34))),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
  const Text('IZABRANI PAKET',style:TextStyle(color:muted,letterSpacing:2,fontSize:10,fontWeight:FontWeight.bold)),const SizedBox(height:4),Text('BROJ ${selected+1}',style:const TextStyle(color:cream,fontSize:21,fontWeight:FontWeight.w900,letterSpacing:2)),const SizedBox(height:12),
  GestureDetector(onTap:_draw,child:AnimatedBuilder(animation:turn,builder:(c,child){final a=turn.value*pi;return Transform(alignment:Alignment.center,transform:Matrix4.identity()..setEntry(3,2,.001)..rotateY(a),child:Container(height:compact?112:165,width:compact?155:205,decoration:BoxDecoration(gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF703047),Color(0xFF321923)]),borderRadius:BorderRadius.circular(19),border:Border.all(color:const Color(0xFF9B687A),width:1.5),boxShadow:[BoxShadow(color:rose.withOpacity(.14),blurRadius:22)]),child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..rotateY(a>pi/2?pi:0),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(reveal==null?Icons.card_giftcard:Icons.workspace_premium,size:compact?40:56,color:const Color(0xFFE7C7D1)),const SizedBox(height:7),Padding(padding:const EdgeInsets.symmetric(horizontal:8),child:Text(reveal??'BIO KUTAK',textAlign:TextAlign.center,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(color:cream,fontWeight:FontWeight.w900,fontSize:compact?13:17))),if(reveal==null)const Text('POKLON IZNENAĐENJA',style:TextStyle(color:muted,fontSize:9,letterSpacing:1))]))));})),
- const SizedBox(height:10),if(reveal!=null)Text('ČESTITAMO!  \$reveal',textAlign:TextAlign.center,style:const TextStyle(color:Color(0xFFE9B9C9),fontSize:16,fontWeight:FontWeight.w900))else Text(count==0?'NEMA DOSTUPNIH NAGRADA':'\$count VRSTA NAGRADA DOSTUPNO',style:const TextStyle(color:muted,fontSize:10,letterSpacing:1)),
+ const SizedBox(height:10),if(reveal!=null)Text('ČESTITAMO!  $reveal',textAlign:TextAlign.center,style:const TextStyle(color:Color(0xFFE9B9C9),fontSize:16,fontWeight:FontWeight.w900))else Text(count==0?'NEMA DOSTUPNIH NAGRADA':'$count VRSTA NAGRADA DOSTUPNO',style:const TextStyle(color:muted,fontSize:10,letterSpacing:1)),
  const SizedBox(height:12),SizedBox(width:double.infinity,height:44,child:FilledButton.icon(onPressed:busy||!p.available||p.winner!=null?null:_draw,icon:busy?const SizedBox(width:17,height:17,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.redeem),label:Text(busy?'OTVARANJE…':p.winner!=null?'PAKET JE OTVOREN':'OTVORI POKLON'),style:FilledButton.styleFrom(backgroundColor:rose,foregroundColor:Colors.white,disabledBackgroundColor:const Color(0xFF40363B),textStyle:const TextStyle(fontWeight:FontWeight.w800,letterSpacing:1)))),
  const SizedBox(height:7),Text('PREOSTALO NAGRADA: ${p.remaining}',style:const TextStyle(color:muted,fontSize:10))
  ]));}
- @override Widget build(BuildContext context){return Focus(autofocus:true,focusNode:remote,onKeyEvent:_remoteKey,child:Scaffold(body:Container(decoration:const BoxDecoration(gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF21151C),bg,Color(0xFF160E13)])),child:SafeArea(child:LayoutBuilder(builder:(c,box){final landscape=box.maxWidth>=box.maxHeight,compact=box.maxHeight<520;final header=Row(children:[Container(width:40,height:40,decoration:BoxDecoration(color:rose.withOpacity(.16),borderRadius:BorderRadius.circular(11),border:Border.all(color:rose.withOpacity(.5))),child:const Icon(Icons.auto_awesome,color:Color(0xFFE7C7D1))),const SizedBox(width:10),const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('BIO KUTAK',style:TextStyle(color:cream,fontWeight:FontWeight.w900,fontSize:19,letterSpacing:2)),Text('15 GODINA ZAJEDNO',style:TextStyle(color:Color(0xFFE0A8BB),fontSize:9,letterSpacing:2,fontWeight:FontWeight.bold))]),const Spacer(),if(landscape)const Text('POKLONI ZA NAŠE KUPCE',style:TextStyle(color:muted,letterSpacing:2,fontSize:10)),const Spacer(),IconButton(onPressed:_login,icon:const Icon(Icons.settings_outlined,color:cream))]);final grid=GridView.builder(padding:const EdgeInsets.all(2),itemCount:15,gridDelegate:SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:landscape?3:5,mainAxisSpacing:8,crossAxisSpacing:8,childAspectRatio:landscape?1.5:1.2),itemBuilder:(c,i)=>_tile(i));return Padding(padding:EdgeInsets.fromLTRB(compact?12:20,compact?6:12,compact?12:20,compact?6:12),child:Column(children:[header,SizedBox(height:compact?7:14),Expanded(child:landscape?Row(children:[Expanded(flex:5,child:Container(padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:panel.withOpacity(.7),borderRadius:BorderRadius.circular(18),border:Border.all(color:const Color(0xFF342832))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Padding(padding:EdgeInsets.fromLTRB(4,2,4,8),child:Text('IZABERI JEDAN OD 15 PAKETA',style:TextStyle(color:muted,fontWeight:FontWeight.bold,fontSize:10,letterSpacing:1.3))),Expanded(child:grid)]))),const SizedBox(width:14),Expanded(flex:4,child:_drawPanel(compact))]):Column(children:[SizedBox(height:box.maxHeight*.38,child:grid),const SizedBox(height:8),Expanded(child:SingleChildScrollView(child:_drawPanel(true)))])),SizedBox(height:compact?6:10),Row(children:[Expanded(child:Text('DOSTUPNO PAKETA: ${packs.where((p)=>p.available&&p.winner==null).length} / 15',style:const TextStyle(color:muted,fontSize:10,letterSpacing:1))),OutlinedButton.icon(onPressed:_newCustomer,icon:const Icon(Icons.person_add_alt_1,size:16),label:const Text('NOVI KUPAC'),style:OutlinedButton.styleFrom(foregroundColor:cream,side:const BorderSide(color:Color(0xFF795466)))),const SizedBox(width:7),IconButton(onPressed:_login,icon:const Icon(Icons.admin_panel_settings_outlined,color:muted))])]);})))));}
+ @override
+ Widget build(BuildContext context) {
+  return Focus(
+   autofocus: true,
+   focusNode: remote,
+   onKeyEvent: _remoteKey,
+   child: Scaffold(
+    body: Container(
+     decoration: const BoxDecoration(
+      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF21151C), bg, Color(0xFF160E13)]),
+     ),
+     child: SafeArea(
+      child: LayoutBuilder(
+       builder: (context, box) {
+        final landscape = box.maxWidth >= box.maxHeight;
+        final compact = box.maxHeight < 520;
+        final header = Row(children: [
+         Container(width: 40, height: 40, decoration: BoxDecoration(color: rose.withOpacity(.16), borderRadius: BorderRadius.circular(11), border: Border.all(color: rose.withOpacity(.5))), child: const Icon(Icons.auto_awesome, color: Color(0xFFE7C7D1))),
+         const SizedBox(width: 10),
+         const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('BIO KUTAK', style: TextStyle(color: cream, fontWeight: FontWeight.w900, fontSize: 19, letterSpacing: 2)),
+          Text('15 GODINA ZAJEDNO', style: TextStyle(color: Color(0xFFE0A8BB), fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)),
+         ]),
+         const Spacer(),
+         if (landscape) const Text('POKLONI ZA NAŠE KUPCE', style: TextStyle(color: muted, letterSpacing: 2, fontSize: 10)),
+         const Spacer(),
+         IconButton(onPressed: _login, icon: const Icon(Icons.settings_outlined, color: cream)),
+        ]);
+        final grid = GridView.builder(
+         padding: const EdgeInsets.all(2),
+         itemCount: 15,
+         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: landscape ? 3 : 5, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: landscape ? 1.5 : 1.2),
+         itemBuilder: (context, i) => _tile(i),
+        );
+        return Padding(
+         padding: EdgeInsets.fromLTRB(compact ? 12 : 20, compact ? 6 : 12, compact ? 12 : 20, compact ? 6 : 12),
+         child: Column(children: [
+          header,
+          SizedBox(height: compact ? 7 : 14),
+          Expanded(
+           child: landscape
+            ? Row(children: [
+               Expanded(flex: 5, child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: panel.withOpacity(.7), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFF342832))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                 const Padding(padding: EdgeInsets.fromLTRB(4, 2, 4, 8), child: Text('IZABERI JEDAN OD 15 PAKETA', style: TextStyle(color: muted, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.3))),
+                 Expanded(child: grid),
+                ]),
+               )),
+               const SizedBox(width: 14),
+               Expanded(flex: 4, child: _drawPanel(compact)),
+              ])
+            : Column(children: [
+               SizedBox(height: box.maxHeight * .38, child: grid),
+               const SizedBox(height: 8),
+               Expanded(child: SingleChildScrollView(child: _drawPanel(true))),
+              ]),
+          ),
+          SizedBox(height: compact ? 6 : 10),
+          Row(children: [
+           Expanded(child: Text('DOSTUPNO PAKETA: ' + packs.where((p) => p.available && p.winner == null).length.toString() + ' / 15', style: const TextStyle(color: muted, fontSize: 10, letterSpacing: 1))),
+           OutlinedButton.icon(onPressed: _newCustomer, icon: const Icon(Icons.person_add_alt_1, size: 16), label: const Text('NOVI KUPAC'), style: OutlinedButton.styleFrom(foregroundColor: cream, side: const BorderSide(color: Color(0xFF795466)))),
+           const SizedBox(width: 7),
+           IconButton(onPressed: _login, icon: const Icon(Icons.admin_panel_settings_outlined, color: muted)),
+          ]),
+         ]),
+        );
+       },
+      ),
+     ),
+    ),
+   ),
+  );
+ }
+}
 }

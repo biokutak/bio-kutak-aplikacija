@@ -1,8 +1,9 @@
-name: Build BIO KUTAK 15 godina APK
+name: Build BIO KUTAK 15 godina Box and Phone APKs
 on:
   push:
     paths:
       - 'bio-kutak-prizebox-android/**'
+      - 'bio-kutak-remote-android/**'
       - '.github/workflows/build-bio-kutak-prizebox-android.yml'
   workflow_dispatch:
 jobs:
@@ -17,12 +18,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Build installable Android APK
+      - name: Build Box APK with local Wi-Fi remote server
         run: gradle --no-daemon --stacktrace -p bio-kutak-prizebox-android :app:assembleDebug
-      - name: Verify APK exists
-        run: test -s bio-kutak-prizebox-android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Build Phone Remote APK
+        run: gradle --no-daemon --stacktrace -p bio-kutak-remote-android :app:assembleDebug
+      - name: Prepare and verify APKs
+        run: |
+          mkdir -p output
+          cp bio-kutak-prizebox-android/app/build/outputs/apk/debug/app-debug.apk output/BIO-KUTAK-15-GODINA-BOX.apk
+          cp bio-kutak-remote-android/app/build/outputs/apk/debug/app-debug.apk output/BIO-KUTAK-15-GODINA-TELEFON.apk
+          test -s output/BIO-KUTAK-15-GODINA-BOX.apk
+          test -s output/BIO-KUTAK-15-GODINA-TELEFON.apk
+          unzip -t output/BIO-KUTAK-15-GODINA-BOX.apk
+          unzip -t output/BIO-KUTAK-15-GODINA-TELEFON.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: BIO-KUTAK-15-GODINA-APK
-          path: bio-kutak-prizebox-android/app/build/outputs/apk/debug/app-debug.apk
+          name: BIO-KUTAK-15-GODINA-BOX-I-TELEFON
+          path: output/*.apk
           if-no-files-found: error

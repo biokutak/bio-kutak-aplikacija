@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#06152e">
+<title>Evidencija Troškova</title>
+<style>
+:root{--bg:#06152e;--panel:#0b2042;--cyan:#08c9ff;--gold:#ffb629;--muted:#a9c4e8;--white:#f5f9ff;--line:rgba(34,190,255,.28);--green:#19e78b}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#041126;color:var(--white);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+body{background:radial-gradient(ellipse at 50% 0%,#123b70 0,#06152e 48%,#020916 100%);padding:0 0 28px}
+.app{width:min(100%,560px);margin:auto;min-height:100vh;overflow:hidden}
+.hero{position:relative;width:100%;line-height:0;background:#06152e}
+.hero img{display:block;width:100%;height:auto}
+.hotspots{position:absolute;left:3.2%;right:3.2%;top:40.7%;height:31.8%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:2.3% 2.2%}
+.hotspots button{border:0;background:transparent;border-radius:22px;cursor:pointer;min-width:0}
+.hotspots button:focus-visible{outline:3px solid white;background:#ffffff18}
+.content{padding:14px 16px 28px}
+.panel{background:linear-gradient(145deg,rgba(15,43,83,.96),rgba(5,20,45,.97));border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px;box-shadow:0 10px 28px #0006,inset 0 1px #ffffff12}
+h1,h2,h3,p{margin-top:0}h2{font-size:19px;margin-bottom:12px}h3{font-size:15px;margin-bottom:8px;color:#d7ebff}
+.muted{color:var(--muted);font-size:13px}.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{border-radius:14px;padding:13px;background:linear-gradient(135deg,#102e58,#091b38);border:1px solid #1c5685}
+.metric small{display:block;color:#a9c4e8;font-size:12px}.metric strong{display:block;font-size:21px;margin-top:5px;letter-spacing:.2px}.metric.in strong{color:#2df0ad}.metric.out strong{color:#ffbd43}
+button,.btn{font:inherit}.action{border:1px solid #168fce;color:#fff;background:linear-gradient(135deg,#087bc4,#124b91);border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;box-shadow:0 0 16px #009dff30}
+.action.gold{background:linear-gradient(135deg,#ffbf38,#e87912);border-color:#ffc85a;color:#17223a}.action.ghost{background:#0a1c38;border-color:#27517c;color:#cfe8ff}
+.actions{display:flex;gap:9px;flex-wrap:wrap}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:13px;color:#bcd6f3}
+input,select,textarea{width:100%;border:1px solid #27547e;border-radius:11px;background:#06172f;color:white;padding:12px;font:inherit;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #00bfff20}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ffffff12}.item:last-child{border:0}.item strong{display:block;font-size:14px}.amount{font-weight:800;color:#ffbd43;white-space:nowrap}.tag{font-size:11px;color:#9fdcff;background:#0c3961;border-radius:30px;padding:4px 8px;display:inline-block;margin-top:4px}
+.bar{height:8px;background:#142e50;border-radius:20px;overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#05c9ff,#9a63ff)}
+.hidden{display:none!important}.view-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.back{background:transparent;color:#8bdfff;border:0;font-size:14px;font-weight:700;cursor:pointer}
+.empty{text-align:center;color:#a9c4e8;padding:22px 8px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#0e3156;border:1px solid #1bc5ff;color:white;padding:11px 16px;border-radius:12px;transition:.25s;z-index:20;box-shadow:0 8px 30px #0009}.toast.show{opacity:1;transform:translate(-50%,0)}
+.footer{text-align:center;color:#7393b8;font-size:11px;padding:5px 0 18px}
+@media(min-width:560px){.hero{border-radius:0 0 18px 18px;overflow:hidden}.content{padding-top:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <main id="home">
+    <div class="hero">
+      <img id="homeArtwork" alt="Početni ekran Evidencija Troškova" src="assets/home.png">
+      <div class="hotspots" aria-label="Glavni meni">
+        <button aria-label="Novi trošak" onclick="showView('add')"></button>
+        <button aria-label="Svi troškovi" onclick="showView('list')"></button>
+        <button aria-label="Izveštaji" onclick="showView('reports')"></button>
+        <button aria-label="Statistika" onclick="showView('stats')"></button>
+        <button aria-label="Kategorije" onclick="showView('categories')"></button>
+        <button aria-label="Podešavanja" onclick="showView('settings')"></button>
+      </div>
+    </div>
+    <div class="content">
+      <section class="panel">
+        <h2>💎 Finansijski pregled</h2>
+        <div class="summary">
+          <div class="metric"><small>Ukupno evidentirano</small><strong id="totalAll">0,00 RSD</strong></div>
+          <div class="metric out"><small>Troškovi ovog meseca</small><strong id="totalMonth">0,00 RSD</strong></div>
+          <div class="metric in"><small>Broj unosa</small><strong id="countAll">0</strong></div>
+          <div class="metric"><small>Današnji troškovi</small><strong id="totalToday">0,00 RSD</strong></div>
+        </div>
+        <div class="actions" style="margin-top:13px"><button class="action gold" onclick="showView('add')">＋ Novi trošak</button><button class="action ghost" onclick="showView('list')">Pregled evidencije</button></div>
+      </section>
+      <section class="panel"><div class="view-head"><h2 style="margin:0">📊 Poslednji troškovi</h2><button class="back" onclick="showView('list')">Prikaži sve →</button></div><div id="recentList"></div></section>
+    </div>
+  </main>
+
+  <main id="subview" class="hidden">
+    <div class="content">
+      <div class="view-head"><button class="back" onclick="goHome()">← Početna</button><span class="muted">EVIDENCIJA TROŠKOVA</span></div>
+      <section id="addView" class="panel hidden">
+        <h2>＋ Novi trošak</h2>
+        <form id="expenseForm">
+          <div class="field"><label for="date">Datum</label><input id="date" type="date" required></div>
+          <div class="field"><label for="description">Opis troška</label><input id="description" maxlength="90" placeholder="Npr. Kupovina u marketu" required></div>
+          <div class="row">
+            <div class="field"><label for="amount">Iznos (RSD)</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="0,00" required></div>
+            <div class="field"><label for="category">Kategorija</label><select id="category"></select></div>
+          </div>
+          <div class="field"><label for="note">Napomena (opciono)</label><textarea id="note" rows="2" placeholder="Dodatni detalji..."></textarea></div>
+          <div class="actions"><button class="action gold" type="submit">Sačuvaj trošak</button><button class="action ghost" type="reset">Očisti</button></div>
+        </form>
+      </section>
+      <section id="listView" class="panel hidden"><h2>☷ Svi troškovi</h2><div class="row"><div class="field"><label>Pretraga</label><input id="search" placeholder="Pretraži opis..." oninput="renderList()"></div><div class="field"><label>Kategorija</label><select id="filterCategory" onchange="renderList()"></select></div></div><div id="allList"></div><div class="actions"><button class="action ghost" onclick="exportCSV()">Izvezi CSV</button></div></section>
+      <section id="reportsView" class="panel hidden"><h2>◔ Izveštaji</h2><p class="muted">Pregled potrošnje po kategorijama za sve evidentirane troškove.</p><div id="reportList"></div></section>
+      <section id="statsView" class="panel hidden"><h2>📈 Statistika</h2><div class="summary"><div class="metric"><small>Ukupno</small><strong id="statTotal">0 RSD</strong></div><div class="metric out"><small>Prosečan trošak</small><strong id="statAvg">0 RSD</strong></div></div><div id="statBars" style="margin-top:16px"></div></section>
+      <section id="categoriesView" class="panel hidden"><h2>▱ Kategorije</h2><div id="categoryList"></div><div class="field"><label for="newCategory">Dodaj kategoriju</label><input id="newCategory" placeholder="Naziv kategorije"></div><button class="action" onclick="addCategory()">＋ Dodaj kategoriju</button></section>
+      <section id="settingsView" class="panel hidden"><h2>⚙ Podešavanja</h2><p class="muted">Podaci se čuvaju lokalno na ovom uređaju.</p><div class="actions"><button class="action ghost" onclick="exportCSV()">⬇ Izvezi podatke (CSV)</button><button class="action ghost" onclick="backupJSON()">Sačuvaj rezervnu kopiju</button></div><div class="field"><label>Uvoz rezervne kopije (JSON)</label><input type="file" id="importFile" accept=".json,application/json" onchange="importJSON(event)"></div><p class="muted">Brisanje podataka je trajno.</p><button class="action" style="background:#7d243c;border-color:#a83b5a" onclick="clearAll()">Obriši sve podatke</button></section>
+    </div>
+  </main>
+  <div class="footer">EVIDENCIJA TROŠKOVA · Vaši podaci ostaju na uređaju</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+const DEFAULT_CATEGORIES=['Kupovina','Gorivo','Hrana','Prevoz','Režije','Ostalo'];
+let categories=JSON.parse(localStorage.getItem('expense_categories')||'null')||DEFAULT_CATEGORIES;
+let expenses=JSON.parse(localStorage.getItem('expenses_v1')||'[]');
+const money=n=>new Intl.NumberFormat('sr-RS',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+' RSD';
+const today=()=>new Date().toISOString().slice(0,10);
+function persist(){localStorage.setItem('expenses_v1',JSON.stringify(expenses));localStorage.setItem('expense_categories',JSON.stringify(categories));}
+function toast(s){const t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function showView(v){document.getElementById('home').classList.add('hidden');document.getElementById('subview').classList.remove('hidden');document.querySelectorAll('#subview section').forEach(x=>x.classList.add('hidden'));document.getElementById(v+'View').classList.remove('hidden');refresh();window.scrollTo(0,0)}
+function goHome(){document.getElementById('subview').classList.add('hidden');document.getElementById('home').classList.remove('hidden');refresh();window.scrollTo(0,0)}
+function fillCategories(){const opts=categories.map(c=>`<option>${escapeHtml(c)}</option>`).join('');document.getElementById('category').innerHTML=opts;document.getElementById('filterCategory').innerHTML='<option value="">Sve kategorije</option>'+opts}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function itemHTML(e){return `<div class="item"><div style="min-width:0"><strong>${escapeHtml(e.description)}</strong><span class="tag">${escapeHtml(e.category)} · ${e.date}</span></div><span class="amount">${money(e.amount)}</span></div>`}
+function refresh(){
+ fillCategories();
+ const month=today().slice(0,7),tod=today();
+ const sum=expenses.reduce((a,e)=>a+Number(e.amount),0),m=expenses.filter(e=>e.date.startsWith(month)).reduce((a,e)=>a+Number(e.amount),0),d=expenses.filter(e=>e.date===tod).reduce((a,e)=>a+Number(e.amount),0);
+ document.getElementById('totalAll').textContent=money(sum);document.getElementById('totalMonth').textContent=money(m);document.getElementById('totalToday').textContent=money(d);document.getElementById('countAll').textContent=expenses.length;
+ document.getElementById('recentList').innerHTML=expenses.length?expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,5).map(itemHTML).join(''):'<div class="empty">Još nema unetih troškova.<br>Dodajte prvi trošak.</div>';
+ renderList();renderReports();renderStats();renderCategoryList();
+}
+function renderList(){const el=document.getElementById('allList');if(!el)return;const q=(document.getElementById('search')?.value||'').toLowerCase(),cat=document.getElementById('filterCategory')?.value||'';const arr=expenses.filter(e=>(!q||e.description.toLowerCase().includes(q))&&(!cat||e.category===cat)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);el.innerHTML=arr.length?arr.map(e=>`<div class="item"><div style="min-width:0;flex:1"><strong>${escapeHtml(e.description)}</strong><span class="tag">${escapeHtml(e.category)} · ${e.date}</span></div><span class="amount">${money(e.amount)}</span><button class="back" title="Obriši unos" onclick="removeExpense(${e.id})">✕</button></div>`).join(''):'<div class="empty">Nema troškova za izabrani filter.</div>'}
+function renderReports(){const el=document.getElementById('reportList');if(!el)return;const total=expenses.reduce((a,e)=>a+ +e.amount,0);el.innerHTML=categories.map(c=>{const n=expenses.filter(e=>e.category===c).reduce((a,e)=>a+ +e.amount,0),p=total?n/total*100:0;return `<div style="margin:13px 0"><div class="view-head"><strong>${escapeHtml(c)}</strong><span class="amount">${money(n)}</span></div><div class="bar"><i style="width:${p}%"></i></div><small class="muted">${p.toFixed(1)}% ukupne potrošnje</small></div>`}).join('')}
+function renderStats(){const total=expenses.reduce((a,e)=>a+ +e.amount,0);document.getElementById('statTotal').textContent=money(total);document.getElementById('statAvg').textContent=money(expenses.length?total/expenses.length:0);document.getElementById('statBars').innerHTML=categories.map(c=>{const n=expenses.filter(e=>e.category===c).reduce((a,e)=>a+ +e.amount,0),p=total?n/total*100:0;return `<div style="margin:12px 0"><div class="view-head"><span>${escapeHtml(c)}</span><b>${p.toFixed(0)}%</b></div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join('')}
+function renderCategoryList(){const el=document.getElementById('categoryList');if(!el)return;el.innerHTML=categories.map((c,i)=>`<div class="item"><strong>${escapeHtml(c)}</strong><button class="back" onclick="deleteCategory(${i})">Ukloni</button></div>`).join('')}
+document.getElementById('expenseForm').addEventListener('submit',e=>{e.preventDefault();const amount=Number(document.getElementById('amount').value);if(!Number.isFinite(amount)||amount<=0){toast('Unesite ispravan iznos.');return}expenses.push({id:Date.now(),date:document.getElementById('date').value,description:document.getElementById('description').value.trim(),amount,category:document.getElementById('category').value,note:document.getElementById('note').value.trim()});persist();e.target.reset();document.getElementById('date').value=today();refresh();toast('Trošak je sačuvan.');showView('list')});
+function removeExpense(id){if(confirm('Obrisati ovaj trošak?')){expenses=expenses.filter(e=>e.id!==id);persist();refresh();toast('Unos obrisan.')}}
+function addCategory(){const v=document.getElementById('newCategory').value.trim();if(!v)return;if(categories.some(c=>c.toLowerCase()===v.toLowerCase())){toast('Kategorija već postoji.');return}categories.push(v);persist();document.getElementById('newCategory').value='';refresh();toast('Kategorija dodata.')}
+function deleteCategory(i){const c=categories[i];if(expenses.some(e=>e.category===c)){toast('Kategorija se koristi u evidenciji.');return}if(confirm('Ukloniti kategoriju '+c+'?')){categories.splice(i,1);persist();refresh()}}
+function exportCSV(){const rows=[['Datum','Opis','Iznos RSD','Kategorija','Napomena'],...expenses.map(e=>[e.date,e.description,e.amount,e.category,e.note||''])];const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'evidencija-troskova.csv');toast('CSV izvoz je spreman.')}
+function backupJSON(){download(new Blob([JSON.stringify({categories,expenses},null,2)],{type:'application/json'}),'backup-evidencije.json');toast('Rezervna kopija je spremna.')}
+function importJSON(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.expenses)||!Array.isArray(d.categories))throw 0;expenses=d.expenses;categories=d.categories;persist();refresh();toast('Podaci su uvezeni.')}catch(_){toast('Neispravna rezervna kopija.')}};r.readAsText(f)}
+function download(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function clearAll(){if(confirm('Da li sigurno želite da obrišete SVE troškove?')){expenses=[];persist();refresh();toast('Evidencija je obrisana.')}}
+document.getElementById('date').value=today();refresh();
+</script>
+</body>
+</html>

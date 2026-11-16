@@ -35,6 +35,8 @@ public class MainActivity extends Activity {
         webView=new WebView(this);
         webView.setBackgroundColor(0xFF080508);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
         WebSettings s=webView.getSettings();
         s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(false);
@@ -45,12 +47,10 @@ public class MainActivity extends Activity {
                 v.evaluateJavascript("(function(){if(window.__bkRemoteLoop)return;window.__bkRemoteLoop=true;setInterval(function(){try{BKBox.publishState(localStorage.getItem('bk15_shared_prizes_v3')||'{}');BKBox.poll();}catch(e){}},500);})();",null);
             }
         });
-        webView.setWebChromeClient(new WebChromeClient(){
-            @Override public boolean onJsConfirm(WebView v,String u,String m,JsResult r){r.confirm();return true;}
-            @Override public boolean onJsAlert(WebView v,String u,String m,JsResult r){r.confirm();return true;}
-        });
+        webView.setWebChromeClient(new WebChromeClient());
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
+        webView.requestFocus();
         startServer();
         ui.postDelayed(()->Toast.makeText(this,"BIO KUTAK daljinski: "+getWifiIp()+":8787",Toast.LENGTH_LONG).show(),1800);
     }

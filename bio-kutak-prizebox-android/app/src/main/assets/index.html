@@ -65,6 +65,8 @@ function render(){
  $('toast').textContent=remaining()?`Preostalo nagrada: ${remaining()}`:'Fond nagrada je prazan.';
  $('stats').textContent=`Preostalo nagrada: ${remaining()} • Izvučeno: ${state.history.length}`;
 }
+window.BKRemoteOpenPack=function(i){i=Number(i);if(!Number.isInteger(i)||i<0||i>=15)return false;openPack(i);return true;};
+window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';return true;};
 function openPack(i){
  if(state.used.includes(i)){ $('toast').textContent='Ovaj paket je već otvoren za ovog kupca.';return;}
  const prizes=state.prizes.filter(p=>p.active&&p.stock>0&&p.weight>0);
@@ -83,9 +85,9 @@ function showReveal(i,name){
  $('crop').style.backgroundPosition=`${bgX}% ${bgY}%`;
  $('packageLabel').textContent=`PAKET ${i+1} • DOBITNIK`;
  $('winName').textContent=name;
- $('reveal').classList.add('show');
+ $('reveal').classList.add('show');$('reveal').style.display='flex';
 }
-$('closeReveal').onclick=()=>$('reveal').classList.remove('show');
+$('closeReveal').onclick=()=>{$('reveal').classList.remove('show');$('reveal').style.display='none';};
 $('newCustomer').onclick=()=>{
  if(!confirm('Novi kupac? Svih 15 paketa ponovo postaje dostupno. Potrošene nagrade se NE vraćaju u fond.'))return;
  state.used=[];save();$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';

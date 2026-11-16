@@ -69,9 +69,10 @@ public class MainActivity extends Activity {
         if("draw".equals(action)){
             int index=c.optInt("pack",-1);
             if(index>=0&&index<15)ui.post(()->webView.evaluateJavascript(
-                "(function(){try{var a=document.querySelectorAll('.hotspot');var b=a["+index+"];if(!b)return 'NO_PACKAGE_BUTTON';b.click();return 'DRAW_TRIGGERED';}catch(e){return 'ERROR:'+e.message;}})()",null));
+                "window.BKRemoteOpenPack && window.BKRemoteOpenPack("+index+")",null));
         }else if("newCustomer".equals(action)){
-            ui.post(()->webView.evaluateJavascript("document.getElementById('newCustomer').click()",null));
+            ui.post(()->webView.evaluateJavascript(
+                "window.BKRemoteNewCustomer && window.BKRemoteNewCustomer()",null));
         }else if("setPrizes".equals(action)){
             org.json.JSONArray prizes=c.optJSONArray("prizes");
             if(prizes!=null)ui.post(()->webView.evaluateJavascript("window.BKRemoteSetPrizes && window.BKRemoteSetPrizes("+prizes.toString()+")",null));

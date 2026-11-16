@@ -68,9 +68,8 @@ public class MainActivity extends Activity {
         String action=c.optString("action","");
         if("draw".equals(action)){
             int index=c.optInt("pack",-1);
-            String buyer=JSONObject.quote(c.optString("buyer",""));
             if(index>=0&&index<15)ui.post(()->webView.evaluateJavascript(
-                "(function(){var buyer="+buyer+";var b=document.querySelector('.hotspot[data-i=\\\""+index+"\\\"]');if(b){b.click();setTimeout(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');if(s.history&&s.history.length){s.history[s.history.length-1].buyer=buyer;localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}},250);}})()",null));
+                "(function(){try{var a=document.querySelectorAll('.hotspot');var b=a["+index+"];if(!b)return 'NO_PACKAGE_BUTTON';b.click();return 'DRAW_TRIGGERED';}catch(e){return 'ERROR:'+e.message;}})()",null));
         }else if("newCustomer".equals(action)){
             ui.post(()->webView.evaluateJavascript("document.getElementById('newCustomer').click()",null));
         }else if("setPrizes".equals(action)){

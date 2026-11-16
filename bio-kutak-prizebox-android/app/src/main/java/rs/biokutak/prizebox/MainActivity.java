@@ -5,6 +5,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
+import android.net.wifi.WifiManager;
+import android.text.format.Formatter;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -49,8 +52,13 @@ public class MainActivity extends Activity {
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
         startServer();
+        ui.postDelayed(()->Toast.makeText(this,"BIO KUTAK daljinski: "+getWifiIp()+":8787",Toast.LENGTH_LONG).show(),1800);
     }
 
+    private String getWifiIp(){
+        try{WifiManager w=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);return Formatter.formatIpAddress(w.getConnectionInfo().getIpAddress());}
+        catch(Exception e){return "IP nije dostupan";}
+    }
     private class BoxBridge {
         @JavascriptInterface public void publishState(String value){if(value!=null&&value.length()<200000)stateJson=value;}
         @JavascriptInterface public void poll(){JSONObject c;while((c=commands.poll())!=null)dispatch(c);}
@@ -65,12 +73,18 @@ public class MainActivity extends Activity {
                 "(function(){var buyer="+buyer+";var b=document.querySelector('.hotspot[data-i=\\\""+index+"\\\"]');if(b){b.click();setTimeout(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');if(s.history&&s.history.length){s.history[s.history.length-1].buyer=buyer;localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}},250);}})()",null));
         }else if("newCustomer".equals(action)){
             ui.post(()->webView.evaluateJavascript("document.getElementById('newCustomer').click()",null));
+        }else if("editWinner".equals(action)){
+            int index=c.optInt("index",-1);String buyer=JSONObject.quote(c.optString("buyer",""));
+            ui.post(()->webView.evaluateJavascript("(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');if(s.history&&s.history["+index+"]){s.history["+index+"].buyer="+buyer+";localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}})()",null));
+        }else if("deleteWinner".equals(action)){
+            int index=c.optInt("index",-1);
+            ui.post(()->webView.evaluateJavascript("(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');var w=s.history&&s.history["+index+"];if(w){s.history.splice("+index+",1);s.used=(s.used||[]).filter(function(x){return x!==w.pack-1});var p=(s.prizes||[]).find(function(x){return x.name===w.prize});if(p)p.stock++;localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}})()",null));
         }
     }
 
     private String readLine(InputStream in)throws IOException{
         ByteArrayOutputStream b=new ByteArrayOutputStream();int c;
-        while((c=in.read())!=-1){if(c=='\\n')break;if(c!='\\r')b.write(c);}
+        while((c=in.read())!=-1){if(c=='\n')break;if(c!='\r')b.write(c);}
         return b.toString("UTF-8");
     }
     private void startServer(){
@@ -96,7 +110,7 @@ public class MainActivity extends Activity {
             else{code=404;response="{\"error\":\"not found\"}";}
             byte[] bytes=response.getBytes(StandardCharsets.UTF_8);
             String status=code==200?"200 OK":"404 Not Found";
-            out.write(("HTTP/1.1 "+status+"\\r\\nContent-Type: application/json; charset=utf-8\\r\\nAccess-Control-Allow-Origin: *\\r\\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\\r\\nAccess-Control-Allow-Headers: Content-Type\\r\\nContent-Length: "+bytes.length+"\\r\\nConnection: close\\r\\n\\r\\n").getBytes(StandardCharsets.UTF_8));
+            out.write(("HTTP/1.1 "+status+"\r\nContent-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: "+bytes.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.UTF_8));
             out.write(bytes);out.flush();
         }catch(Exception ignored){}
     }

@@ -73,6 +73,9 @@ public class MainActivity extends Activity {
                 "(function(){var buyer="+buyer+";var b=document.querySelector('.hotspot[data-i=\\\""+index+"\\\"]');if(b){b.click();setTimeout(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');if(s.history&&s.history.length){s.history[s.history.length-1].buyer=buyer;localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}},250);}})()",null));
         }else if("newCustomer".equals(action)){
             ui.post(()->webView.evaluateJavascript("document.getElementById('newCustomer').click()",null));
+        }else if("setPrizes".equals(action)){
+            org.json.JSONArray prizes=c.optJSONArray("prizes");
+            if(prizes!=null)ui.post(()->webView.evaluateJavascript("window.BKRemoteSetPrizes && window.BKRemoteSetPrizes("+prizes.toString()+")",null));
         }else if("editWinner".equals(action)){
             int index=c.optInt("index",-1);String buyer=JSONObject.quote(c.optString("buyer",""));
             ui.post(()->webView.evaluateJavascript("(function(){try{var s=JSON.parse(localStorage.getItem('bk15_shared_prizes_v3')||'{}');if(s.history&&s.history["+index+"]){s.history["+index+"].buyer="+buyer+";localStorage.setItem('bk15_shared_prizes_v3',JSON.stringify(s));}}catch(e){}})()",null));

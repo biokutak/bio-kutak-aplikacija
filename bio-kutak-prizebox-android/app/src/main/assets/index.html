@@ -55,6 +55,7 @@ if(!Array.isArray(state.history))state.history=[];
 state.used=[];localStorage.setItem(KEY,JSON.stringify(state)); // every app launch starts with all 15 packages; prize stock remains reduced
 const coords=[];[.50,.65,.81].forEach(y=>[.16,.33,.50,.67,.84].forEach(x=>coords.push({x,y})));
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render();}
+window.BKRemoteSetPrizes=function(prizes){if(!Array.isArray(prizes))return false;state.prizes=prizes.map(p=>({name:String(p.name||'').trim(),stock:Math.max(0,Number(p.stock)||0),weight:Math.max(0,Number(p.weight)||0),active:!!p.active})).filter(p=>p.name);save();return true;};
 function remaining(){return state.prizes.filter(p=>p.active&&p.stock>0&&p.weight>0).reduce((a,p)=>a+p.stock,0)}
 function render(){
  $('hotspots').innerHTML=coords.map((p,i)=>`<button class="hotspot ${state.used.includes(i)?'used':''}" aria-label="Otvori paket ${i+1}" title="Paket ${i+1}" style="left:${p.x*100}%;top:${p.y*100}%" data-i="${i}"></button>`).join('');

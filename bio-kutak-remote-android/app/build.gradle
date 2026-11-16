@@ -1,0 +1,3 @@
+plugins { id 'com.android.application' }
+android { namespace 'rs.biokutak.remote'; compileSdk 35
+ defaultConfig { applicationId 'rs.biokutak.remote'; minSdk 23; targetSdk 28; versionCode 1; versionName '1.0.0' } }

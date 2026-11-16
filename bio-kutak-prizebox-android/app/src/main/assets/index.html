@@ -3,14 +3,14 @@
 <style>
 :root{--gold:#ffd978;--red:#8f091c;--cream:#fff0c8}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080508;color:#fff;font-family:Arial,Helvetica,sans-serif}
-#app{height:100dvh;width:100vw;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;background:radial-gradient(ellipse at center,#3b101b 0,#16080e 58%,#050306 100%)}
+#app{height:100vh;width:100vw;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;background:radial-gradient(ellipse at center,#3b101b 0,#16080e 58%,#050306 100%)}
 .side{height:100%;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:clamp(10px,2vw,30px);min-width:0}
 .brand{font-weight:900;letter-spacing:2px;color:var(--gold);font-size:clamp(14px,1.5vw,24px);text-shadow:0 0 16px #d68d26}
 .hint{font-size:clamp(12px,1.2vw,17px);color:#ffeac0;line-height:1.45}
 .btn{border:1px solid #ffdc7b;border-radius:999px;padding:14px 18px;background:linear-gradient(135deg,#a60d27,#540715);color:white;font-weight:900;letter-spacing:1px;box-shadow:0 5px 20px #0008;cursor:pointer}
 .btn.gold{background:linear-gradient(135deg,#fff0b1,#d99a28);color:#4a1608}
 .btn:disabled{opacity:.35;filter:grayscale(1);cursor:not-allowed}
-#scene{position:relative;width:min(100vh,100vw, min(58vw,94vh));height:min(100vh,100vw,min(58vw,94vh));aspect-ratio:1;flex:none;filter:drop-shadow(0 12px 36px #000c)}
+#scene{position:relative;width:58vw;height:58vw;max-width:94vh;max-height:94vh;aspect-ratio:1;flex:none;filter:drop-shadow(0 12px 36px #000c)}
 #art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}
 .hotspot{position:absolute;width:15.3%;height:16.2%;transform:translate(-50%,-50%);border:2px solid transparent;border-radius:18%;background:transparent;cursor:pointer;transition:transform .22s,border .22s,box-shadow .22s;z-index:2}
 .hotspot:focus-visible{outline:3px solid white}
@@ -21,19 +21,19 @@
 #toast{min-height:22px;color:#ffd978;font-weight:bold;font-size:13px}
 #admin,#reveal{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:16px;background:#050307ed;backdrop-filter:blur(9px)}
 #admin.show,#reveal.show{display:flex}
-.dialog{width:min(720px,96vw);max-height:92dvh;overflow:auto;border:2px solid var(--gold);border-radius:24px;padding:22px;background:linear-gradient(145deg,#35101a,#130b12 65%);box-shadow:0 0 55px #d99a2b44}
+.dialog{width:720px;max-width:96vw;max-height:92vh;overflow:auto;border:2px solid var(--gold);border-radius:24px;padding:22px;background:linear-gradient(145deg,#35101a,#130b12 65%);box-shadow:0 0 55px #d99a2b44}
 .dialog h2{margin:0 0 8px;color:var(--gold);letter-spacing:2px}
 .row{display:grid;grid-template-columns:2fr .7fr .7fr .7fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff20}
 input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius:9px;background:#100a10;color:#fff}
 .row label{font-size:11px;color:#e9d5ad}
 .row button,.smallbtn{border:1px solid #aa5964;border-radius:8px;padding:9px;background:#641324;color:#fff}
 .admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-#reveal .dialog{text-align:center;width:min(620px,95vw);overflow:hidden}
-#crop{position:relative;overflow:visible;width:min(260px,58vw);height:min(260px,58vw);margin:12px auto 18px;border:3px solid var(--gold);border-radius:26px;background-size:500% 300%;background-repeat:no-repeat;box-shadow:0 0 40px #ffbf3e77;animation:pop .75s cubic-bezier(.2,1.5,.4,1)}#crop:before{content:'';position:absolute;left:-2px;right:-2px;top:-2px;height:34%;border:2px solid #fff0ad;border-radius:18px 18px 7px 7px;background:linear-gradient(135deg,#fff0b1,#c87920 55%,#fff0b1);transform-origin:top center;animation:lidOpen .85s .25s ease-out forwards;box-shadow:0 4px 14px #0009}@keyframes lidOpen{to{transform:perspective(450px) rotateX(-125deg);opacity:.2}}
+#reveal .dialog{text-align:center;width:620px;max-width:95vw;overflow:hidden}
+#crop{position:relative;overflow:visible;width:260px;max-width:58vw;height:260px;max-height:58vw;margin:12px auto 18px;border:3px solid var(--gold);border-radius:26px;background-size:500% 300%;background-repeat:no-repeat;box-shadow:0 0 40px #ffbf3e77;animation:pop .75s cubic-bezier(.2,1.5,.4,1)}#crop:before{content:'';position:absolute;left:-2px;right:-2px;top:-2px;height:34%;border:2px solid #fff0ad;border-radius:18px 18px 7px 7px;background:linear-gradient(135deg,#fff0b1,#c87920 55%,#fff0b1);transform-origin:top center;animation:lidOpen .85s .25s ease-out forwards;box-shadow:0 4px 14px #0009}@keyframes lidOpen{to{transform:perspective(450px) rotateX(-125deg);opacity:.2}}
 @keyframes pop{0%{transform:scale(.1) rotate(-15deg);opacity:0}70%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1);opacity:1}}
 #winName{font-size:clamp(26px,5vw,46px);font-weight:1000;color:#fff;text-shadow:0 0 18px #ffbf3e}
 #revealTitle{font-size:clamp(25px,4vw,40px);font-weight:1000;color:var(--gold);letter-spacing:2px}
-@media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;padding:5px 8px}#scene{width:min(96vw,70dvh);height:min(96vw,70dvh)}.side{height:auto;width:100%;padding:4px 8px;gap:6px;align-items:center;text-align:center}.side.left{flex-direction:row;justify-content:space-between}.side.right{flex-direction:row;justify-content:center;flex-wrap:wrap}.hint{display:none}.brand{font-size:13px}.btn{padding:9px 13px;font-size:12px}.row{grid-template-columns:1fr 60px 60px 60px 38px}.row label{display:none}}
+@media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;padding:5px 8px}#scene{width:96vw;height:70vh;max-width:70vh;max-height:70vh}.side{height:auto;width:100%;padding:4px 8px;gap:6px;align-items:center;text-align:center}.side.left{flex-direction:row;justify-content:space-between}.side.right{flex-direction:row;justify-content:center;flex-wrap:wrap}.hint{display:none}.brand{font-size:13px}.btn{padding:9px 13px;font-size:12px}.row{grid-template-columns:1fr 60px 60px 60px 38px}.row label{display:none}}
 </style></head>
 <body><main id="app">
 <section class="side left"><div><div class="brand">✦ BIO KUTAK • 15 GODINA</div><div class="hint">HVALA ŠTO STE DEO NAŠE PRIČE</div></div><button class="btn" id="adminBtn">⚙ PODEŠAVANJA</button></section>
@@ -98,7 +98,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 $('adminBtn').onclick=()=>{const pin=prompt('Administratorski PIN');if(pin!==state.pin){if(pin!==null)alert('Pogrešan PIN.');return;}renderAdmin();$('admin').classList.add('show');};
 $('addPrize').onclick=()=>{state.prizes.push({name:'Nova nagrada',stock:1,weight:10,active:true});save();renderAdmin();};
 $('closeAdmin').onclick=()=>{$('admin').classList.remove('show');save();};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('admin').classList.remove('show');$('reveal').classList.remove('show');}if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){const focus=document.activeElement;if(focus&&focus.classList.contains('hotspot')){e.preventDefault();const i=+focus.dataset.i,step=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:e.key==='ArrowUp'?-5:5;document.querySelector(`[data-i="${Math.max(0,Math.min(14,i+step))}"]`)?.focus();}}if((e.key==='Enter'||e.key===' ')&&document.activeElement?.classList.contains('hotspot')){e.preventDefault();document.activeElement.click();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('admin').classList.remove('show');$('reveal').classList.remove('show');}if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){const focus=document.activeElement;if(focus&&focus.classList.contains('hotspot')){e.preventDefault();const i=+focus.dataset.i,step=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:e.key==='ArrowUp'?-5:5;var target=document.querySelector(`[data-i="${Math.max(0,Math.min(14,i+step))}"]`);if(target)target.focus();}}if((e.key==='Enter'||e.key===' ')&&document.activeElement&&document.activeElement.classList.contains('hotspot')){e.preventDefault();document.activeElement.click();}});
 render();
 })();
 </script></body></html>

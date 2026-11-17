@@ -49,6 +49,21 @@ input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius
 .single-gift{perspective:1000px;-webkit-perspective:1000px}
 .single-gift-lid{transform-origin:50% 0%;-webkit-transform-origin:50% 0%;backface-visibility:visible;-webkit-backface-visibility:visible;will-change:transform;transition:transform 3s cubic-bezier(.2,.7,.2,1),-webkit-transform 3s cubic-bezier(.2,.7,.2,1);-webkit-transition:-webkit-transform 3s cubic-bezier(.2,.7,.2,1)}
 .single-gift-prize{will-change:transform,opacity;transition:opacity .5s ease,transform .5s ease}
+.single-gift{transform-origin:50% 85%;will-change:transform}
+.single-gift-box{transform-origin:50% 100%;will-change:transform}
+.single-gift-ribbon{z-index:4;transition:opacity .45s ease,transform .65s ease}
+.single-gift-bow{z-index:7;transition:opacity .4s ease,transform .65s ease}
+.single-gift-lid{z-index:8;transform-origin:50% 100%;-webkit-transform-origin:50% 100%;transition:transform 1.15s cubic-bezier(.2,.75,.2,1),-webkit-transform 1.15s cubic-bezier(.2,.75,.2,1)}
+.single-gift-stage.opening .single-gift{animation:wholeGiftOpen 3s ease-in-out both}
+.single-gift-stage.opening .single-gift-box{animation:giftBodyOpen 3s ease-in-out both}
+.single-gift-stage.opening .single-gift-ribbon{animation:ribbonRelease .7s 1.1s ease-in forwards}
+.single-gift-stage.opening .single-gift-bow{animation:bowRelease .8s 1.05s ease-in forwards}
+.single-gift-stage.opening .single-gift-prize{animation:giftPrizeRise .65s 2.15s ease-out forwards}
+@keyframes wholeGiftOpen{0%{transform:translateY(35px) scale(.72) rotate(-5deg);opacity:.2}18%{transform:translateY(0) scale(1.04) rotate(4deg);opacity:1}32%{transform:scale(1) rotate(-4deg)}45%{transform:scale(1.03) rotate(3deg)}58%{transform:scale(1) rotate(-2deg)}72%{transform:scale(1.02) rotate(1deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes giftBodyOpen{0%,35%{transform:scaleY(1)}55%{transform:scaleY(.94)}75%,100%{transform:scaleY(1)}}
+@keyframes ribbonRelease{0%{opacity:1;transform:translateY(0) scaleY(1)}100%{opacity:0;transform:translateY(95px) scaleY(.3)}}
+@keyframes bowRelease{0%{opacity:1;transform:translateX(-50%) translateY(0) rotate(0)}100%{opacity:0;transform:translateX(-50%) translateY(-100px) rotate(35deg)}}
+@keyframes giftPrizeRise{0%{opacity:0;transform:translateY(35px) scale(.65)}100%{opacity:1;transform:translateY(-5px) scale(1)}}
 .single-gift-caption{margin-top:5vh;color:#ffdf8a;font-weight:900;font-size:clamp(17px,2.5vw,26px);letter-spacing:1px}
 .single-gift-close{margin-top:22px;border:1px solid #ffdc7b;border-radius:999px;padding:13px 28px;background:linear-gradient(135deg,#fff0b1,#d99a28);color:#4a1608;font-weight:1000;font-size:17px}
 @media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;padding:5px 8px}#scene{width:96vw;height:70vh;max-width:70vh;max-height:70vh}.side{height:auto;width:100%;padding:4px 8px;gap:6px;align-items:center;text-align:center}.side.left{flex-direction:row;justify-content:space-between}.side.right{flex-direction:row;justify-content:center;flex-wrap:wrap}.hint{display:none}.brand{font-size:13px}.btn{padding:9px 13px;font-size:12px}.row{grid-template-columns:1fr 60px 60px 60px 38px}.row label{display:none}}
@@ -99,21 +114,16 @@ function showReveal(i,name){
  const stage=document.createElement('div');stage.className='single-gift-stage';
  stage.innerHTML='<div class="single-gift-title">VAŠ POKLON</div><div class="single-gift"><div class="single-gift-prize"></div><div class="single-gift-box"><div class="single-gift-ribbon"></div><div class="single-gift-number">'+(i+1)+'</div></div><div class="single-gift-lid"></div><div class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div>';
  document.body.appendChild(stage);
- const prize=stage.querySelector('.single-gift-prize');
- prize.textContent='DOBITAK: '+name;
+ stage.querySelector('.single-gift-prize').textContent='DOBITAK: '+name;
  const lid=stage.querySelector('.single-gift-lid');
- // CSS transition radi i na starijim Android WebView verzijama.
- lid.style.transform='perspective(1000px) rotateX(0deg)';
- lid.style.webkitTransform='perspective(1000px) rotateX(0deg)';
- void lid.offsetWidth;
- setTimeout(()=>{
-   lid.style.transform='perspective(1000px) rotateX(-145deg) translateY(-18px)';
-   lid.style.webkitTransform='perspective(1000px) rotateX(-145deg) translateY(-18px)';
- },80);
- setTimeout(()=>{
-   prize.style.opacity='1';
-   prize.style.transform='translateY(0) scale(1)';
- },2350);
+ // Pokret celog poklona: izlazak, njihanje, odvezivanje trake i mašne, otvaranje kutije i prikaz nagrade. Trajanje 3 sekunde.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+   stage.classList.add('opening');
+   setTimeout(()=>{
+     lid.style.transform='perspective(900px) rotateX(-145deg) translateY(-32px) scale(1.08)';
+     lid.style.webkitTransform='perspective(900px) rotateX(-145deg) translateY(-32px) scale(1.08)';
+   },1050);
+ }));
 }
 function showPrizeDialog(i,name){
  $('crop').style.display='none';

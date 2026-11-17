@@ -85,7 +85,7 @@ function render(){
  $('stats').textContent=`Preostalo nagrada: ${remaining()} • Izvučeno: ${state.history.length}`;
 }
 window.BKRemoteOpenPack=function(i){i=Number(i);if(!Number.isInteger(i)||i<0||i>=15)return false;return openPack(i);};
-window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';return true;};
+window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';const gift=document.querySelector('.single-gift-stage');if(gift)gift.remove();$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';return true;};
 function openPack(i){
  if(state.used.includes(i)){ $('toast').textContent='Ovaj paket je već otvoren za ovog kupca.';return false;}
  const prizes=state.prizes.filter(p=>p.active&&p.stock>0&&p.weight>0);
@@ -98,10 +98,9 @@ function openPack(i){
 function showReveal(i,name){
  const old=document.querySelector('.single-gift-stage');if(old)old.remove();
  const stage=document.createElement('div');stage.className='single-gift-stage';
- stage.innerHTML='<div class="single-gift-title">VAŠ POKLON</div><div class="single-gift"><div class="single-gift-prize"></div><div class="single-gift-box"><div class="single-gift-ribbon"></div><div class="single-gift-number">'+(i+1)+'</div></div><div class="single-gift-lid"></div><div class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div><button class="single-gift-close" type="button">ZATVORI</button>';
+ stage.innerHTML='<div class="single-gift-title">VAŠ POKLON</div><div class="single-gift"><div class="single-gift-prize"></div><div class="single-gift-box"><div class="single-gift-ribbon"></div><div class="single-gift-number">'+(i+1)+'</div></div><div class="single-gift-lid"></div><div class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div>';
  document.body.appendChild(stage);
  const prize=stage.querySelector('.single-gift-prize');prize.textContent=name;
- stage.querySelector('.single-gift-close').onclick=()=>stage.remove();
  // Jedan samostalan poklon sa izabranim brojem; poklopac se otvara tokom 3 sekunde.
  requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('opening')));
 }

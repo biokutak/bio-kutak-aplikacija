@@ -35,6 +35,10 @@ input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius
 #winName{font-size:clamp(26px,5vw,46px);font-weight:1000;color:#fff;text-shadow:0 0 18px #ffbf3e}
 #revealTitle{font-size:clamp(25px,4vw,40px);font-weight:1000;color:var(--gold);letter-spacing:2px}
 
+.pack-result-message{position:fixed;z-index:10020;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88vw,900px);box-sizing:border-box;padding:30px 38px;text-align:center;border:3px solid #f5cf69;border-radius:22px;background:rgba(20,5,10,.94);box-shadow:0 12px 50px #000c;color:#fff;pointer-events:none}
+.pack-result-selected{font-size:clamp(28px,5vw,56px);font-weight:1000;line-height:1.15;color:#ffe29a;text-shadow:0 2px 12px #000;margin-bottom:22px}
+.pack-result-label{font-size:clamp(22px,3.6vw,42px);font-weight:900;color:#fff;margin-bottom:12px}
+.pack-result-prize{font-size:clamp(30px,5vw,58px);font-weight:1000;line-height:1.18;color:#ffcf58;text-shadow:0 2px 14px #000;overflow-wrap:anywhere}
 .single-gift-stage{position:fixed;inset:0;z-index:10001;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#4b1420 0,#180910 62%,#050306 100%);perspective:1200px}
 .single-gift-title{color:#ffdf8a;font-weight:1000;font-size:clamp(24px,4vw,42px);letter-spacing:2px;text-shadow:0 0 20px #ffb72e;margin-bottom:5vh}
 .single-gift{position:relative;width:min(42vw,420px);height:min(40vh,340px);min-width:250px;min-height:220px;filter:drop-shadow(0 25px 28px #000b);transform-style:preserve-3d}
@@ -99,20 +103,24 @@ function render(){
  $('stats').textContent=`Preostalo nagrada: ${remaining()} • Izvučeno: ${state.history.length}`;
 }
 window.BKRemoteOpenPack=function(i){i=Number(i);if(!Number.isInteger(i)||i<0||i>=15)return false;return openPack(i);};
-window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';const gift=document.querySelector('.single-gift-stage');if(gift)gift.remove();$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';return true;};
-function openPack(i){
- if(state.used.includes(i)){ $('toast').textContent='Ovaj paket je već otvoren za ovog kupca.';return false;}
- const prizes=state.prizes.filter(p=>p.active&&p.stock>0&&p.weight>0);
- if(!prizes.length){$('toast').textContent='Nema više dostupnih nagrada u zajedničkom fondu.';return false;}
- const total=prizes.reduce((sum,p)=>sum+p.weight,0);let roll=Math.random()*total,win=prizes[0];
- for(const p of prizes){roll-=p.weight;if(roll<=0){win=p;break;}}
- win.stock--;state.used.push(i);state.history.push({at:new Date().toLocaleString('sr-RS'),pack:i+1,prize:win.name});
- save();showReveal(i,win.name);return true;
-}
-function showReveal(i,name){
- const old=document.querySelector('.single-gift-stage');if(old)old.remove();
- const stage=document.createElement('div');stage.className='single-gift-stage';
- stage.innerHTML='<div class="single-gift-title">VAŠ POKLON</div><div class="single-gift"><div class="single-gift-prize"></div><div class="single-gift-box"><div class="single-gift-ribbon"></div><div class="single-gift-number">'+(i+1)+'</div></div><div class="single-gift-lid"></div><div class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div>';
+window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';const gift=document.querySelector('.single-gift-stage');if(gift)gift.remove();$('toast').textfunction showReveal(i,name){
+ const old=document.querySelector('.pack-result-message');if(old)old.remove();
+ const message=document.createElement('div');
+ message.className='pack-result-message';
+ const selected=document.createElement('div');
+ selected.className='pack-result-selected';
+ selected.textContent='IZABRALI STE PAKET '+(i+1);
+ const label=document.createElement('div');
+ label.className='pack-result-label';
+ label.textContent='VAŠA NAGRADA JE:';
+ const prize=document.createElement('div');
+ prize.className='pack-result-prize';
+ prize.textContent=String(name||'');
+ message.appendChild(selected);
+ message.appendChild(label);
+ message.appendChild(prize);
+ document.body.appendChild(message);
+}v class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div>';
  document.body.appendChild(stage);
  stage.querySelector('.single-gift-prize').textContent='DOBITAK: '+name;
  const lid=stage.querySelector('.single-gift-lid');

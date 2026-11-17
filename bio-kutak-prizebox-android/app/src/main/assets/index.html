@@ -34,6 +34,24 @@ input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius
 @keyframes pop{0%{transform:scale(.1) rotate(-15deg);opacity:0}70%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1);opacity:1}}
 #winName{font-size:clamp(26px,5vw,46px);font-weight:1000;color:#fff;text-shadow:0 0 18px #ffbf3e}
 #revealTitle{font-size:clamp(25px,4vw,40px);font-weight:1000;color:var(--gold);letter-spacing:2px}
+
+.single-gift-stage{position:fixed;inset:0;z-index:10001;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#4b1420 0,#180910 62%,#050306 100%);perspective:1200px}
+.single-gift-title{color:#ffdf8a;font-weight:1000;font-size:clamp(24px,4vw,42px);letter-spacing:2px;text-shadow:0 0 20px #ffb72e;margin-bottom:5vh}
+.single-gift{position:relative;width:min(42vw,420px);height:min(40vh,340px);min-width:250px;min-height:220px;filter:drop-shadow(0 25px 28px #000b);transform-style:preserve-3d}
+.single-gift-box{position:absolute;left:5%;right:5%;bottom:0;height:72%;border:5px solid #f6d47c;border-radius:12px 12px 22px 22px;background:repeating-linear-gradient(90deg,#a90e2d 0 17%,#f7df9c 17% 23%,#a90e2d 23% 40%);box-shadow:inset 0 0 35px #4b0618,0 0 35px #ffca5544;display:flex;align-items:center;justify-content:center;overflow:visible}
+.single-gift-ribbon{position:absolute;left:43%;width:14%;top:0;bottom:0;background:linear-gradient(90deg,#f8d77e,#fff0bd,#c58b31);box-shadow:0 0 12px #ffe9a0}
+.single-gift-number{position:relative;z-index:3;width:clamp(78px,12vw,118px);height:clamp(78px,12vw,118px);border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 25%,#fff6ca,#f2bd48 55%,#9c4c13);border:5px solid #fff0b2;color:#941023;font-size:clamp(42px,7vw,72px);font-weight:1000;text-shadow:0 2px #fff8;box-shadow:0 0 25px #ffd45b}
+.single-gift-lid{position:absolute;z-index:5;left:0;right:0;top:15%;height:22%;border:5px solid #ffe9a4;border-radius:15px;background:linear-gradient(180deg,#fff0bd,#d99a32 45%,#9c1729 48%,#6f0b20);transform-origin:top center;transform-style:preserve-3d;box-shadow:0 10px 18px #000b}
+.single-gift-bow{position:absolute;z-index:6;top:-4%;left:50%;width:100px;height:60px;transform:translateX(-50%);pointer-events:none}
+.single-gift-bow:before,.single-gift-bow:after{content:'';position:absolute;width:48px;height:36px;border:8px solid #ffe6a0;border-radius:50% 50% 8px 50%;background:#a60d27}
+.single-gift-bow:before{left:0;transform:rotate(25deg)}.single-gift-bow:after{right:0;transform:scaleX(-1) rotate(25deg)}
+.single-gift-prize{position:absolute;z-index:4;left:8%;right:8%;top:18%;height:58%;display:flex;align-items:center;justify-content:center;text-align:center;padding:15px;color:#fff3c3;font-size:clamp(22px,4vw,42px);font-weight:1000;line-height:1.15;text-shadow:0 0 18px #ffbd3d;opacity:0;transform:translateY(22px) scale(.8)}
+.single-gift-stage.opening .single-gift-lid{animation:singleLidOpen 3s cubic-bezier(.2,.7,.2,1) forwards}
+.single-gift-stage.opening .single-gift-prize{animation:singlePrizeReveal .65s 2.35s ease-out forwards}
+@keyframes singleLidOpen{0%{transform:rotateX(0)}20%{transform:rotateX(-12deg)}100%{transform:rotateX(-132deg) translateY(-10px)}}
+@keyframes singlePrizeReveal{to{opacity:1;transform:translateY(0) scale(1)}}
+.single-gift-caption{margin-top:5vh;color:#ffdf8a;font-weight:900;font-size:clamp(17px,2.5vw,26px);letter-spacing:1px}
+.single-gift-close{margin-top:22px;border:1px solid #ffdc7b;border-radius:999px;padding:13px 28px;background:linear-gradient(135deg,#fff0b1,#d99a28);color:#4a1608;font-weight:1000;font-size:17px}
 @media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;padding:5px 8px}#scene{width:96vw;height:70vh;max-width:70vh;max-height:70vh}.side{height:auto;width:100%;padding:4px 8px;gap:6px;align-items:center;text-align:center}.side.left{flex-direction:row;justify-content:space-between}.side.right{flex-direction:row;justify-content:center;flex-wrap:wrap}.hint{display:none}.brand{font-size:13px}.btn{padding:9px 13px;font-size:12px}.row{grid-template-columns:1fr 60px 60px 60px 38px}.row label{display:none}}
 </style></head>
 <body><main id="app">
@@ -78,36 +96,14 @@ function openPack(i){
  save();showReveal(i,win.name);return true;
 }
 function showReveal(i,name){
- const scene=$('scene'),sceneRect=scene.getBoundingClientRect();
- // Originalni poster je 900x900. Ovi isečci obuhvataju baš numerisanu kutiju, ne nasumični deo postera.
- const boxes=[
-  {x:58,y:355,w:174,h:176},{x:198,y:355,w:174,h:176},{x:340,y:355,w:174,h:176},{x:492,y:355,w:174,h:176},{x:650,y:355,w:174,h:176},
-  {x:58,y:482,w:174,h:190},{x:198,y:482,w:174,h:190},{x:340,y:482,w:174,h:190},{x:492,y:482,w:174,h:190},{x:650,y:482,w:174,h:190},
-  {x:58,y:612,w:174,h:210},{x:198,y:612,w:174,h:210},{x:340,y:612,w:174,h:210},{x:492,y:612,w:174,h:210},{x:650,y:612,w:174,h:210}
- ];
- const b=boxes[i],scale=sceneRect.width/900;
- const flyer=document.createElement('div');flyer.className='fly-package';
- flyer.style.left=(sceneRect.left+b.x*scale)+'px';flyer.style.top=(sceneRect.top+b.y*scale)+'px';
- flyer.style.width=(b.w*scale)+'px';flyer.style.height=(b.h*scale)+'px';
- flyer.style.backgroundImage='url("'+ART+'")';
- flyer.style.backgroundSize=sceneRect.width+'px '+sceneRect.height+'px';
- flyer.style.backgroundPosition=(-b.x*scale)+'px '+(-b.y*scale)+'px';
- const lid=document.createElement('div');lid.className='gift-lid';flyer.appendChild(lid);
- const flash=document.createElement('div');flash.className='prize-flash';flash.textContent='DOBITAK: '+name;
- document.body.appendChild(flyer);document.body.appendChild(flash);
- // Izabrani broj paketa ide ispred svih ostalih, a zatim se kutija otvara tokom ukupno 3 sekunde.
- void flyer.offsetWidth;
- const targetW=Math.min(window.innerWidth*.42,window.innerHeight*.52);
- const targetH=targetW*(b.h/b.w);
- flyer.style.left=((window.innerWidth-targetW)/2)+'px';
- flyer.style.top=((window.innerHeight-targetH)/2-35)+'px';
- flyer.style.width=targetW+'px';flyer.style.height=targetH+'px';
- setTimeout(()=>{flyer.classList.add('opening');},980);
- setTimeout(()=>{flash.classList.add('show');},2150);
- setTimeout(()=>{
-   flyer.remove();flash.remove();
-   showPrizeDialog(i,name);
- },3000);
+ const old=document.querySelector('.single-gift-stage');if(old)old.remove();
+ const stage=document.createElement('div');stage.className='single-gift-stage';
+ stage.innerHTML='<div class="single-gift-title">VAŠ POKLON</div><div class="single-gift"><div class="single-gift-prize"></div><div class="single-gift-box"><div class="single-gift-ribbon"></div><div class="single-gift-number">'+(i+1)+'</div></div><div class="single-gift-lid"></div><div class="single-gift-bow"></div></div><div class="single-gift-caption">PAKET BROJ '+(i+1)+'</div><button class="single-gift-close" type="button">ZATVORI</button>';
+ document.body.appendChild(stage);
+ const prize=stage.querySelector('.single-gift-prize');prize.textContent=name;
+ stage.querySelector('.single-gift-close').onclick=()=>stage.remove();
+ // Jedan samostalan poklon sa izabranim brojem; poklopac se otvara tokom 3 sekunde.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('opening')));
 }
 function showPrizeDialog(i,name){
  $('crop').style.display='none';

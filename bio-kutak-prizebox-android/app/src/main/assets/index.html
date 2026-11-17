@@ -28,7 +28,7 @@ input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius
 .row label{font-size:11px;color:#e9d5ad}
 .row button,.smallbtn{border:1px solid #aa5964;border-radius:8px;padding:9px;background:#641324;color:#fff}
 .admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-#reveal .dialog{text-align:center;width:620px;max-width:95vw;overflow:hidden}
+#reveal .dialog{text-align:center;width:820px;max-width:96vw;overflow:hidden;padding:28px 22px}#revealTitle{font-size:clamp(30px,5vw,52px);text-shadow:0 0 22px #e6a72d}#crop{width:min(440px,72vw);height:min(440px,72vw);max-width:72vw;max-height:72vw;margin:18px auto 22px;border-width:5px;border-radius:30px;box-shadow:0 0 0 8px #ffda7730,0 0 70px #ffbf3ecc;animation:packageForward .9s cubic-bezier(.16,1.25,.3,1) both}@keyframes packageForward{0%{transform:translateY(90px) scale(.18) rotate(-12deg);opacity:0;filter:brightness(.5)}65%{transform:translateY(-10px) scale(1.08) rotate(3deg);opacity:1;filter:brightness(1.35)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1;filter:brightness(1)}}
 #crop{position:relative;overflow:visible;width:260px;max-width:58vw;height:260px;max-height:58vw;margin:12px auto 18px;border:3px solid var(--gold);border-radius:26px;background-size:500% 300%;background-repeat:no-repeat;box-shadow:0 0 40px #ffbf3e77;animation:pop .75s cubic-bezier(.2,1.5,.4,1)}#crop:before{content:'';position:absolute;left:-2px;right:-2px;top:-2px;height:34%;border:2px solid #fff0ad;border-radius:18px 18px 7px 7px;background:linear-gradient(135deg,#fff0b1,#c87920 55%,#fff0b1);transform-origin:top center;animation:lidOpen .85s .25s ease-out forwards;box-shadow:0 4px 14px #0009}@keyframes lidOpen{to{transform:perspective(450px) rotateX(-125deg);opacity:.2}}
 @keyframes pop{0%{transform:scale(.1) rotate(-15deg);opacity:0}70%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1);opacity:1}}
 #winName{font-size:clamp(26px,5vw,46px);font-weight:1000;color:#fff;text-shadow:0 0 18px #ffbf3e}
@@ -65,7 +65,7 @@ function render(){
  $('toast').textContent=remaining()?`Preostalo nagrada: ${remaining()}`:'Fond nagrada je prazan.';
  $('stats').textContent=`Preostalo nagrada: ${remaining()} • Izvučeno: ${state.history.length}`;
 }
-window.BKRemoteOpenPack=function(i){i=Number(i);if(!Number.isInteger(i)||i<0||i>=15)return false;openPack(i);return true;};
+window.BKRemoteOpenPack=function(i){i=Number(i);if(!Number.isInteger(i)||i<0||i>=15)return false;if(state.used.includes(i))return false;openPack(i);return $('reveal').classList.contains('show');};
 window.BKRemoteNewCustomer=function(){state.used=[];save();$('reveal').classList.remove('show');$('reveal').style.display='none';$('toast').textContent='Novi kupac — svih 15 paketa je ponovo dostupno.';return true;};
 function openPack(i){
  if(state.used.includes(i)){ $('toast').textContent='Ovaj paket je već otvoren za ovog kupca.';return;}
@@ -77,7 +77,9 @@ function openPack(i){
  save();showReveal(i,win.name);
 }
 function showReveal(i,name){
+ // Izdvojeni paket se prikazuje preko celog TV ekrana, ispred svih 15 paketa.
  const p=coords[i];const col=i%5,row=Math.floor(i/5);
+ $('crop').style.animation='none';void $('crop').offsetWidth;$('crop').style.animation='packageForward .9s cubic-bezier(.16,1.25,.3,1) both';
  // Crop the selected numbered present out of the exact supplied artwork.
  const bgX=(col/4)*100,bgY=(row/2)*100;
  $('crop').style.backgroundImage=`url("${ART}")`;

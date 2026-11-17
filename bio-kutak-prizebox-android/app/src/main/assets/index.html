@@ -46,8 +46,9 @@ input{min-width:0;width:100%;padding:10px;border:1px solid #8d6a45;border-radius
 .single-gift-bow:before,.single-gift-bow:after{content:'';position:absolute;width:48px;height:36px;border:8px solid #ffe6a0;border-radius:50% 50% 8px 50%;background:#a60d27}
 .single-gift-bow:before{left:0;transform:rotate(25deg)}.single-gift-bow:after{right:0;transform:scaleX(-1) rotate(25deg)}
 .single-gift-prize{position:absolute;z-index:4;left:8%;right:8%;top:18%;height:58%;display:flex;align-items:center;justify-content:center;text-align:center;padding:15px;color:#fff3c3;font-size:clamp(22px,4vw,42px);font-weight:1000;line-height:1.15;text-shadow:0 0 18px #ffbd3d;opacity:0;transform:translateY(22px) scale(.8)}
-.single-gift-lid{transform-origin:top center;backface-visibility:visible;will-change:transform}
-.single-gift-prize{will-change:transform,opacity}
+.single-gift{perspective:1000px;-webkit-perspective:1000px}
+.single-gift-lid{transform-origin:50% 0%;-webkit-transform-origin:50% 0%;backface-visibility:visible;-webkit-backface-visibility:visible;will-change:transform;transition:transform 3s cubic-bezier(.2,.7,.2,1),-webkit-transform 3s cubic-bezier(.2,.7,.2,1);-webkit-transition:-webkit-transform 3s cubic-bezier(.2,.7,.2,1)}
+.single-gift-prize{will-change:transform,opacity;transition:opacity .5s ease,transform .5s ease}
 .single-gift-caption{margin-top:5vh;color:#ffdf8a;font-weight:900;font-size:clamp(17px,2.5vw,26px);letter-spacing:1px}
 .single-gift-close{margin-top:22px;border:1px solid #ffdc7b;border-radius:999px;padding:13px 28px;background:linear-gradient(135deg,#fff0b1,#d99a28);color:#4a1608;font-weight:1000;font-size:17px}
 @media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;padding:5px 8px}#scene{width:96vw;height:70vh;max-width:70vh;max-height:70vh}.side{height:auto;width:100%;padding:4px 8px;gap:6px;align-items:center;text-align:center}.side.left{flex-direction:row;justify-content:space-between}.side.right{flex-direction:row;justify-content:center;flex-wrap:wrap}.hint{display:none}.brand{font-size:13px}.btn{padding:9px 13px;font-size:12px}.row{grid-template-columns:1fr 60px 60px 60px 38px}.row label{display:none}}
@@ -101,29 +102,18 @@ function showReveal(i,name){
  const prize=stage.querySelector('.single-gift-prize');
  prize.textContent='DOBITAK: '+name;
  const lid=stage.querySelector('.single-gift-lid');
- // Pokreni stvarnu 3D animaciju direktno na poklopcu, da radi pouzdano i u Android WebView-u.
- requestAnimationFrame(()=>{
-   requestAnimationFrame(()=>{
-     stage.classList.add('opening');
-     if(lid&&typeof lid.animate==='function'){
-       lid.animate([
-         {transform:'perspective(900px) rotateX(0deg) translateY(0)',offset:0},
-         {transform:'perspective(900px) rotateX(-8deg) translateY(-2px)',offset:.18},
-         {transform:'perspective(900px) rotateX(-38deg) translateY(-5px)',offset:.48},
-         {transform:'perspective(900px) rotateX(-92deg) translateY(-12px)',offset:.78},
-         {transform:'perspective(900px) rotateX(-138deg) translateY(-20px)',offset:1}
-       ],{duration:3000,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
-     }else if(lid){
-       lid.style.transition='transform 3s cubic-bezier(.2,.7,.2,1)';
-       lid.style.transform='perspective(900px) rotateX(-138deg) translateY(-20px)';
-     }
-     setTimeout(()=>{
-       prize.style.opacity='1';
-       prize.style.transform='translateY(0) scale(1)';
-       prize.style.transition='opacity .5s ease, transform .5s ease';
-     },2350);
-   });
- });
+ // CSS transition radi i na starijim Android WebView verzijama.
+ lid.style.transform='perspective(1000px) rotateX(0deg)';
+ lid.style.webkitTransform='perspective(1000px) rotateX(0deg)';
+ void lid.offsetWidth;
+ setTimeout(()=>{
+   lid.style.transform='perspective(1000px) rotateX(-145deg) translateY(-18px)';
+   lid.style.webkitTransform='perspective(1000px) rotateX(-145deg) translateY(-18px)';
+ },80);
+ setTimeout(()=>{
+   prize.style.opacity='1';
+   prize.style.transform='translateY(0) scale(1)';
+ },2350);
 }
 function showPrizeDialog(i,name){
  $('crop').style.display='none';
